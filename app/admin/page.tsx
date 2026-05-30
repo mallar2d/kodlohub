@@ -101,7 +101,32 @@ export default function AdminPage() {
 
   async function updateRole(userId: string, newRole: string) {
     setUpdating(userId);
+
+    // Get old role for notification
+    const { data: oldProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
     await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+
+    // Send notification
+    const roleLabels: Record<string, string> = {
+      owner: "Головний Подро",
+      podrofikovany: "Подрофікований",
+      kodlo: "Кодло",
+      shemetovany: "Шеметований",
+    };
+
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "role_changed",
+      title: "Змінено роль",
+      message: `Твою роль змінено на "${roleLabels[newRole] || newRole}"`,
+      link: `/profile/${userId}`,
+    });
+
     await fetchData();
     setUpdating(null);
   }

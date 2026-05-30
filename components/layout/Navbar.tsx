@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import NotificationsBell from "@/components/ui/NotificationsBell";
 
 const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
@@ -103,6 +104,8 @@ export default function Navbar() {
             </Link>
           )}
 
+          {user && <NotificationsBell />}
+
           {user ? (
             <Link
               href={`/profile/${user.id}`}
@@ -177,7 +180,8 @@ export default function Navbar() {
             </Link>
           )}
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              <NotificationsBell />
               <Link
                 href={`/profile/${user.id}`}
                 className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
