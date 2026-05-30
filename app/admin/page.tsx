@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 import type { User } from "@supabase/supabase-js";
 
 interface Profile {
@@ -76,6 +78,7 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
@@ -127,7 +130,7 @@ export default function AdminPage() {
   async function updateRole(userId: string, newRole: string) {
     // Prevent self-role change
     if (userId === currentUser?.id) {
-      alert("Не можна змінювати свою роль!");
+      toast("Не можна змінювати свою роль!", "error");
       return;
     }
 
@@ -260,6 +263,24 @@ export default function AdminPage() {
     if (isOwner) return true;
     if (isPodrofikovany) return targetRole === "kodlo" || targetRole === "shemetovany";
     return false;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="mb-12">
+            <Skeleton className="h-4 w-32 mb-2" />
+            <Skeleton className="h-10 w-64" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const shemetovany = profiles.filter((p) => p.role === "shemetovany");

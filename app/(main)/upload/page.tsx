@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMobile(
@@ -79,7 +81,7 @@ export default function UploadPage() {
 
   const handleFile = (f: File) => {
     if (f.size > 100 * 1024 * 1024) {
-      alert("Файл занадто великий! Максимум 100 МБ.");
+      toast("Файл занадто великий! Максимум 100 МБ.", "error");
       return;
     }
 
@@ -130,7 +132,7 @@ export default function UploadPage() {
           .eq("author_id", userId)
           .eq("status", "pending");
         if ((count || 0) >= 3) {
-          alert("Вже є 3 пости на розгляді.");
+          toast("Вже є 3 пости на розгляді.", "error");
           setUploading(false);
           return;
         }
@@ -166,7 +168,7 @@ export default function UploadPage() {
               });
             }
           }
-          alert("Пост відправлено на розгляд.");
+          toast("Пост відправлено на розгляд.", "success");
           router.push("/");
         } else {
           router.push("/blog");
@@ -178,7 +180,7 @@ export default function UploadPage() {
 
     if (!file) return;
     if (file.size > 100 * 1024 * 1024) {
-      alert("Максимум 100 МБ.");
+      toast("Максимум 100 МБ.", "error");
       return;
     }
 
@@ -205,7 +207,7 @@ export default function UploadPage() {
       try {
         errorMsg = (await presignRes.json()).error || errorMsg;
       } catch {}
-      alert(errorMsg);
+      toast(errorMsg, "error");
       setUploading(false);
       return;
     }
@@ -222,16 +224,12 @@ export default function UploadPage() {
       });
 
       if (!uploadRes.ok) {
-        alert(
-          `Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`,
-        );
+        toast(`Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`, "error");
         setUploading(false);
         return;
       }
     } catch (e) {
-      alert(
-        `Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`,
-      );
+      toast(`Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`, "error");
       setUploading(false);
       return;
     }
@@ -263,7 +261,7 @@ export default function UploadPage() {
       try {
         errorMsg = (await mediaRes.json()).error || errorMsg;
       } catch {}
-      alert(errorMsg);
+      toast(errorMsg, "error");
       setUploading(false);
       return;
     }
@@ -328,7 +326,7 @@ export default function UploadPage() {
       .single();
 
     if (existing) {
-      alert("Вже є заявка на розгляді. Чекай.");
+      toast("Вже є заявка на розгляді. Чекай.", "error");
       setApplySending(false);
       return;
     }
@@ -357,7 +355,7 @@ export default function UploadPage() {
         }
       }
 
-      alert("Заявку відправлено! Чекай на розгляд.");
+      toast("Заявку відправлено! Чекай на розгляд.", "success");
       router.push("/");
     }
 

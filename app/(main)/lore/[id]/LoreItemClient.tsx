@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
+import { useToast } from "@/components/ui/Toast";
 
 interface LoreItem {
   id: string;
@@ -88,6 +89,7 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
   const router = useRouter();
   const [canDelete, setCanDelete] = useState(false);
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
@@ -110,7 +112,7 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
     if (!confirm("Видалити артефакт?")) return;
     const { error: loreError } = await supabase.from("lore_items").delete().eq("id", item.id);
     if (loreError) {
-      alert(`Помилка: ${loreError.message}`);
+      toast(`Помилка: ${loreError.message}`, "error");
       return;
     }
     if (item.media_id) {

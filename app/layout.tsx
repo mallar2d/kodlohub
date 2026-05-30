@@ -5,6 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import CoffeeReminder from "@/components/ui/CoffeeReminder";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,10 +31,12 @@ export default function RootLayout({
     <html lang="uk" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas-night text-on-primary">
         <ErrorBoundary>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <CoffeeReminder />
+          <ToastProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <CoffeeReminder />
+          </ToastProvider>
         </ErrorBoundary>
       </body>
     </html>

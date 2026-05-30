@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
+import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
 
 interface Post {
@@ -51,6 +52,7 @@ export default function BlogPostClient({
   const [submitting, setSubmitting] = useState(false);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
