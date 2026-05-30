@@ -26,11 +26,14 @@ export default function UploadPage() {
   >("menu");
   const [applyMessage, setApplyMessage] = useState("");
   const [applySending, setApplySending] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
 
   useEffect(() => {
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
     supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       if (!data.user) {
         router.push("/login");
@@ -255,7 +258,10 @@ export default function UploadPage() {
     }
 
     setProgress(100);
-    router.push(isArtifact ? "/lore" : "/gallery");
+    const dest = isArtifact ? "/lore" : "/gallery";
+    const msg = "Файл завантажено! Він з'явиться на сторінці через ~1 хвилину — чекай на кеш.";
+    setUploadSuccess(msg);
+    setTimeout(() => router.push(dest), 4000);
     setUploading(false);
   };
 
@@ -471,6 +477,24 @@ export default function UploadPage() {
             Завантажуй фото, відео, документи або пиши пости для кодла
           </p>
         </div>
+
+        {/* Mobile warning */}
+        {isMobile && (
+          <div className="mb-6 p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
+            <p className="text-yellow-400 text-sm font-bold mb-1">⚠️ МОБІЛЬНИЙ ПРИСТРІЙ</p>
+            <p className="text-yellow-400/80 text-xs">
+              Завантаження файлів на телефоні працює нестабільно. Краще використовувати комп'ютер.
+            </p>
+          </div>
+        )}
+
+        {/* Upload success message */}
+        {uploadSuccess && (
+          <div className="mb-6 p-4 rounded-lg border border-green-500/50 bg-green-500/10">
+            <p className="text-green-400 text-sm font-bold mb-1">✅ ГОТОВО</p>
+            <p className="text-green-400/80 text-xs">{uploadSuccess}</p>
+          </div>
+        )}
 
         {/* Type selector */}
         <div className="flex flex-wrap gap-3 mb-8">
