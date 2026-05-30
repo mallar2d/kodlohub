@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import NotificationsBell from "@/components/ui/NotificationsBell";
+import SearchBar from "@/components/ui/SearchBar";
 
 const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
@@ -142,6 +143,7 @@ export default function Navbar() {
             </Link>
           )}
 
+          <SearchBar />
           {user && <NotificationsBell />}
 
           {user ? (
@@ -239,6 +241,9 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-canvas-night border-t border-hairline-dark px-4 sm:px-6 py-5 flex flex-col gap-4">
+          <div className="mb-2">
+            <SearchBar />
+          </div>
           {navLinks.map((link) =>
             "external" in link && link.external ? (
               <a
