@@ -20,27 +20,46 @@ export default function ProfileEditPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user || data.user.id !== params.id) {
         router.push("/login");
         return;
       }
       setUser(data.user);
 
-      supabase
+      let { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", params.id)
-        .single()
-        .then(({ data: profile }) => {
-          if (profile) {
-            setDisplayName(profile.display_name || "");
-            setUsername(profile.username || "");
-            setBio(profile.bio || "");
-            setAvatarUrl(profile.avatar_url || "");
-          }
-          setLoading(false);
-        });
+        .single();
+
+      // Auto-create profile if missing
+      if (!profile) {
+        const meta = data.user.user_metadata || {};
+        const newProfile = {
+          id: data.user.id,
+          username: meta.email?.split("@")[0] || data.user.email?.split("@")[0] || `user_${data.user.id.slice(0, 8)}`,
+          display_name: meta.full_name || meta.name || data.user.email?.split("@")[0] || "Учасник кодла",
+          avatar_url: meta.avatar_url || meta.picture || null,
+          bio: "",
+        };
+
+        const { data: created } = await supabase
+          .from("profiles")
+          .upsert(newProfile, { onConflict: "id" })
+          .select()
+          .single();
+
+        profile = created;
+      }
+
+      if (profile) {
+        setDisplayName(profile.display_name || "");
+        setUsername(profile.username || "");
+        setBio(profile.bio || "");
+        setAvatarUrl(profile.avatar_url || "");
+      }
+      setLoading(false);
     });
   }, [params.id, router, supabase]);
 

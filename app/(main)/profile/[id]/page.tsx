@@ -47,11 +47,31 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && user.id === params.id) setIsOwner(true);
 
-      const { data: profileData } = await supabase
+      let { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", params.id)
         .single();
+
+      // Auto-create profile from auth data if missing
+      if (!profileData && user && user.id === params.id) {
+        const meta = user.user_metadata || {};
+        const newProfile = {
+          id: user.id,
+          username: meta.email?.split("@")[0] || user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`,
+          display_name: meta.full_name || meta.name || user.email?.split("@")[0] || "Учасник кодла",
+          avatar_url: meta.avatar_url || meta.picture || null,
+          bio: "",
+        };
+
+        const { data: created } = await supabase
+          .from("profiles")
+          .upsert(newProfile, { onConflict: "id" })
+          .select()
+          .single();
+
+        profileData = created;
+      }
 
       if (profileData) {
         setProfile(profileData);
