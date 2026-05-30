@@ -90,91 +90,57 @@ export default function UploadPage() {
 
   const handleUpload = async () => {
     if (uploadType === "post") {
-      // Text post
       if (!postTitle || !postContent) return;
       setUploading(true);
-
       const userId = (user as { id: string }).id;
 
-      // Ensure profile exists
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", userId)
-        .single();
-
+      const { data: existing } = await supabase.from("profiles").select("id").eq("id", userId).single();
       if (!existing) {
-        const meta =
-          (user as { user_metadata?: Record<string, string> }).user_metadata ||
-          {};
-        await supabase.from("profiles").upsert(
-          {
-            id: userId,
-            username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
-            display_name: meta.full_name || meta.name || "Учасник кодла",
-            avatar_url: meta.avatar_url || meta.picture || null,
-            bio: "",
-          },
-          { onConflict: "id" },
-        );
+        const meta = (user as { user_metadata?: Record<string, string> }).user_metadata || {};
+        await supabase.from("profiles").upsert({
+          id: userId,
+          username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
+          display_name: meta.full_name || meta.name || "Учасник кодла",
+          avatar_url: meta.avatar_url || meta.picture || null,
+          bio: "",
+        }, { onConflict: "id" });
       }
 
-      // Determine status based on role
       let status = "approved";
       if (userRole === "shemetovany") {
-        // Check pending post limit (max 3)
-        const { count } = await supabase
-          .from("posts")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", userId)
-          .eq("status", "pending");
-
+        const { count } = await supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("status", "pending");
         if ((count || 0) >= 3) {
-          alert(
-            "Вже є 3 пости на розгляді. Зачекай поки адміни апрувнуть попередні.",
-          );
+          alert("Вже є 3 пости на розгляді.");
           setUploading(false);
           return;
         }
         status = "pending";
       }
 
-      const { data: newPost, error } = await supabase
-        .from("posts")
-        .insert({
-          author_id: userId,
-          title: postTitle,
-          content: postContent,
-          tags: postTags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-          type: "blog",
-          status,
-        })
-        .select()
-        .single();
+      const { error } = await supabase.from("posts").insert({
+        author_id: userId,
+        title: postTitle,
+        content: postContent,
+        tags: postTags.split(",").map((t) => t.trim()).filter(Boolean),
+        type: "blog",
+        status,
+      });
 
       if (!error) {
-        // Notify admins if pending
         if (status === "pending") {
-          const { data: admins } = await supabase
-            .from("profiles")
-            .select("id")
-            .in("role", ["owner", "podrofikovany"]);
-
+          const { data: admins } = await supabase.from("profiles").select("id").in("role", ["owner", "podrofikovany"]);
           if (admins) {
             for (const admin of admins) {
               await supabase.from("notifications").insert({
                 user_id: admin.id,
                 type: "system",
                 title: "Новий пост на розгляд",
-                message: `Шеметований користувач подав пост "${postTitle}" на апрув`,
+                message: `Шеметований подав пост "${postTitle}" на апрув`,
                 link: "/admin",
               });
             }
           }
-          alert("Пост відправлено на розгляд. Апрувнуть — з'явиться в блоzі.");
+          alert("Пост відправлено на розгляд.");
           router.push("/");
         } else {
           router.push("/blog");
@@ -185,10 +151,8 @@ export default function UploadPage() {
     }
 
     if (!file) return;
-
-    // Vercel free tier body size limit is 4.5 MB — bypass via presigned URL
     if (file.size > 100 * 1024 * 1024) {
-      alert("Файл занадто великий. Максимум 100 МБ.");
+      alert("Максимум 100 МБ.");
       return;
     }
 
@@ -196,118 +160,42 @@ export default function UploadPage() {
     setProgress(10);
 
     const userId = (user as { id: string }).id;
+    setProgress(30);
 
-    // Step 1: Get presigned URL
-    setProgress(20);
-    const presignRes = await fetch("/api/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        authorId: userId,
-      }),
-    });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("authorId", userId);
+    formData.append("caption", caption || file.name);
 
-    const presignData = await presignRes.json();
-    if (!presignRes.ok) {
-      alert(`Помилка: ${presignData.error}`);
-      setUploading(false);
-      return;
-    }
-
-    // Step 2: Upload directly to R2
-    setProgress(40);
-    try {
-      const uploadRes = await fetch(presignData.presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        alert(`Помилка завантаження в R2: ${uploadRes.statusText}`);
-        setUploading(false);
-        return;
-      }
-    } catch (e) {
-      alert(`Помилка завантаження: ${e instanceof Error ? e.message : "Невідома помилка"}`);
-      setUploading(false);
-      return;
-    }
-
-    // Step 3: Save to database
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
     setProgress(70);
-    const determineType = () => {
-      if (file.type.startsWith("image/")) return "image";
-      if (file.type.startsWith("video/")) return "video";
-      if (file.type.startsWith("audio/")) return "audio";
-      return "document";
-    };
+    const data = await res.json();
 
-    const mediaRes = await fetch("/api/media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        authorId: userId,
-        fileUrl: presignData.publicUrl,
-        fileType: determineType(),
-        fileSize: file.size,
-        caption: caption || file.name,
-      }),
-    });
-
-    const mediaData = await mediaRes.json();
-
-    if (!mediaRes.ok) {
-      alert(`Помилка БД: ${mediaData.error}`);
+    if (!res.ok) {
+      alert(`Помилка: ${data.error || "Невідома помилка"}`);
       setUploading(false);
       return;
     }
 
     setProgress(100);
 
-    // Determine if this should go to lore (artifacts)
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const textExts = [
-      "txt",
-      "md",
-      "json",
-      "xml",
-      "csv",
-      "log",
-      "py",
-      "js",
-      "ts",
-      "html",
-      "css",
-    ];
+    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
     const docExts = ["pdf", "doc", "docx"];
     const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-    const isArtifact =
-      textExts.includes(ext) ||
-      docExts.includes(ext) ||
-      musicExts.includes(ext) ||
-      file.type.startsWith("audio/");
+    const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
 
-    // Create lore_item for documents/audio
-    if (isArtifact && mediaData.media) {
+    if (isArtifact && data.media) {
       await supabase.from("lore_items").insert({
         title: caption || file.name,
         description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
         category: "artifact",
-        media_id: mediaData.media.id,
+        media_id: data.media.id,
         author_id: userId,
       });
     }
 
-    if (isArtifact) {
-      router.push("/lore");
-    } else {
-      router.push("/gallery");
-    }
-
+    router.push(isArtifact ? "/lore" : "/gallery");
     setUploading(false);
   };
 
