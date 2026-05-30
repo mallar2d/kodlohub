@@ -64,10 +64,12 @@ export default function ProfileClient({
   profile,
   initialPosts,
   initialMedia,
+  commentCount = 0,
 }: {
   profile: Profile;
   initialPosts: Post[];
   initialMedia: Media[];
+  commentCount?: number;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"posts" | "media" | "liked">("posts");
@@ -170,7 +172,7 @@ export default function ProfileClient({
           {[
             { label: "ПОСТІВ", value: initialPosts.length },
             { label: "МЕДІА", value: initialMedia.length },
-            { label: "КОМЕНТАРІВ", value: 0 },
+            { label: "КОМЕНТАРІВ", value: commentCount },
             { label: "ДНІВ В КОДЛІ", value: Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) },
           ].map((stat) => (
             <div key={stat.label} className="card-dark p-4 text-center">

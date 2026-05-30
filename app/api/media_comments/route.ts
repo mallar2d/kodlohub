@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing mediaId" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("media_comments")
       .select("*, profiles(display_name, username, avatar_url)")

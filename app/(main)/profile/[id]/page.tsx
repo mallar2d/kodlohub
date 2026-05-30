@@ -29,7 +29,7 @@ interface Media {
 }
 
 const getProfileData = unstable_cache(
-  async (id: string): Promise<{ profile: Profile | null; posts: Post[]; media: Media[] }> => {
+  async (id: string): Promise<{ profile: Profile | null; posts: Post[]; media: Media[]; commentCount: number }> => {
     const supabase = createAdminClient();
 
     const { data: profile } = await supabase
@@ -39,10 +39,10 @@ const getProfileData = unstable_cache(
       .single();
 
     if (!profile) {
-      return { profile: null, posts: [], media: [] };
+      return { profile: null, posts: [], media: [], commentCount: 0 };
     }
 
-    const [postsRes, mediaRes] = await Promise.all([
+    const [postsRes, mediaRes, postCommentsRes, mediaCommentsRes] = await Promise.all([
       supabase
         .from("posts")
         .select("id, title, content, created_at")
@@ -53,12 +53,21 @@ const getProfileData = unstable_cache(
         .select("id, file_url, file_type, caption, created_at")
         .eq("author_id", id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", id),
+      supabase
+        .from("media_comments")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", id),
     ]);
 
     return {
       profile: profile as Profile,
       posts: (postsRes.data || []) as Post[],
       media: (mediaRes.data || []) as Media[],
+      commentCount: (postCommentsRes.count || 0) + (mediaCommentsRes.count || 0),
     };
   },
   ["profile-data"],
@@ -71,7 +80,7 @@ export default async function ProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { profile, posts, media } = await getProfileData(id);
+  const { profile, posts, media, commentCount } = await getProfileData(id);
 
   if (!profile) {
     return (
@@ -84,5 +93,5 @@ export default async function ProfilePage({
     );
   }
 
-  return <ProfileClient profile={profile} initialPosts={posts} initialMedia={media} />;
+  return <ProfileClient profile={profile} initialPosts={posts} initialMedia={media} commentCount={commentCount} />;
 }
