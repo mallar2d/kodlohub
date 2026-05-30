@@ -79,7 +79,7 @@ export default function Navbar() {
           href="/"
           className="font-[var(--font-display)] text-xl font-bold tracking-[1.6px] uppercase text-on-primary"
         >
-          KODLOHOST
+          KodloHUB
         </Link>
 
         {/* Desktop nav */}

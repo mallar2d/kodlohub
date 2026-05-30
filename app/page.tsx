@@ -72,7 +72,7 @@ export default function HomePage() {
       {/* Header */}
       <section className="pt-24 pb-16 px-6">
         <div className="max-w-[1200px] mx-auto">
-          <h1 className="heading-hero mb-4">KODLOHOST</h1>
+          <h1 className="heading-hero mb-4">KodloHUB</h1>
           <p className="text-on-primary-mute text-xl max-w-2xl">
             Все, що створило кодло, в одному місці.
           </p>

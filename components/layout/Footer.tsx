@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-[1200px] mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <span className="button-cap text-on-primary">KODLOHOST</span>
+            <span className="button-cap text-on-primary">KodloHUB</span>
             <span className="caption text-ink-mute">Хостинг для кодла</span>
           </div>
 
