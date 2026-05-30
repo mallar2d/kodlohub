@@ -145,6 +145,11 @@ export default function ProfilePage() {
                   ГОЛОВНИЙ ПОДРО
                 </span>
               )}
+              {profile.role === "podrofikovany" && (
+                <span className="button-cap px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/50">
+                  ПОДРОФІКОВАНИЙ
+                </span>
+              )}
               {profile.role === "kodlo" && (
                 <span className="button-cap px-2 py-1 rounded bg-on-primary/10 text-on-primary border border-on-primary/30">
                   КОДЛО

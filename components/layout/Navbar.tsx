@@ -90,13 +90,13 @@ export default function Navbar() {
             )
           )}
 
-          {user && userRole === "owner" && (
+          {user && (userRole === "owner" || userRole === "podrofikovany") && (
             <Link
               href="/admin"
               className={`micro-cap transition-opacity hover:opacity-70 ${
                 pathname === "/admin"
-                  ? "text-yellow-400"
-                  : "text-yellow-400/70"
+                  ? userRole === "owner" ? "text-yellow-400" : "text-purple-400"
+                  : userRole === "owner" ? "text-yellow-400/70" : "text-purple-400/70"
               }`}
             >
               АДМІН
@@ -167,10 +167,10 @@ export default function Navbar() {
               </Link>
             )
           )}
-          {user && userRole === "owner" && (
+          {user && (userRole === "owner" || userRole === "podrofikovany") && (
             <Link
               href="/admin"
-              className="micro-cap text-yellow-400/70 hover:text-yellow-400"
+              className={`micro-cap hover:text-on-primary ${userRole === "owner" ? "text-yellow-400/70" : "text-purple-400/70"}`}
               onClick={() => setMenuOpen(false)}
             >
               АДМІН
