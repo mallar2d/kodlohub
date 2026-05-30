@@ -27,9 +27,14 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [authLoaded, setAuthLoaded] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
+    // Load from cache first
+    const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    if (cachedRole) setUserRole(cachedRole);
+
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
       if (data.user) {
@@ -38,8 +43,14 @@ export default function Navbar() {
           .select("role")
           .eq("id", data.user.id)
           .single();
-        setUserRole(profile?.role || null);
+        const role = profile?.role || null;
+        setUserRole(role);
+        if (role) localStorage.setItem("userRole", role);
+      } else {
+        setUserRole(null);
+        localStorage.removeItem("userRole");
       }
+      setAuthLoaded(true);
     });
     const {
       data: { subscription },
@@ -51,9 +62,12 @@ export default function Navbar() {
           .select("role")
           .eq("id", session.user.id)
           .single();
-        setUserRole(profile?.role || null);
+        const role = profile?.role || null;
+        setUserRole(role);
+        if (role) localStorage.setItem("userRole", role);
       } else {
         setUserRole(null);
+        localStorage.removeItem("userRole");
       }
     });
     return () => subscription.unsubscribe();

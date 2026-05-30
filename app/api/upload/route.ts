@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { S3Client } from "@aws-sdk/client-s3";
 
+export const maxDuration = 10;
+
 function getR2() {
   return new S3Client({
     region: "auto",
