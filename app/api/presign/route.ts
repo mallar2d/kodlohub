@@ -42,7 +42,6 @@ export async function POST(request: Request) {
       Bucket: bucket,
       Key: filePath,
       ContentType: contentType,
-      ContentLength: fileSize,
     });
 
     const presignedUrl = await getSignedUrl(r2, command, { expiresIn: 600 });

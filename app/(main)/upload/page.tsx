@@ -14,12 +14,16 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [uploadType, setUploadType] = useState<"image" | "video" | "document" | "audio" | "post" | "artifact">("image");
+  const [uploadType, setUploadType] = useState<
+    "image" | "video" | "document" | "audio" | "post" | "artifact"
+  >("image");
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
   const [postTags, setPostTags] = useState("");
   const [progress, setProgress] = useState(0);
-  const [shemetovanyMode, setShemetovanyMode] = useState<"menu" | "post" | "apply">("menu");
+  const [shemetovanyMode, setShemetovanyMode] = useState<
+    "menu" | "post" | "apply"
+  >("menu");
   const [applyMessage, setApplyMessage] = useState("");
   const [applySending, setApplySending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,14 +104,19 @@ export default function UploadPage() {
         .single();
 
       if (!existing) {
-        const meta = (user as { user_metadata?: Record<string, string> }).user_metadata || {};
-        await supabase.from("profiles").upsert({
-          id: userId,
-          username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
-          display_name: meta.full_name || meta.name || "Учасник кодла",
-          avatar_url: meta.avatar_url || meta.picture || null,
-          bio: "",
-        }, { onConflict: "id" });
+        const meta =
+          (user as { user_metadata?: Record<string, string> }).user_metadata ||
+          {};
+        await supabase.from("profiles").upsert(
+          {
+            id: userId,
+            username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
+            display_name: meta.full_name || meta.name || "Учасник кодла",
+            avatar_url: meta.avatar_url || meta.picture || null,
+            bio: "",
+          },
+          { onConflict: "id" },
+        );
       }
 
       // Determine status based on role
@@ -121,21 +130,30 @@ export default function UploadPage() {
           .eq("status", "pending");
 
         if ((count || 0) >= 3) {
-          alert("Вже є 3 пости на розгляді. Зачекай поки адміни апрувнуть попередні.");
+          alert(
+            "Вже є 3 пости на розгляді. Зачекай поки адміни апрувнуть попередні.",
+          );
           setUploading(false);
           return;
         }
         status = "pending";
       }
 
-      const { data: newPost, error } = await supabase.from("posts").insert({
-        author_id: userId,
-        title: postTitle,
-        content: postContent,
-        tags: postTags.split(",").map((t) => t.trim()).filter(Boolean),
-        type: "blog",
-        status,
-      }).select().single();
+      const { data: newPost, error } = await supabase
+        .from("posts")
+        .insert({
+          author_id: userId,
+          title: postTitle,
+          content: postContent,
+          tags: postTags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          type: "blog",
+          status,
+        })
+        .select()
+        .single();
 
       if (!error) {
         // Notify admins if pending
@@ -175,11 +193,12 @@ export default function UploadPage() {
     }
 
     setUploading(true);
-    setProgress(0);
+    setProgress(10);
 
     const userId = (user as { id: string }).id;
 
     // Step 1: Get presigned URL
+    setProgress(20);
     const presignRes = await fetch("/api/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -199,22 +218,27 @@ export default function UploadPage() {
     }
 
     // Step 2: Upload directly to R2
-    const xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        setProgress(Math.round((e.loaded / e.total) * 90));
-      }
-    });
+    setProgress(40);
+    try {
+      const uploadRes = await fetch(presignData.presignedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
 
-    await new Promise<void>((resolve, reject) => {
-      xhr.onload = () => resolve();
-      xhr.onerror = () => reject(new Error("Upload failed"));
-      xhr.open("PUT", presignData.presignedUrl);
-      xhr.setRequestHeader("Content-Type", file.type);
-      xhr.send(file);
-    });
+      if (!uploadRes.ok) {
+        alert(`Помилка завантаження в R2: ${uploadRes.statusText}`);
+        setUploading(false);
+        return;
+      }
+    } catch (e) {
+      alert(`Помилка завантаження: ${e instanceof Error ? e.message : "Невідома помилка"}`);
+      setUploading(false);
+      return;
+    }
 
     // Step 3: Save to database
+    setProgress(70);
     const determineType = () => {
       if (file.type.startsWith("image/")) return "image";
       if (file.type.startsWith("video/")) return "video";
@@ -246,10 +270,26 @@ export default function UploadPage() {
 
     // Determine if this should go to lore (artifacts)
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+    const textExts = [
+      "txt",
+      "md",
+      "json",
+      "xml",
+      "csv",
+      "log",
+      "py",
+      "js",
+      "ts",
+      "html",
+      "css",
+    ];
     const docExts = ["pdf", "doc", "docx"];
     const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-    const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
+    const isArtifact =
+      textExts.includes(ext) ||
+      docExts.includes(ext) ||
+      musicExts.includes(ext) ||
+      file.type.startsWith("audio/");
 
     // Create lore_item for documents/audio
     if (isArtifact && mediaData.media) {
@@ -350,7 +390,9 @@ export default function UploadPage() {
 
             <div className="space-y-6">
               <div>
-                <label className="micro-cap text-on-primary-mute block mb-2">ЗАГОЛОВОК</label>
+                <label className="micro-cap text-on-primary-mute block mb-2">
+                  ЗАГОЛОВОК
+                </label>
                 <input
                   type="text"
                   value={postTitle}
@@ -360,7 +402,9 @@ export default function UploadPage() {
                 />
               </div>
               <div>
-                <label className="micro-cap text-on-primary-mute block mb-2">КОНТЕНТ (MARKDOWN)</label>
+                <label className="micro-cap text-on-primary-mute block mb-2">
+                  КОНТЕНТ (MARKDOWN)
+                </label>
                 <textarea
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
@@ -370,7 +414,9 @@ export default function UploadPage() {
                 />
               </div>
               <div>
-                <label className="micro-cap text-on-primary-mute block mb-2">ТЕГИ (ЧЕРЕЗ КОМУ)</label>
+                <label className="micro-cap text-on-primary-mute block mb-2">
+                  ТЕГИ (ЧЕРЕЗ КОМУ)
+                </label>
                 <input
                   type="text"
                   value={postTags}
@@ -384,7 +430,7 @@ export default function UploadPage() {
                 disabled={!postTitle || !postContent || uploading}
                 className="btn-ghost text-on-primary disabled:opacity-30"
               >
-                {uploading ? "НАЖИВАЄМО..." : "ВІДПРАВИТИ НА РОЗГЛЯД"}
+                {uploading ? "НАЖИМАЄМО..." : "ВІДПРАВИТИ НА РОЗГЛЯД"}
               </button>
             </div>
           </div>
@@ -480,7 +526,9 @@ export default function UploadPage() {
 
         {/* Type selector */}
         <div className="flex flex-wrap gap-3 mb-8">
-          {(["image", "video", "document", "audio", "post", "artifact"] as const).map((type) => (
+          {(
+            ["image", "video", "document", "audio", "post", "artifact"] as const
+          ).map((type) => (
             <button
               key={type}
               onClick={() => setUploadType(type)}
@@ -493,14 +541,14 @@ export default function UploadPage() {
               {type === "image"
                 ? "ФОТО"
                 : type === "video"
-                ? "ВІДЕО"
-                : type === "document"
-                ? "ДОКУМЕНТ"
-                : type === "audio"
-                ? "МУЗИКА"
-                : type === "artifact"
-                ? "АРТЕФАКТ"
-                : "ПОСТ"}
+                  ? "ВІДЕО"
+                  : type === "document"
+                    ? "ДОКУМЕНТ"
+                    : type === "audio"
+                      ? "МУЗИКА"
+                      : type === "artifact"
+                        ? "АРТЕФАКТ"
+                        : "ПОСТ"}
             </button>
           ))}
         </div>
@@ -552,7 +600,7 @@ export default function UploadPage() {
               disabled={!postTitle || !postContent || uploading}
               className="btn-ghost text-on-primary disabled:opacity-30"
             >
-              {uploading ? "НАЖИВАЄМО..." : "ОПУБЛІКУВАТИ"}
+              {uploading ? "НАЖИМАЄМО..." : "ОПУБЛІКУВАТИ"}
             </button>
           </div>
         ) : (
@@ -575,7 +623,9 @@ export default function UploadPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*,.pdf,.txt,.md"
-                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                onChange={(e) =>
+                  e.target.files?.[0] && handleFile(e.target.files[0])
+                }
                 className="hidden"
               />
 
@@ -607,9 +657,7 @@ export default function UploadPage() {
                       d="M12 6v12m6-6H6"
                     />
                   </svg>
-                  <p className="text-on-primary mb-2">
-                    НАЖМИ І ЗАВАНТАЖ ПОДРО
-                  </p>
+                  <p className="text-on-primary mb-2">НАЖМИ І ЗАВАНТАЖ ПОДРО</p>
                   <p className="caption text-ink-mute">
                     Перетягни файл сюди або клікни. Максимум 100 МБ.
                   </p>
@@ -654,7 +702,7 @@ export default function UploadPage() {
               disabled={!file || uploading}
               className="btn-ghost text-on-primary disabled:opacity-30 mt-6"
             >
-              {uploading ? "НАЖИВАЄМО..." : "НАЖАТИ"}
+              {uploading ? "НАЖИМАЄМО..." : "НАЖАТИ"}
             </button>
           </>
         )}
