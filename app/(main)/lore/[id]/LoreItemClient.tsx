@@ -88,7 +88,7 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       if (!data.user) return;
       const isItemAuthor = data.user.id === item.author_id;
       if (isItemAuthor) {

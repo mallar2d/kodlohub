@@ -35,7 +35,7 @@ export default function Navbar() {
     const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     if (cachedRole) setUserRole(cachedRole);
 
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       setUser(data.user);
       if (data.user) {
         const { data: profile } = await supabase
@@ -54,7 +54,7 @@ export default function Navbar() {
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event: string, session: { user: any } | null) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         const { data: profile } = await supabase

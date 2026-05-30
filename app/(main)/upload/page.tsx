@@ -31,7 +31,7 @@ export default function UploadPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       if (!data.user) {
         router.push("/login");
         return;

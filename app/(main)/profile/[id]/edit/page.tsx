@@ -20,7 +20,7 @@ export default function ProfileEditPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       if (!data.user || data.user.id !== params.id) {
         router.push("/login");
         return;

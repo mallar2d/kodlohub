@@ -78,7 +78,7 @@ export default function AdminPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       setCurrentUser(data.user);
       if (data.user) {
         const { data: profile } = await supabase

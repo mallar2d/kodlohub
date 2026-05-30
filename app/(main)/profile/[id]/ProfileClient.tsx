@@ -61,7 +61,7 @@ export default function ProfileClient({
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
       if (data.user && data.user.id === profile.id) setIsOwner(true);
     });
   }, [profile.id, supabase]);

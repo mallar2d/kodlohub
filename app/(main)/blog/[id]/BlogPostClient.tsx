@@ -51,7 +51,7 @@ export default function BlogPostClient({
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
       setUser(data.user);
       if (data.user && data.user.id === initialPost.author_id) setIsAuthor(true);
     });

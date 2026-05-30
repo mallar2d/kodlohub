@@ -32,7 +32,7 @@ export default function NotificationsBell() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
       if (data.user) {
         setUser(data.user);
         fetchNotifications(data.user.id);
@@ -65,8 +65,8 @@ export default function NotificationsBell() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          const notif = payload.new as Notification;
+        (payload: { new: Notification }) => {
+          const notif = payload.new;
           setNotifications((prev) => [notif, ...prev]);
           setUnreadCount((prev) => prev + 1);
         }
@@ -87,7 +87,7 @@ export default function NotificationsBell() {
       .limit(20);
 
     setNotifications(data || []);
-    setUnreadCount((data || []).filter((n) => !n.read).length);
+    setUnreadCount((data || []).filter((n: { read: boolean }) => !n.read).length);
   }
 
   async function markAsRead(id: string) {
