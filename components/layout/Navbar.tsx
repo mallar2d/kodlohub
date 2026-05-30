@@ -13,7 +13,6 @@ const navLinks = [
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "АРТЕФАКТИ" },
   { href: "/users", label: "УЧАСНИКИ" },
-  { href: "/upload", label: "ЗАВАНТАЖИТИ" },
   { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
   {
     href: "https://soundcloud.com/zt-barista",
@@ -126,23 +125,6 @@ export default function Navbar() {
             ),
           )}
 
-          {user && (userRole === "owner" || userRole === "podrofikovany") && (
-            <Link
-              href="/admin"
-              className={`micro-cap transition-opacity hover:opacity-70 ${
-                pathname === "/admin"
-                  ? userRole === "owner"
-                    ? "text-yellow-400"
-                    : "text-purple-400"
-                  : userRole === "owner"
-                    ? "text-yellow-400/70"
-                    : "text-purple-400/70"
-              }`}
-            >
-              АДМІН
-            </Link>
-          )}
-
           <SearchBar />
           {user && <NotificationsBell />}
 
@@ -170,19 +152,37 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary hover:bg-canvas-night transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
                     ПРОФІЛЬ
                   </Link>
+                  <Link
+                    href="/upload"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary hover:bg-canvas-night transition-colors"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    ЗАВАНТАЖИТИ
+                  </Link>
+                  {userRole === "owner" || userRole === "podrofikovany" ? (
+                    <Link
+                      href="/admin"
+                      className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-canvas-night transition-colors ${userRole === "owner" ? "text-yellow-400" : "text-purple-400"}`}
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                      АДМІН
+                    </Link>
+                  ) : null}
+                  <div className="border-t border-hairline-dark my-1" />
                   <button
                     onClick={async () => {
                       await supabase.auth.signOut();
@@ -191,14 +191,7 @@ export default function Navbar() {
                     }}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary-mute hover:bg-canvas-night hover:text-red-400 transition-colors w-full text-left cursor-pointer"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                       <polyline points="16 17 21 12 16 7" />
                       <line x1="21" y1="12" x2="9" y2="12" />
@@ -267,19 +260,26 @@ export default function Navbar() {
               </Link>
             ),
           )}
-          {user && (userRole === "owner" || userRole === "podrofikovany") && (
-            <Link
-              href="/admin"
-              className={`micro-cap hover:text-on-primary ${userRole === "owner" ? "text-yellow-400/70" : "text-purple-400/70"}`}
-              onClick={() => setMenuOpen(false)}
-            >
-              АДМІН
-            </Link>
-          )}
           {user ? (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-4">
                 <NotificationsBell />
+                <Link
+                  href="/upload"
+                  className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  ЗАВАНТАЖИТИ
+                </Link>
+                {(userRole === "owner" || userRole === "podrofikovany") && (
+                  <Link
+                    href="/admin"
+                    className={`micro-cap hover:text-on-primary flex items-center gap-2 ${userRole === "owner" ? "text-yellow-400/70" : "text-purple-400/70"}`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    АДМІН
+                  </Link>
+                )}
                 <Link
                   href={`/profile/${user.id}`}
                   className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
@@ -303,14 +303,7 @@ export default function Navbar() {
                 }}
                 className="micro-cap text-on-primary-mute hover:text-red-400 flex items-center gap-2 text-left cursor-pointer"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
