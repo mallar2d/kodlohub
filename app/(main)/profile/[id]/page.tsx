@@ -221,15 +221,19 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-4">
               {posts.map((post) => (
-                <div key={post.id} className="card-dark p-6">
-                  <h3 className="font-bold text-on-primary mb-2">{post.title}</h3>
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.id}`}
+                  className="card-dark p-6 block hover:border-on-primary-mute transition-colors group"
+                >
+                  <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors">{post.title}</h3>
                   <p className="text-on-primary-mute text-sm line-clamp-2">
                     {post.content.slice(0, 200)}
                   </p>
                   <p className="caption text-ink-mute mt-2">
                     {new Date(post.created_at).toLocaleDateString("uk-UA")}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           )
@@ -240,15 +244,16 @@ export default function ProfilePage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {media.map((item) => (
-              <div
+              <Link
                 key={item.id}
-                className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark"
+                href="/gallery"
+                className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
               >
                 {item.file_type === "image" ? (
                   <img
                     src={item.file_url}
                     alt={item.caption || "Медіа"}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
                 ) : item.file_type === "video" ? (
@@ -257,8 +262,20 @@ export default function ProfilePage() {
                     className="w-full h-48 object-cover"
                     preload="metadata"
                   />
-                ) : null}
-              </div>
+                ) : (
+                  <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                )}
+                {item.caption && (
+                  <div className="p-2">
+                    <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
+                  </div>
+                )}
+              </Link>
             ))}
           </div>
         )}
