@@ -19,6 +19,25 @@ interface MediaItem {
   file_size: number | null;
 }
 
+interface PendingPost {
+  id: string;
+  title: string;
+  content: string;
+  author_id: string;
+  status: string;
+  created_at: string;
+  profiles?: { display_name: string; username: string; avatar_url: string | null };
+}
+
+interface JoinRequest {
+  id: string;
+  user_id: string;
+  status: string;
+  message: string;
+  created_at: string;
+  profiles?: { display_name: string; username: string; avatar_url: string | null };
+}
+
 interface StorageInfo {
   totalBytes: number;
   byUser: Record<string, { bytes: number; count: number }>;
@@ -51,6 +70,8 @@ export default function AdminPage() {
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [storage, setStorage] = useState<StorageInfo>({ totalBytes: 0, byUser: {} });
+  const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -72,12 +93,16 @@ export default function AdminPage() {
   }, []);
 
   async function fetchData() {
-    const [profilesRes, mediaRes] = await Promise.all([
+    const [profilesRes, mediaRes, pendingRes, joinRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: true }),
       supabase.from("media").select("id, author_id, file_size"),
+      supabase.from("posts").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
+      supabase.from("join_requests").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
     ]);
 
     setProfiles(profilesRes.data || []);
+    setPendingPosts(pendingRes.data || []);
+    setJoinRequests(joinRes.data || []);
 
     // Calculate storage
     const mediaItems = mediaRes.data || [];
@@ -136,6 +161,88 @@ export default function AdminPage() {
     setUpdating(userId);
     await supabase.auth.admin.deleteUser(userId);
     await supabase.from("profiles").delete().eq("id", userId);
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function approvePost(postId: string) {
+    setUpdating(postId);
+    const { data: post } = await supabase.from("posts").select("author_id, title").eq("id", postId).single();
+
+    await supabase.from("posts").update({ status: "approved" }).eq("id", postId);
+
+    if (post) {
+      await supabase.from("notifications").insert({
+        user_id: post.author_id,
+        type: "post_approved",
+        title: "Пост апрувнуто",
+        message: `Твій пост "${post.title}" опубліковано!`,
+        link: `/blog/${postId}`,
+      });
+    }
+
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function rejectPost(postId: string) {
+    setUpdating(postId);
+    const { data: post } = await supabase.from("posts").select("author_id, title").eq("id", postId).single();
+
+    await supabase.from("posts").update({ status: "rejected" }).eq("id", postId);
+
+    if (post) {
+      await supabase.from("notifications").insert({
+        user_id: post.author_id,
+        type: "post_rejected",
+        title: "Пост відхилено",
+        message: `Твій пост "${post.title}" не пройшов модерацію.`,
+      });
+    }
+
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function approveJoinRequest(requestId: string, userId: string) {
+    setUpdating(requestId);
+
+    await supabase.from("join_requests").update({
+      status: "approved",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: currentUser?.id,
+    }).eq("id", requestId);
+
+    await supabase.from("profiles").update({ role: "kodlo" }).eq("id", userId);
+
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "role_changed",
+      title: "Заявку на Кодло схвалено!",
+      message: "Вітаємо! Тепер ти — Кодло. Маєш повні права.",
+      link: `/profile/${userId}`,
+    });
+
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function rejectJoinRequest(requestId: string, userId: string) {
+    setUpdating(requestId);
+
+    await supabase.from("join_requests").update({
+      status: "rejected",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: currentUser?.id,
+    }).eq("id", requestId);
+
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "role_changed",
+      title: "Заявку на Кодло відхилено",
+      message: "Наразі тобі відмовлено. Спробуй пізніше.",
+    });
+
     await fetchData();
     setUpdating(null);
   }
@@ -244,6 +351,112 @@ export default function AdminPage() {
             <p className="micro-cap text-ink-mute mt-1">ШЕМЕТОВАНИХ</p>
           </div>
         </div>
+
+        {/* Pending posts */}
+        {pendingPosts.length > 0 && (
+          <div className="mb-12">
+            <h2 className="heading-sub mb-6 text-yellow-400">
+              ПОСТИ НА РОЗГЛЯДІ ({pendingPosts.length})
+            </h2>
+            <div className="space-y-4">
+              {pendingPosts.map((post) => (
+                <div key={post.id} className="card-dark p-6 border-yellow-500/30">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="button-cap px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 text-[10px]">
+                          НА РОЗГЛЯДІ
+                        </span>
+                        <span className="caption text-ink-mute">
+                          {new Date(post.created_at).toLocaleString("uk-UA")}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-on-primary mb-1">{post.title}</h3>
+                      <p className="text-on-primary-mute text-sm line-clamp-3 mb-2">
+                        {post.content.slice(0, 200)}...
+                      </p>
+                      <p className="caption text-ink-mute">
+                        Автор: {post.profiles?.display_name || "?"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => approvePost(post.id)}
+                        disabled={updating === post.id}
+                        className="button-cap px-4 py-2 rounded-full bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        АПРУВНУТИ
+                      </button>
+                      <button
+                        onClick={() => rejectPost(post.id)}
+                        disabled={updating === post.id}
+                        className="button-cap px-4 py-2 rounded-full bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                      >
+                        ВІДХИЛИТИ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Join requests */}
+        {joinRequests.length > 0 && (
+          <div className="mb-12">
+            <h2 className="heading-sub mb-6 text-purple-400">
+              ЗАЯВКИ НА КОДЛО ({joinRequests.length})
+            </h2>
+            <div className="space-y-4">
+              {joinRequests.map((req) => (
+                <div key={req.id} className="card-dark p-6 border-purple-500/30">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="button-cap px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/50 text-[10px]">
+                          ЗАЯВКА НА КОДЛО
+                        </span>
+                        <span className="caption text-ink-mute">
+                          {new Date(req.created_at).toLocaleString("uk-UA")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xs font-bold overflow-hidden">
+                          {req.profiles?.avatar_url ? (
+                            <img src={req.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            req.profiles?.display_name?.charAt(0) || "?"
+                          )}
+                        </div>
+                        <p className="font-bold text-on-primary">{req.profiles?.display_name || "?"}</p>
+                      </div>
+                      {req.message && (
+                        <p className="text-on-primary-mute text-sm italic">"{req.message}"</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => approveJoinRequest(req.id, req.user_id)}
+                        disabled={updating === req.id}
+                        className="button-cap px-4 py-2 rounded-full bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        СХВАЛИТИ
+                      </button>
+                      <button
+                        onClick={() => rejectJoinRequest(req.id, req.user_id)}
+                        disabled={updating === req.id}
+                        className="button-cap px-4 py-2 rounded-full bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                      >
+                        ВІДХИЛИТИ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Shemetovany — needs approval */}
         {shemetovany.length > 0 && (

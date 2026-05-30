@@ -19,6 +19,9 @@ export default function UploadPage() {
   const [postContent, setPostContent] = useState("");
   const [postTags, setPostTags] = useState("");
   const [progress, setProgress] = useState(0);
+  const [shemetovanyMode, setShemetovanyMode] = useState<"menu" | "post" | "apply">("menu");
+  const [applyMessage, setApplyMessage] = useState("");
+  const [applySending, setApplySending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
@@ -111,16 +114,57 @@ export default function UploadPage() {
         }, { onConflict: "id" });
       }
 
-      const { error } = await supabase.from("posts").insert({
+      // Determine status based on role
+      let status = "approved";
+      if (userRole === "shemetovany") {
+        // Check pending post limit (max 3)
+        const { count } = await supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", userId)
+          .eq("status", "pending");
+
+        if ((count || 0) >= 3) {
+          alert("Вже є 3 пости на розгляді. Зачекай поки адміни апрувнуть попередні.");
+          setUploading(false);
+          return;
+        }
+        status = "pending";
+      }
+
+      const { data: newPost, error } = await supabase.from("posts").insert({
         author_id: userId,
         title: postTitle,
         content: postContent,
         tags: postTags.split(",").map((t) => t.trim()).filter(Boolean),
         type: "blog",
-      });
+        status,
+      }).select().single();
 
       if (!error) {
-        router.push("/blog");
+        // Notify admins if pending
+        if (status === "pending") {
+          const { data: admins } = await supabase
+            .from("profiles")
+            .select("id")
+            .in("role", ["owner", "podrofikovany"]);
+
+          if (admins) {
+            for (const admin of admins) {
+              await supabase.from("notifications").insert({
+                user_id: admin.id,
+                type: "system",
+                title: "Новий пост на розгляд",
+                message: `Шеметований користувач подав пост "${postTitle}" на апрув`,
+                link: "/admin",
+              });
+            }
+          }
+          alert("Пост відправлено на розгляд. Апрувнуть — з'явиться в блоzі.");
+          router.push("/");
+        } else {
+          router.push("/blog");
+        }
       }
       setUploading(false);
       return;
@@ -169,6 +213,57 @@ export default function UploadPage() {
     setUploading(false);
   };
 
+  const handleApplyForKodlo = async () => {
+    if (!applyMessage.trim()) return;
+    setApplySending(true);
+
+    const userId = (user as { id: string }).id;
+
+    // Check if already has pending request
+    const { data: existing } = await supabase
+      .from("join_requests")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .single();
+
+    if (existing) {
+      alert("Вже є заявка на розгляді. Чекай.");
+      setApplySending(false);
+      return;
+    }
+
+    const { error } = await supabase.from("join_requests").insert({
+      user_id: userId,
+      message: applyMessage,
+    });
+
+    if (!error) {
+      // Notify admins
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .in("role", ["owner", "podrofikovany"]);
+
+      if (admins) {
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            user_id: admin.id,
+            type: "system",
+            title: "Заявка на Кодло",
+            message: `Шеметований користувач подав заявку на перехід в Кодло`,
+            link: "/admin",
+          });
+        }
+      }
+
+      alert("Заявку відправлено! Чекай на розгляд.");
+      router.push("/");
+    }
+
+    setApplySending(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -178,23 +273,136 @@ export default function UploadPage() {
   }
 
   if (userRole === "shemetovany") {
+    if (shemetovanyMode === "post") {
+      return (
+        <div className="min-h-screen pt-24 pb-16 px-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-8">
+              <button
+                onClick={() => setShemetovanyMode("menu")}
+                className="micro-cap text-ink-mute hover:text-on-primary mb-4"
+              >
+                ← НАЗАД
+              </button>
+              <h1 className="heading-section mb-2">НОВИЙ ПОСТ</h1>
+              <p className="caption text-yellow-400">
+                Пост піде на розгляд адмінам. Максимум 3 на розгляді.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="micro-cap text-on-primary-mute block mb-2">ЗАГОЛОВОК</label>
+                <input
+                  type="text"
+                  value={postTitle}
+                  onChange={(e) => setPostTitle(e.target.value)}
+                  placeholder="Напиши щось крутєве..."
+                  className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute"
+                />
+              </div>
+              <div>
+                <label className="micro-cap text-on-primary-mute block mb-2">КОНТЕНТ (MARKDOWN)</label>
+                <textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder="Пиши тут. Підтримується Markdown."
+                  rows={12}
+                  className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute resize-none"
+                />
+              </div>
+              <div>
+                <label className="micro-cap text-on-primary-mute block mb-2">ТЕГИ (ЧЕРЕЗ КОМУ)</label>
+                <input
+                  type="text"
+                  value={postTags}
+                  onChange={(e) => setPostTags(e.target.value)}
+                  placeholder="подро, кодло, меми"
+                  className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute"
+                />
+              </div>
+              <button
+                onClick={handleUpload}
+                disabled={!postTitle || !postContent || uploading}
+                className="btn-ghost text-on-primary disabled:opacity-30"
+              >
+                {uploading ? "НАЖИВАЄМО..." : "ВІДПРАВИТИ НА РОЗГЛЯД"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (shemetovanyMode === "apply") {
+      return (
+        <div className="min-h-screen pt-24 pb-16 px-6">
+          <div className="max-w-2xl mx-auto">
+            <button
+              onClick={() => setShemetovanyMode("menu")}
+              className="micro-cap text-ink-mute hover:text-on-primary mb-4"
+            >
+              ← НАЗАД
+            </button>
+            <h1 className="heading-section mb-4">ПОДАТИ НА КОДЛО</h1>
+            <p className="text-on-primary-mute mb-8">
+              Напиши чому ти хочеш стати Кодлом. Адміни розглянуть заявку.
+            </p>
+            <textarea
+              value={applyMessage}
+              onChange={(e) => setApplyMessage(e.target.value)}
+              placeholder="Я вже довго в кодлі, хочу мати повні права..."
+              rows={6}
+              className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute resize-none mb-6"
+            />
+            <button
+              onClick={handleApplyForKodlo}
+              disabled={!applyMessage.trim() || applySending}
+              className="btn-ghost text-purple-400 border-purple-500/50 disabled:opacity-30"
+            >
+              {applySending ? "ВІДПРАВЛЯЄМО..." : "ВІДПРАВИТИ ЗАЯВКУ"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Menu mode
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <p className="heading-sub text-hairline-dark mb-4">:(</p>
+          <p className="heading-sub text-hairline-dark mb-4">ШЕМЕТОВАНИЙ</p>
           <p className="text-on-primary-mute text-lg mb-4">
-            Ти ще Шеметований
+            Ти можеш постити, але пости йдуть на розгляд адмінам.
+          </p>
+          <p className="text-on-primary-mute mb-2">
+            Максимум 3 пости на розгляд за раз.
           </p>
           <p className="text-on-primary-mute mb-8">
-            Щоб постити та завантажувати контент, тобі треба стати Кодлом.
-            Чекай на апрув від Головного Подро.
+            Щоб отримати повні права — подай заявку на Кодло.
           </p>
-          <button
-            onClick={() => router.push("/")}
-            className="btn-ghost text-on-primary"
-          >
-            НА ГОЛОВНУ
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setShemetovanyMode("post");
+              }}
+              className="btn-ghost text-on-primary"
+            >
+              НАПИСАТИ ПОСТ
+            </button>
+            <button
+              onClick={() => setShemetovanyMode("apply")}
+              className="btn-ghost text-purple-400 border-purple-500/50"
+            >
+              ПОДАТИ НА КОДЛО
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="btn-ghost text-ink-mute border-hairline-dark"
+            >
+              НА ГОЛОВНУ
+            </button>
+          </div>
         </div>
       </div>
     );
