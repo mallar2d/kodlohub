@@ -140,9 +140,19 @@ export default function ProfilePage() {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="heading-sub">{profile.display_name}</h1>
-              {profile.role === "admin" && (
-                <span className="button-cap px-2 py-1 rounded bg-canvas-cool text-ink">
-                  АДМІН
+              {profile.role === "owner" && (
+                <span className="button-cap px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">
+                  ГОЛОВНИЙ ПОДРО
+                </span>
+              )}
+              {profile.role === "kodlo" && (
+                <span className="button-cap px-2 py-1 rounded bg-on-primary/10 text-on-primary border border-on-primary/30">
+                  КОДЛО
+                </span>
+              )}
+              {profile.role === "shemetovany" && (
+                <span className="button-cap px-2 py-1 rounded bg-ink-mute/10 text-ink-mute border border-ink-mute/30">
+                  ШЕМЕТОВАНИЙ
                 </span>
               )}
               {isOwner && (

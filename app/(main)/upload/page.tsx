@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function UploadPage() {
   const router = useRouter();
   const [user, setUser] = useState<unknown>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -23,12 +24,21 @@ export default function UploadPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         router.push("/login");
-      } else {
-        setUser(data.user);
+        return;
       }
+
+      setUser(data.user);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      setUserRole(profile?.role || "shemetovany");
       setLoading(false);
     });
   }, [supabase, router]);
@@ -163,6 +173,29 @@ export default function UploadPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (userRole === "shemetovany") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <p className="heading-sub text-hairline-dark mb-4">:(</p>
+          <p className="text-on-primary-mute text-lg mb-4">
+            Ти ще Шеметований
+          </p>
+          <p className="text-on-primary-mute mb-8">
+            Щоб постити та завантажувати контент, тобі треба стати Кодлом.
+            Чекай на апрув від Головного Подро.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="btn-ghost text-on-primary"
+          >
+            НА ГОЛОВНУ
+          </button>
+        </div>
       </div>
     );
   }

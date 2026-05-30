@@ -16,6 +16,26 @@ export async function GET(request: Request) {
       const u = data.user;
       const meta = u.user_metadata || {};
 
+      // Check if profile already exists
+      const { data: existing } = await admin
+        .from("profiles")
+        .select("id, role")
+        .eq("id", u.id)
+        .single();
+
+      // Determine role
+      let role = "shemetovany";
+      if (existing) {
+        // Keep existing role on re-login
+        role = existing.role;
+      } else {
+        // First user becomes owner
+        const { count } = await admin
+          .from("profiles")
+          .select("id", { count: "exact", head: true });
+        if (count === 0) role = "owner";
+      }
+
       await admin.from("profiles").upsert(
         {
           id: u.id,
@@ -23,6 +43,7 @@ export async function GET(request: Request) {
           display_name: meta.full_name || meta.name || u.email?.split("@")[0] || "Учасник кодла",
           avatar_url: meta.avatar_url || meta.picture || null,
           bio: "",
+          role,
         },
         { onConflict: "id" }
       );

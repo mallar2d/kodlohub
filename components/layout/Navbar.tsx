@@ -18,15 +18,36 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+        setUserRole(profile?.role || null);
+      }
+    });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        setUserRole(profile?.role || null);
+      } else {
+        setUserRole(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
@@ -67,6 +88,19 @@ export default function Navbar() {
                 {link.label}
               </Link>
             )
+          )}
+
+          {user && userRole === "owner" && (
+            <Link
+              href="/admin"
+              className={`micro-cap transition-opacity hover:opacity-70 ${
+                pathname === "/admin"
+                  ? "text-yellow-400"
+                  : "text-yellow-400/70"
+              }`}
+            >
+              АДМІН
+            </Link>
           )}
 
           {user ? (
@@ -132,6 +166,15 @@ export default function Navbar() {
                 {link.label}
               </Link>
             )
+          )}
+          {user && userRole === "owner" && (
+            <Link
+              href="/admin"
+              className="micro-cap text-yellow-400/70 hover:text-yellow-400"
+              onClick={() => setMenuOpen(false)}
+            >
+              АДМІН
+            </Link>
           )}
           {user ? (
             <div className="flex items-center gap-3">
