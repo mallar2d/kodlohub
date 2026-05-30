@@ -183,34 +183,76 @@ export default function UploadPage() {
 
     if (!file) return;
 
-    // Vercel free tier body size limit is 4.5 MB
-    if (file.size > 4.5 * 1024 * 1024) {
-      alert(`Файл занадто великий для Vercel (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимум ~4.5 МБ.`);
+    // Vercel free tier body size limit is 4.5 MB — bypass via presigned URL
+    if (file.size > 100 * 1024 * 1024) {
+      alert("Файл занадто великий. Максимум 100 МБ.");
       return;
     }
 
     setUploading(true);
     setProgress(0);
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 200);
+    const userId = (user as { id: string }).id;
 
-    // Upload via API route → Cloudflare R2
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("authorId", (user as { id: string }).id);
-    formData.append("caption", caption);
+    // Step 1: Get presigned URL
+    const presignRes = await fetch("/api/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        authorId: userId,
+      }),
+    });
 
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-    const data = await res.json();
+    const presignData = await presignRes.json();
+    if (!presignRes.ok) {
+      alert(`Помилка: ${presignData.error}`);
+      setUploading(false);
+      return;
+    }
 
-    clearInterval(progressInterval);
+    // Step 2: Upload directly to R2
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        setProgress(Math.round((e.loaded / e.total) * 90));
+      }
+    });
 
-    if (!res.ok) {
-      console.error("Upload error:", data.error);
-      alert(`Помилка завантаження: ${data.error || "Невідома помилка"}`);
+    await new Promise<void>((resolve, reject) => {
+      xhr.onload = () => resolve();
+      xhr.onerror = () => reject(new Error("Upload failed"));
+      xhr.open("PUT", presignData.presignedUrl);
+      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.send(file);
+    });
+
+    // Step 3: Save to database
+    const determineType = () => {
+      if (file.type.startsWith("image/")) return "image";
+      if (file.type.startsWith("video/")) return "video";
+      if (file.type.startsWith("audio/")) return "audio";
+      return "document";
+    };
+
+    const mediaRes = await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        authorId: userId,
+        fileUrl: presignData.publicUrl,
+        fileType: determineType(),
+        fileSize: file.size,
+        caption: caption || file.name,
+      }),
+    });
+
+    const mediaData = await mediaRes.json();
+
+    if (!mediaRes.ok) {
+      alert(`Помилка БД: ${mediaData.error}`);
       setUploading(false);
       return;
     }
@@ -218,26 +260,19 @@ export default function UploadPage() {
     setProgress(100);
 
     // If document or audio, also create a lore_item
-    if ((uploadType === "document" || uploadType === "audio") && data.media) {
-      const category = uploadType === "audio" ? "artifact" : "artifact";
+    if ((uploadType === "document" || uploadType === "audio" || uploadType === "artifact") && mediaData.media) {
       await supabase.from("lore_items").insert({
         title: caption || file.name,
-        description: `${uploadType === "audio" ? "Музичний файл" : "Документ"}: ${file.name}`,
-        category,
-        media_id: data.media.id,
-        author_id: (user as { id: string }).id,
+        description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
+        category: "artifact",
+        media_id: mediaData.media.id,
+        author_id: userId,
       });
     }
 
-    if (data.success) {
-      if (uploadType === "document" || uploadType === "audio") {
-        router.push("/lore");
-      } else {
-        router.push("/gallery");
-      }
-    }
-
-    if (data.success) {
+    if (uploadType === "document" || uploadType === "audio" || uploadType === "artifact") {
+      router.push("/lore");
+    } else {
       router.push("/gallery");
     }
 
