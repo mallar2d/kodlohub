@@ -13,7 +13,7 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [uploadType, setUploadType] = useState<
@@ -75,8 +75,17 @@ export default function UploadPage() {
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files).filter((f) => f.size <= 100 * 1024 * 1024);
+      if (newFiles.length < e.dataTransfer.files.length) {
+        toast("Деякі файли перевищують 100 МБ і пропущені.", "error");
+      }
+      setFiles((prev) => [...prev, ...newFiles]);
+      if (newFiles.length > 0 && newFiles[0].type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (ev) => setPreview(ev.target?.result as string);
+        reader.readAsDataURL(newFiles[0]);
+      }
     }
   };
 
@@ -86,16 +95,17 @@ export default function UploadPage() {
       return;
     }
 
-    setFile(f);
+    setFiles((prev) => [...prev, f]);
 
-    // Auto-detect preview only, don't override uploadType
-    if (f.type.startsWith("image/")) {
+    if (f.type.startsWith("image/") && !preview) {
       const reader = new FileReader();
       reader.onload = (e) => setPreview(e.target?.result as string);
       reader.readAsDataURL(f);
-    } else {
-      setPreview(null);
     }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async () => {
@@ -179,134 +189,125 @@ export default function UploadPage() {
       return;
     }
 
-    if (!file) return;
-    if (file.size > 100 * 1024 * 1024) {
-      toast("Максимум 100 МБ.", "error");
-      return;
-    }
-
+    if (files.length === 0) return;
     setUploading(true);
-    setProgress(10);
+    setProgress(0);
 
     const userId = (user as { id: string }).id;
+    let uploadedCount = 0;
+    const totalFiles = files.length;
 
-    // Step 1: Get presigned URL
-    setProgress(20);
-    const presignRes = await fetch("/api/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type || "application/octet-stream",
-        fileSize: file.size,
-        authorId: userId,
-      }),
-    });
-
-    if (!presignRes.ok) {
-      let errorMsg = "Помилка отримання presigned URL";
-      try {
-        errorMsg = (await presignRes.json()).error || errorMsg;
-      } catch {}
-      toast(errorMsg, "error");
-      setUploading(false);
-      return;
-    }
-
-    const presignData = await presignRes.json();
-    setProgress(40);
-
-    // Step 2: Upload directly to R2
-    try {
-      const uploadRes = await fetch(presignData.presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        toast(`Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`, "error");
-        setUploading(false);
-        return;
+    for (const f of files) {
+      if (f.size > 100 * 1024 * 1024) {
+        toast(`Пропущено ${f.name}: занадто великий.`, "error");
+        continue;
       }
-    } catch (e) {
-      toast(`Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`, "error");
-      setUploading(false);
-      return;
-    }
 
-    setProgress(70);
+      const baseProgress = (uploadedCount / totalFiles) * 100;
+      const fileWeight = 100 / totalFiles;
 
-    // Step 3: Save to database
-    const determineType = () => {
-      if (file.type.startsWith("image/")) return "image";
-      if (file.type.startsWith("video/")) return "video";
-      if (file.type.startsWith("audio/")) return "audio";
-      return "document";
-    };
+      setProgress(Math.round(baseProgress + fileWeight * 0.1));
 
-    const mediaRes = await fetch("/api/media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        authorId: userId,
-        fileUrl: presignData.publicUrl,
-        fileType: determineType(),
-        fileSize: file.size,
-        caption: caption || file.name,
-      }),
-    });
-
-    if (!mediaRes.ok) {
-      let errorMsg = "Помилка збереження в БД";
-      try {
-        errorMsg = (await mediaRes.json()).error || errorMsg;
-      } catch {}
-      toast(errorMsg, "error");
-      setUploading(false);
-      return;
-    }
-
-    const mediaData = await mediaRes.json();
-    setProgress(90);
-
-    // Determine if this should go to lore (artifacts)
-    const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const textExts = [
-      "txt",
-      "md",
-      "json",
-      "xml",
-      "csv",
-      "log",
-      "py",
-      "js",
-      "ts",
-      "html",
-      "css",
-    ];
-    const docExts = ["pdf", "doc", "docx"];
-    const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-    const isArtifact =
-      textExts.includes(ext) ||
-      docExts.includes(ext) ||
-      musicExts.includes(ext) ||
-      file.type.startsWith("audio/");
-
-    if (isArtifact && mediaData.media) {
-      await supabase.from("lore_items").insert({
-        title: caption || file.name,
-        description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
-        category: "artifact",
-        media_id: mediaData.media.id,
-        author_id: userId,
+      const presignRes = await fetch("/api/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: f.name,
+          fileType: f.type || "application/octet-stream",
+          fileSize: f.size,
+          authorId: userId,
+        }),
       });
+
+      if (!presignRes.ok) {
+        let errorMsg = "Помилка отримання presigned URL";
+        try { errorMsg = (await presignRes.json()).error || errorMsg; } catch {}
+        toast(errorMsg, "error");
+        continue;
+      }
+
+      const presignData = await presignRes.json();
+      setProgress(Math.round(baseProgress + fileWeight * 0.3));
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round(baseProgress + fileWeight * (0.3 + (e.loaded / e.total) * 0.5));
+              setProgress(pct);
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error(`R2 ${xhr.status}`));
+          };
+          xhr.onerror = () => reject(new Error("Мережева помилка"));
+          xhr.open("PUT", presignData.presignedUrl);
+          xhr.setRequestHeader("Content-Type", f.type || "application/octet-stream");
+          xhr.send(f);
+        });
+      } catch (e) {
+        toast(`Помилка завантаження ${f.name}: ${e instanceof Error ? e.message : "Невідома помилка"}`, "error");
+        continue;
+      }
+
+      setProgress(Math.round(baseProgress + fileWeight * 0.8));
+
+      const determineType = () => {
+        if (f.type.startsWith("image/")) return "image";
+        if (f.type.startsWith("video/")) return "video";
+        if (f.type.startsWith("audio/")) return "audio";
+        return "document";
+      };
+
+      const mediaRes = await fetch("/api/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorId: userId,
+          fileUrl: presignData.publicUrl,
+          fileType: determineType(),
+          fileSize: f.size,
+          caption: caption || f.name,
+        }),
+      });
+
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        const ext = f.name.split(".").pop()?.toLowerCase() || "";
+        const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+        const docExts = ["pdf", "doc", "docx"];
+        const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
+        const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || f.type.startsWith("audio/");
+
+        if (isArtifact && mediaData.media) {
+          await supabase.from("lore_items").insert({
+            title: caption || f.name,
+            description: `${f.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${f.name}`,
+            category: "artifact",
+            media_id: mediaData.media.id,
+            author_id: userId,
+          });
+        }
+      } else {
+        let errorMsg = "Помилка збереження в БД";
+        try { errorMsg = (await mediaRes.json()).error || errorMsg; } catch {}
+        toast(errorMsg, "error");
+      }
+
+      uploadedCount++;
+      setProgress(Math.round(baseProgress + fileWeight));
     }
+
+    const hasArtifact = files.some((f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase() || "";
+      return ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css", "pdf", "doc", "docx", "mp3", "wav", "ogg", "flac", "aac"].includes(ext) || f.type.startsWith("audio/");
+    });
 
     setProgress(100);
-    const dest = isArtifact ? "/lore" : "/gallery";
-    const msg =
-      "Файл завантажено! Він з'явиться на сторінці через ~1 хвилину — чекай на кеш.";
+    const dest = hasArtifact ? "/lore" : "/gallery";
+    const msg = `${uploadedCount} файл(ів) завантажено! Вони з'являться на сторінці через ~1 хвилину.`;
     setUploadSuccess(msg);
     setTimeout(() => router.push(dest), 4000);
     setUploading(false);
@@ -640,51 +641,51 @@ export default function UploadPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,video/*,.pdf,.txt,.md"
-                onChange={(e) =>
-                  e.target.files?.[0] && handleFile(e.target.files[0])
-                }
+                multiple
+                accept="image/*,video/*,.pdf,.txt,.md,.json,.xml,.csv,.py,.js,.ts,.html,.css,.mp3,.wav,.ogg,.flac,.aac"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    const newFiles = Array.from(e.target.files);
+                    newFiles.forEach(handleFile);
+                  }
+                }}
                 className="hidden"
               />
 
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="Превʼю"
-                  className="max-h-64 mx-auto rounded-lg"
-                />
-              ) : file ? (
+              {files.length === 0 ? (
                 <div>
-                  <p className="text-on-primary font-bold mb-2">{file.name}</p>
+                  <svg className="w-12 h-12 mx-auto text-ink-mute mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m6-6H6" />
+                  </svg>
+                  <p className="text-on-primary mb-2">НАЖМИ АБО ПЕРЕТЯГНИ ФАЙЛИ</p>
                   <p className="caption text-ink-mute">
-                    {(file.size / 1024 / 1024).toFixed(1)} МБ
+                    Можна кілька файлів одразу. Максимум 100 МБ кожен.
                   </p>
                 </div>
               ) : (
-                <div>
-                  <svg
-                    className="w-12 h-12 mx-auto text-ink-mute mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 6v12m6-6H6"
-                    />
-                  </svg>
-                  <p className="text-on-primary mb-2">НАЖМИ І ЗАВАНТАЖ ПОДРО</p>
-                  <p className="caption text-ink-mute">
-                    Перетягни файл сюди або клікни. Максимум 100 МБ.
-                  </p>
+                <div onClick={(e) => e.stopPropagation()}>
+                  {preview && (
+                    <img src={preview} alt="Превʼю" className="max-h-32 mx-auto rounded-lg mb-4" />
+                  )}
+                  <div className="space-y-2 mb-4">
+                    {files.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 bg-canvas-night rounded-lg">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs text-ink-mute">{f.type.startsWith("image/") ? "📷" : f.type.startsWith("video/") ? "🎬" : f.type.startsWith("audio/") ? "🎵" : "📄"}</span>
+                          <span className="text-sm text-on-primary truncate">{f.name}</span>
+                          <span className="text-xs text-ink-mute shrink-0">{(f.size / 1024 / 1024).toFixed(1)} МБ</span>
+                        </div>
+                        <button onClick={() => removeFile(i)} className="text-ink-mute hover:text-red-400 text-xs shrink-0 ml-2">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-ink-mute">Натисни або перетягни ще файли</p>
                 </div>
               )}
             </div>
 
             {/* Caption */}
-            {file && (
+            {files.length > 0 && (
               <div className="mt-6">
                 <label className="micro-cap text-on-primary-mute block mb-2">
                   ПІДПИС
@@ -702,14 +703,14 @@ export default function UploadPage() {
             {/* Progress bar */}
             {uploading && (
               <div className="mt-6">
-                <div className="h-1 bg-canvas-night-soft rounded-full overflow-hidden">
+                <div className="h-2 bg-canvas-night-soft rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-on-primary transition-all duration-300"
+                    className="h-full bg-on-primary transition-all duration-200 rounded-full"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
                 <p className="micro-cap text-ink-mute mt-2 text-center">
-                  ЗАВАНТАЖУЄМО... {progress}%
+                  ЗАВАНТАЖУЄМО... {progress}% ({files.length} файл(ів))
                 </p>
               </div>
             )}
@@ -717,10 +718,10 @@ export default function UploadPage() {
             {/* Upload button */}
             <button
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={files.length === 0 || uploading}
               className="btn-ghost text-on-primary disabled:opacity-30 mt-6"
             >
-              {uploading ? "НАЖИМАЄМО..." : "НАЖАТИ"}
+              {uploading ? "НАЖИМАЄМО..." : `ЗАВАНТАЖИТИ (${files.length})`}
             </button>
           </>
         )}
