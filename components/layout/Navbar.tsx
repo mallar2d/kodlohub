@@ -11,6 +11,8 @@ const navLinks = [
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "ЛОРА" },
   { href: "/upload", label: "ЗАВАНТАЖИТИ" },
+  { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
+  { href: "https://soundcloud.com/zt-barista", label: "BARISTA", external: true },
 ];
 
 export default function Navbar() {
@@ -41,19 +43,31 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`micro-cap transition-opacity hover:opacity-70 ${
-                pathname === link.href
-                  ? "text-on-primary"
-                  : "text-on-primary-mute"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            "external" in link && link.external ? (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="micro-cap text-on-primary-mute hover:opacity-70 transition-opacity"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`micro-cap transition-opacity hover:opacity-70 ${
+                  pathname === link.href
+                    ? "text-on-primary"
+                    : "text-on-primary-mute"
+                }`}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
 
           {user ? (
             <Link
@@ -96,16 +110,29 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-canvas-night border-t border-hairline-dark px-6 py-4 flex flex-col gap-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="micro-cap text-on-primary-mute hover:text-on-primary"
-              onClick={() => setMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            "external" in link && link.external ? (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="micro-cap text-on-primary-mute hover:text-on-primary"
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="micro-cap text-on-primary-mute hover:text-on-primary"
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
           {user ? (
             <div className="flex items-center gap-3">
               <Link
