@@ -89,22 +89,27 @@ export default function LoreItemPage() {
   }, [params.id, supabase]);
 
   const handleDelete = async () => {
-    if (!item || !confirm("Видалити артефакт? Це незворотньо.")) return;
+    if (!item) return;
+    const ok = confirm("Видалити артефакт?");
+    if (!ok) return;
 
-    // Delete lore_item first
-    const { error } = await supabase.from("lore_items").delete().eq("id", item.id);
+    try {
+      // Delete lore_item first (breaks FK to media)
+      const { error: loreError } = await supabase.from("lore_items").delete().eq("id", item.id);
+      if (loreError) {
+        alert(`Помилка: ${loreError.message}`);
+        return;
+      }
 
-    if (error) {
-      alert(`Помилка видалення: ${error.message}`);
-      return;
+      // Delete media (best effort, ignore errors)
+      if (item.media_id) {
+        await supabase.from("media").delete().eq("id", item.media_id);
+      }
+
+      router.push("/lore");
+    } catch (e) {
+      alert("Помилка видалення");
     }
-
-    // Then delete media (best effort)
-    if (item.media_id) {
-      await supabase.from("media").delete().eq("id", item.media_id);
-    }
-
-    router.push("/lore");
   };
 
   if (loading) {
