@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 import type { User } from "@supabase/supabase-js";
@@ -403,12 +404,20 @@ export default function AdminPage() {
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
         {/* Header */}
-        <div className="mb-12">
-          <p className="micro-cap text-ink-mute mb-2">КЕРУВАННЯ</p>
-          <h1 className="heading-section mb-4">АДМІН-ПАНЕЛЬ</h1>
-          <p className="text-on-primary-mute">
-            {isOwner ? "Повний доступ" : "Доступ до керування користувачами"}
-          </p>
+        <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="micro-cap text-ink-mute mb-2">КЕРУВАННЯ</p>
+            <h1 className="heading-section mb-4">АДМІН-ПАНЕЛЬ</h1>
+            <p className="text-on-primary-mute">
+              {isOwner ? "Повний доступ" : "Доступ до керування користувачами"}
+            </p>
+          </div>
+          <a
+            href="/admin/dashboard"
+            className="btn-ghost text-on-primary w-fit"
+          >
+            ДАШБОРД →
+          </a>
         </div>
 
         {/* Storage stats */}
