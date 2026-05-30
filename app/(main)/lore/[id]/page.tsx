@@ -50,6 +50,7 @@ export default function LoreItemPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthor, setIsAuthor] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
 
   const supabase = createClient();
 
@@ -66,7 +67,19 @@ export default function LoreItemPage() {
 
       if (data) {
         setItem(data);
-        if (authUser && authUser.id === data.author_id) setIsAuthor(true);
+        const isItemAuthor = authUser && authUser.id === data.author_id;
+        setIsAuthor(!!isItemAuthor);
+
+        // Check if user is admin
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", authUser.id)
+            .single();
+
+          setCanDelete(!!isItemAuthor || profile?.role === "owner" || profile?.role === "podrofikovany");
+        }
       }
 
       setLoading(false);
@@ -78,13 +91,20 @@ export default function LoreItemPage() {
   const handleDelete = async () => {
     if (!item || !confirm("Видалити артефакт? Це незворотньо.")) return;
 
-    // Delete media if exists
+    // Delete lore_item first
+    const { error } = await supabase.from("lore_items").delete().eq("id", item.id);
+
+    if (error) {
+      alert(`Помилка видалення: ${error.message}`);
+      return;
+    }
+
+    // Then delete media (best effort)
     if (item.media_id) {
       await supabase.from("media").delete().eq("id", item.media_id);
     }
 
-    const { error } = await supabase.from("lore_items").delete().eq("id", item.id);
-    if (!error) router.push("/lore");
+    router.push("/lore");
   };
 
   if (loading) {
@@ -147,7 +167,7 @@ export default function LoreItemPage() {
               </Link>
             )}
 
-            {isAuthor && (
+            {canDelete && (
               <button
                 onClick={handleDelete}
                 className="button-cap px-3 py-1 rounded-full border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors"
