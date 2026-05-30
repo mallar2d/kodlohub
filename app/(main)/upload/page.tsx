@@ -81,8 +81,28 @@ export default function UploadPage() {
       if (!postTitle || !postContent) return;
       setUploading(true);
 
+      const userId = (user as { id: string }).id;
+
+      // Ensure profile exists
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single();
+
+      if (!existing) {
+        const meta = (user as { user_metadata?: Record<string, string> }).user_metadata || {};
+        await supabase.from("profiles").upsert({
+          id: userId,
+          username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
+          display_name: meta.full_name || meta.name || "Учасник кодла",
+          avatar_url: meta.avatar_url || meta.picture || null,
+          bio: "",
+        }, { onConflict: "id" });
+      }
+
       const { error } = await supabase.from("posts").insert({
-        author_id: (user as { id: string }).id,
+        author_id: userId,
         title: postTitle,
         content: postContent,
         tags: postTags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -97,6 +117,13 @@ export default function UploadPage() {
     }
 
     if (!file) return;
+
+    // Vercel free tier body size limit is 4.5 MB
+    if (file.size > 4.5 * 1024 * 1024) {
+      alert(`Файл занадто великий для Vercel (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимум ~4.5 МБ.`);
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
 
@@ -117,6 +144,8 @@ export default function UploadPage() {
     clearInterval(progressInterval);
 
     if (!res.ok) {
+      console.error("Upload error:", data.error);
+      alert(`Помилка завантаження: ${data.error || "Невідома помилка"}`);
       setUploading(false);
       return;
     }

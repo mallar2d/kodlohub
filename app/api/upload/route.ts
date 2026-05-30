@@ -28,6 +28,32 @@ export async function POST(request: Request) {
       );
     }
 
+    const admin = createAdminClient();
+
+    // Ensure profile exists (foreign key constraint)
+    const { data: existingProfile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", authorId)
+      .single();
+
+    if (!existingProfile) {
+      // Get user data from auth
+      const { data: userData } = await admin.auth.admin.getUserById(authorId);
+      const meta = userData?.user?.user_metadata || {};
+
+      await admin.from("profiles").upsert(
+        {
+          id: authorId,
+          username: meta.email?.split("@")[0] || `user_${authorId.slice(0, 8)}`,
+          display_name: meta.full_name || meta.name || "Учасник кодла",
+          avatar_url: meta.avatar_url || meta.picture || null,
+          bio: "",
+        },
+        { onConflict: "id" }
+      );
+    }
+
     const fileExt = file.name.split(".").pop() || "bin";
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${authorId}/${fileName}`;
@@ -56,8 +82,6 @@ export async function POST(request: Request) {
       : "document";
 
     // Save to Supabase
-    const admin = createAdminClient();
-
     const { data, error: dbError } = await admin
       .from("media")
       .insert({
