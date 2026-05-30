@@ -1,5 +1,5 @@
 -- ==========================================
--- LIKES TABLE
+-- LIKES TABLE (fixed for existing policies)
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS likes (
@@ -13,17 +13,16 @@ CREATE TABLE IF NOT EXISTS likes (
 
 ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
 
--- Everyone can see like counts
+DROP POLICY IF EXISTS "Likes are viewable by everyone" ON likes;
 CREATE POLICY "Likes are viewable by everyone" ON likes FOR SELECT USING (true);
 
--- Authenticated users can like
+DROP POLICY IF EXISTS "Authenticated users can like" ON likes;
 CREATE POLICY "Authenticated users can like" ON likes FOR INSERT
   WITH CHECK (auth.uid()::text = user_id);
 
--- Users can unlike their own
+DROP POLICY IF EXISTS "Users can delete own likes" ON likes;
 CREATE POLICY "Users can delete own likes" ON likes FOR DELETE
   USING (auth.uid()::text = user_id);
 
--- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_likes_item ON likes(item_type, item_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);

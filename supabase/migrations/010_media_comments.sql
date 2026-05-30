@@ -12,14 +12,14 @@ CREATE TABLE IF NOT EXISTS media_comments (
 
 ALTER TABLE media_comments ENABLE ROW LEVEL SECURITY;
 
--- Everyone can see media comments
+DROP POLICY IF EXISTS "Media comments are viewable by everyone" ON media_comments;
 CREATE POLICY "Media comments are viewable by everyone" ON media_comments FOR SELECT USING (true);
 
--- Authenticated users can create comments
+DROP POLICY IF EXISTS "Authenticated users can create media comments" ON media_comments;
 CREATE POLICY "Authenticated users can create media comments" ON media_comments FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');
 
--- Authors can delete own comments
+DROP POLICY IF EXISTS "Authors can delete own media comments" ON media_comments;
 CREATE POLICY "Authors can delete own media comments" ON media_comments FOR DELETE
   USING (auth.uid()::text = author_id);
 

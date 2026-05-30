@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 
 ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
 
--- Only admins can view activity log
+DROP POLICY IF EXISTS "Admins can view activity log" ON activity_log;
 CREATE POLICY "Admins can view activity log" ON activity_log FOR SELECT
   USING (
     EXISTS (
@@ -24,7 +24,7 @@ CREATE POLICY "Admins can view activity log" ON activity_log FOR SELECT
     )
   );
 
--- System can insert activity (via service role)
+DROP POLICY IF EXISTS "Service role can insert activity" ON activity_log;
 CREATE POLICY "Service role can insert activity" ON activity_log FOR INSERT
   WITH CHECK (true);
 
