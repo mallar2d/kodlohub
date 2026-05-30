@@ -74,6 +74,7 @@ export default function AdminPage() {
   const [storage, setStorage] = useState<StorageInfo>({ totalBytes: 0, byUser: {} });
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -211,6 +212,71 @@ export default function AdminPage() {
 
     await fetchData();
     setUpdating(null);
+  }
+
+  async function bulkApprovePosts() {
+    if (selectedPosts.size === 0) return;
+    setUpdating("bulk");
+
+    for (const postId of selectedPosts) {
+      const { data: post } = await supabase.from("posts").select("author_id, title").eq("id", postId).single();
+      await supabase.from("posts").update({ status: "approved" }).eq("id", postId);
+      if (post) {
+        await supabase.from("notifications").insert({
+          user_id: post.author_id,
+          type: "post_approved",
+          title: "Пост апрувнуто",
+          message: `Твій пост "${post.title}" опубліковано!`,
+          link: `/blog/${postId}`,
+        });
+      }
+    }
+
+    toast(`Апрувнуто ${selectedPosts.size} пост(ів)`, "success");
+    setSelectedPosts(new Set());
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function bulkRejectPosts() {
+    if (selectedPosts.size === 0) return;
+    if (!confirm(`Відхилити ${selectedPosts.size} пост(ів)?`)) return;
+    setUpdating("bulk");
+
+    for (const postId of selectedPosts) {
+      const { data: post } = await supabase.from("posts").select("author_id, title").eq("id", postId).single();
+      await supabase.from("posts").update({ status: "rejected" }).eq("id", postId);
+      if (post) {
+        await supabase.from("notifications").insert({
+          user_id: post.author_id,
+          type: "post_rejected",
+          title: "Пост відхилено",
+          message: `Твій пост "${post.title}" не пройшов модерацію.`,
+        });
+      }
+    }
+
+    toast(`Відхилено ${selectedPosts.size} пост(ів)`, "info");
+    setSelectedPosts(new Set());
+    await fetchData();
+    setUpdating(null);
+  }
+
+  function togglePostSelection(postId: string) {
+    setSelectedPosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  }
+
+  function toggleAllPosts() {
+    if (selectedPosts.size === pendingPosts.length) {
+      setSelectedPosts(new Set());
+    } else {
+      setSelectedPosts(new Set(pendingPosts.map((p) => p.id)));
+    }
   }
 
   async function approveJoinRequest(requestId: string, userId: string) {
@@ -382,14 +448,49 @@ export default function AdminPage() {
         {/* Pending posts */}
         {pendingPosts.length > 0 && (
           <div className="mb-12">
-            <h2 className="heading-sub mb-6 text-yellow-400">
-              ПОСТИ НА РОЗГЛЯДІ ({pendingPosts.length})
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="heading-sub text-yellow-400">
+                ПОСТИ НА РОЗГЛЯДІ ({pendingPosts.length})
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleAllPosts}
+                  className="button-cap px-3 py-1 rounded border border-hairline-dark text-ink-mute hover:text-on-primary text-xs"
+                >
+                  {selectedPosts.size === pendingPosts.length ? "ЗНЯТИ ВСІ" : "ВИБРАТИ ВСІ"}
+                </button>
+                {selectedPosts.size > 0 && (
+                  <>
+                    <button
+                      onClick={bulkApprovePosts}
+                      disabled={updating === "bulk"}
+                      className="button-cap px-3 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/50 text-xs disabled:opacity-50"
+                    >
+                      АПРУВНУТИ ({selectedPosts.size})
+                    </button>
+                    <button
+                      onClick={bulkRejectPosts}
+                      disabled={updating === "bulk"}
+                      className="button-cap px-3 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/50 text-xs disabled:opacity-50"
+                    >
+                      ВІДХИЛИТИ ({selectedPosts.size})
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
             <div className="space-y-4">
               {pendingPosts.map((post) => (
-                <div key={post.id} className="card-dark p-6 border-yellow-500/30">
+                <div key={post.id} className={`card-dark p-6 border-yellow-500/30 ${selectedPosts.has(post.id) ? "ring-1 ring-on-primary/30" : ""}`}>
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    <div className="flex-1">
+                    <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedPosts.has(post.id)}
+                        onChange={() => togglePostSelection(post.id)}
+                        className="mt-1 accent-on-primary"
+                      />
+                      <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="button-cap px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 text-[10px]">
                           НА РОЗГЛЯДІ
@@ -405,6 +506,7 @@ export default function AdminPage() {
                       <p className="caption text-ink-mute">
                         Автор: {post.profiles?.display_name || "?"}
                       </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       <button
