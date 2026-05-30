@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
+import MediaComments from "@/components/ui/MediaComments";
 
 interface Media {
   id: string;
@@ -174,6 +175,7 @@ export default function GalleryClient({
             <div className="flex justify-center mt-4">
               <LikeButton itemType="media" itemId={selected.id} initialCount={selected.like_count || 0} />
             </div>
+            <MediaComments mediaId={selected.id} />
           </div>
         </div>
       )}
