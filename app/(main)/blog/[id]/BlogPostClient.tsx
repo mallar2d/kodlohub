@@ -9,6 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
 import { useToast } from "@/components/ui/Toast";
+import MarkdownEditor from "@/components/ui/MarkdownEditor";
 import type { User } from "@supabase/supabase-js";
 
 interface Post {
@@ -147,11 +148,10 @@ export default function BlogPostClient({
                 onChange={(e) => setEditTitle(e.target.value)}
                 className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary focus:outline-none focus:border-on-primary-mute text-2xl font-bold"
               />
-              <textarea
+              <MarkdownEditor
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                onChange={setEditContent}
                 rows={15}
-                className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary focus:outline-none focus:border-on-primary-mute resize-none font-mono"
               />
               <input
                 type="text"

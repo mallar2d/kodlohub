@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
+import MarkdownEditor from "@/components/ui/MarkdownEditor";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -405,12 +406,10 @@ export default function UploadPage() {
                 <label className="micro-cap text-on-primary-mute block mb-2">
                   КОНТЕНТ (MARKDOWN)
                 </label>
-                <textarea
+                <MarkdownEditor
                   value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                  placeholder="Пиши тут. Підтримується Markdown."
+                  onChange={setPostContent}
                   rows={12}
-                  className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute resize-none"
                 />
               </div>
               <div>
@@ -594,12 +593,10 @@ export default function UploadPage() {
               <label className="micro-cap text-on-primary-mute block mb-2">
                 КОНТЕНТ (MARKDOWN)
               </label>
-              <textarea
+              <MarkdownEditor
                 value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                placeholder="Пиши тут. Підтримується Markdown."
+                onChange={setPostContent}
                 rows={12}
-                className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute resize-none"
               />
             </div>
 
