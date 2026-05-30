@@ -1,38 +1,34 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { unstable_cache } from "next/cache";
 import Link from "next/link";
 
 interface Post {
   id: string;
   title: string;
   content: string;
-  tags: string[];
+  tags: string[] | null;
   type: string;
+  status: string;
   created_at: string;
   author_id: string;
 }
 
-export default function BlogPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+const getPosts = unstable_cache(
+  async (): Promise<Post[]> => {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("status", "published")
+      .order("created_at", { ascending: false });
+    return (data || []) as Post[];
+  },
+  ["blog-posts"],
+  { revalidate: 30 }
+);
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    async function fetchPosts() {
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setPosts(data || []);
-      setLoading(false);
-    }
-
-    fetchPosts();
-  }, [supabase]);
+export default async function BlogPage() {
+  const posts = await getPosts();
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -44,11 +40,7 @@ export default function BlogPage() {
         </div>
 
         {/* Posts */}
-        {loading ? (
-          <div className="text-center py-24">
-            <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full mx-auto" />
-          </div>
-        ) : posts.length === 0 ? (
+        {posts.length === 0 ? (
           <div className="text-center py-24">
             <p className="heading-sub text-hairline-dark mb-4">:(</p>
             <p className="text-on-primary-mute">
@@ -75,22 +67,19 @@ export default function BlogPage() {
                     {new Date(post.created_at).toLocaleDateString("uk-UA")}
                   </span>
                 </div>
-
-                <h2 className="font-bold text-xl mb-3 text-on-primary group-hover:text-on-primary-mute transition-colors">
+                <h3 className="heading-sub text-on-primary mb-3 group-hover:text-on-primary-mute transition-colors line-clamp-2">
                   {post.title}
-                </h2>
-
+                </h3>
                 <p className="text-on-primary-mute text-sm line-clamp-3 mb-4">
                   {post.content.slice(0, 200)}
                   {post.content.length > 200 ? "..." : ""}
                 </p>
-
                 {post.tags && post.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {post.tags.map((tag) => (
+                    {post.tags.slice(0, 5).map((tag: string) => (
                       <span
                         key={tag}
-                        className="micro-cap px-2 py-1 rounded bg-canvas-night-soft text-on-primary-mute border border-hairline-dark"
+                        className="micro-cap px-2 py-0.5 rounded bg-canvas-cool text-ink-mute"
                       >
                         {tag}
                       </span>
