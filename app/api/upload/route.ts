@@ -79,6 +79,8 @@ export async function POST(request: Request) {
       ? "image"
       : file.type.startsWith("video/")
       ? "video"
+      : file.type.startsWith("audio/")
+      ? "audio"
       : "document";
 
     // Save to Supabase

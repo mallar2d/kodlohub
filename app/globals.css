@@ -145,3 +145,58 @@ body {
     letter-spacing: 0.72px;
   }
 }
+
+/* Markdown content formatting */
+.prose pre {
+  background: var(--color-canvas-night-soft) !important;
+  border: 1px solid var(--color-hairline-dark);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.prose code {
+  background: var(--color-canvas-night-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.prose p {
+  margin-bottom: 1em;
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--color-hairline-dark);
+  padding-left: 16px;
+  color: var(--color-on-primary-mute);
+  font-style: italic;
+}
+
+.prose ul, .prose ol {
+  padding-left: 24px;
+  margin-bottom: 1em;
+}
+
+.prose li {
+  margin-bottom: 0.25em;
+}
+
+.prose a {
+  color: var(--color-on-primary);
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  opacity: 0.8;
+}
+
+.prose hr {
+  border-color: var(--color-hairline-dark);
+  margin: 2em 0;
+}

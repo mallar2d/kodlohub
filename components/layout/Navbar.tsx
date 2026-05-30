@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "АРТЕФАКТИ" },
+  { href: "/users", label: "УЧАСНИКИ" },
   { href: "/upload", label: "ЗАВАНТАЖИТИ" },
   { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
   {
