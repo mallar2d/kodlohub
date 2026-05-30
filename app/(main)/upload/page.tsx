@@ -155,6 +155,11 @@ export default function UploadPage() {
       alert("Максимум 100 МБ.");
       return;
     }
+    if (file.size > 4 * 1024 * 1024) {
+      if (!confirm(`Файл ${(file.size / 1024 / 1024).toFixed(1)} МБ. Vercel має ліміт ~4 МБ. Спробувати?`)) {
+        return;
+      }
+    }
 
     setUploading(true);
     setProgress(10);
@@ -169,10 +174,25 @@ export default function UploadPage() {
 
     const res = await fetch("/api/upload", { method: "POST", body: formData });
     setProgress(70);
-    const data = await res.json();
 
     if (!res.ok) {
-      alert(`Помилка: ${data.error || "Невідома помилка"}`);
+      let errorMsg = "Невідома помилка";
+      try {
+        const errData = await res.json();
+        errorMsg = errData.error || errorMsg;
+      } catch {
+        errorMsg = `Сервер повернув ${res.status}. Можливо файл занадто великий для Vercel (макс ~4 МБ).`;
+      }
+      alert(`Помилка: ${errorMsg}`);
+      setUploading(false);
+      return;
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      alert("Помилка читання відповіді сервера");
       setUploading(false);
       return;
     }
