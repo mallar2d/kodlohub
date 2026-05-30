@@ -18,6 +18,7 @@ const getMedia = unstable_cache(
     let query = supabase
       .from("media")
       .select("id, file_url, file_type, caption, created_at, author_id")
+      .in("file_type", ["image", "video"])
       .order("created_at", { ascending: false })
       .limit(50);
 

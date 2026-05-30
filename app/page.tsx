@@ -9,6 +9,7 @@ interface Post {
   content: string;
   tags: string[] | null;
   created_at: string;
+  profiles?: { display_name: string } | null;
 }
 
 interface Media {
@@ -44,11 +45,11 @@ const getRecentPosts = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("posts")
-      .select("id, title, content, tags, created_at")
+      .select("id, title, content, tags, created_at, profiles(display_name)")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(3);
-    return data || [];
+    return (data || []).map((p: any) => ({ ...p, profiles: p.profiles?.[0] || null }));
   },
   ["recent-posts"],
   { revalidate: 60 }
@@ -204,13 +205,16 @@ export default async function HomePage() {
                     {post.content.length > 150 ? "..." : ""}
                   </p>
                   {post.tags && post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {post.tags.slice(0, 3).map((tag: string) => (
                         <span key={tag} className="micro-cap px-2 py-0.5 rounded bg-canvas-cool text-ink-mute text-[10px]">
                           {tag}
                         </span>
                       ))}
                     </div>
+                  )}
+                  {post.profiles && (
+                    <p className="caption text-ink-mute">{post.profiles.display_name}</p>
                   )}
                 </Link>
               ))}
@@ -228,7 +232,7 @@ export default async function HomePage() {
             { href: "/upload", title: "ЗАВАНТАЖИТИ", desc: "Додай щось своє" },
           ].map((link) => (
             <Link key={link.href} href={link.href} className="card-dark p-6 hover:border-on-primary-mute transition-colors group">
-              <h3 className="heading-sub text-on-primary group-hover:text-on-primary-mute transition-colors">
+              <h3 className="text-xl sm:text-2xl md:text-4xl font-bold uppercase tracking-wider text-on-primary group-hover:text-on-primary-mute transition-colors">
                 {link.title}
               </h3>
               <p className="text-on-primary-mute mt-2">{link.desc}</p>

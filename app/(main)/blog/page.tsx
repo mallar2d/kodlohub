@@ -11,6 +11,7 @@ interface Post {
   status: string;
   created_at: string;
   author_id: string;
+  profiles?: { display_name: string; username: string } | null;
 }
 
 const getPosts = unstable_cache(
@@ -18,10 +19,10 @@ const getPosts = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("posts")
-      .select("*")
+      .select("*, profiles(display_name, username)")
       .eq("status", "approved")
       .order("created_at", { ascending: false });
-    return (data || []) as Post[];
+    return (data || []).map((p: any) => ({ ...p, profiles: p.profiles?.[0] || null }));
   },
   ["blog-posts"],
   { revalidate: 30 }
@@ -75,7 +76,7 @@ export default async function BlogPage() {
                   {post.content.length > 200 ? "..." : ""}
                 </p>
                 {post.tags && post.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {post.tags.slice(0, 5).map((tag: string) => (
                       <span
                         key={tag}
@@ -85,6 +86,11 @@ export default async function BlogPage() {
                       </span>
                     ))}
                   </div>
+                )}
+                {post.profiles && (
+                  <p className="caption text-ink-mute">
+                    {post.profiles.display_name}
+                  </p>
                 )}
               </Link>
             ))}
