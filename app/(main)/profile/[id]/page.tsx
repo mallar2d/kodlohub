@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface Profile {
   id: string;
@@ -31,16 +32,21 @@ interface Media {
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [media, setMedia] = useState<Media[]>([]);
   const [activeTab, setActiveTab] = useState<"posts" | "media">("posts");
   const [loading, setLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
 
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.id === params.id) setIsOwner(true);
+
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -99,12 +105,12 @@ export default function ProfilePage() {
       <div className="max-w-[1200px] mx-auto">
         {/* Profile header */}
         <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
-          <div className="w-24 h-24 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-3xl font-bold shrink-0">
+          <div className="w-24 h-24 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-3xl font-bold shrink-0 overflow-hidden">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt={profile.display_name}
-                className="w-full h-full rounded-full object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
               profile.display_name?.charAt(0) || "?"
@@ -118,6 +124,14 @@ export default function ProfilePage() {
                 <span className="button-cap px-2 py-1 rounded bg-canvas-cool text-ink">
                   АДМІН
                 </span>
+              )}
+              {isOwner && (
+                <button
+                  onClick={() => router.push(`/profile/${params.id}/edit`)}
+                  className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-ink-mute hover:text-on-primary hover:border-on-primary transition-colors"
+                >
+                  РЕДАГУВАТИ
+                </button>
               )}
             </div>
             <p className="text-on-primary-mute mb-2">@{profile.username}</p>

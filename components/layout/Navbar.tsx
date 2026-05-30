@@ -58,9 +58,17 @@ export default function Navbar() {
           {user ? (
             <Link
               href={`/profile/${user.id}`}
-              className="w-8 h-8 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-sm font-bold"
+              className="w-8 h-8 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-sm font-bold overflow-hidden"
             >
-              {user.email?.charAt(0).toUpperCase()}
+              {user.user_metadata?.avatar_url ? (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt="Аватар"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user.email?.charAt(0).toUpperCase()
+              )}
             </Link>
           ) : (
             <Link href="/login" className="btn-ghost text-on-primary">
@@ -99,13 +107,22 @@ export default function Navbar() {
             </Link>
           ))}
           {user ? (
-            <Link
-              href={`/profile/${user.id}`}
-              className="micro-cap text-on-primary-mute hover:text-on-primary"
-              onClick={() => setMenuOpen(false)}
-            >
-              ПРОФІЛЬ
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/profile/${user.id}`}
+                className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
+                onClick={() => setMenuOpen(false)}
+              >
+                {user.user_metadata?.avatar_url ? (
+                  <img
+                    src={user.user_metadata.avatar_url}
+                    alt="Аватар"
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : null}
+                ПРОФІЛЬ
+              </Link>
+            </div>
           ) : (
             <Link href="/login" className="btn-ghost text-on-primary w-fit" onClick={() => setMenuOpen(false)}>
               УВІЙТИ
