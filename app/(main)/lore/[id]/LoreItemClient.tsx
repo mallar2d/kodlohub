@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Image from "next/image";
 
 interface LoreItem {
@@ -70,10 +71,10 @@ function MarkdownFileViewer({ url, isMarkdown }: { url: string; isMarkdown: bool
   if (!content) return null;
 
   return (
-    <div className="bg-canvas-night-soft rounded-lg p-6 overflow-auto max-h-[600px]">
+        <div className="bg-canvas-night-soft rounded-lg p-6 overflow-auto max-h-[600px]">
       {isMarkdown ? (
-        <div className="whitespace-pre-wrap text-on-primary leading-relaxed">
-          <ReactMarkdown>{content}</ReactMarkdown>
+        <div className="prose whitespace-pre-wrap text-on-primary leading-relaxed">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
       ) : (
         <pre className="text-on-primary text-sm whitespace-pre-wrap font-mono">{content}</pre>
@@ -172,8 +173,8 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
         {/* Description */}
         {item.description && (
           <div className="mb-8">
-            <div className="whitespace-pre-wrap text-on-primary leading-relaxed">
-              <ReactMarkdown>{item.description}</ReactMarkdown>
+            <div className="prose whitespace-pre-wrap text-on-primary leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.description}</ReactMarkdown>
             </div>
           </div>
         )}

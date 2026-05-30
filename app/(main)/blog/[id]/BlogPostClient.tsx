@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
@@ -209,8 +210,8 @@ export default function BlogPostClient({
         {/* Content */}
         {!editing && (
           <div className="mb-12">
-            <div className="whitespace-pre-wrap text-on-primary leading-relaxed">
-              <ReactMarkdown>{initialPost.content}</ReactMarkdown>
+            <div className="prose whitespace-pre-wrap text-on-primary leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{initialPost.content}</ReactMarkdown>
             </div>
           </div>
         )}
