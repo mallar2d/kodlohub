@@ -244,8 +244,12 @@ function MarkdownFileViewer({ url, isMarkdown }: { url: string; isMarkdown: bool
 
   useEffect(() => {
     fetch(url)
-      .then((res) => res.text())
-      .then((text) => { setContent(text); setLoading(false); })
+      .then((res) => res.arrayBuffer())
+      .then((buf) => {
+        const text = new TextDecoder("utf-8").decode(buf);
+        setContent(text);
+        setLoading(false);
+      })
       .catch(() => { setContent("Помилка завантаження файлу"); setLoading(false); });
   }, [url]);
 

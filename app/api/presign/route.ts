@@ -31,10 +31,17 @@ export async function POST(request: Request) {
     const bucket = process.env.R2_BUCKET_NAME || "kodlo-hub";
 
     const r2 = getR2();
+
+    // Add charset=utf-8 for text files
+    const textTypes = ["text/", "application/json", "application/xml"];
+    const contentType = textTypes.some((t) => fileType.startsWith(t))
+      ? `${fileType}; charset=utf-8`
+      : fileType;
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: filePath,
-      ContentType: fileType,
+      ContentType: contentType,
       ContentLength: fileSize,
     });
 

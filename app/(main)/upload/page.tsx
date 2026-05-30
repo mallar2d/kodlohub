@@ -74,27 +74,12 @@ export default function UploadPage() {
 
     setFile(f);
 
-    const ext = f.name.split(".").pop()?.toLowerCase() || "";
-    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
-    const docExts = ["pdf", "doc", "docx"];
-    const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-
+    // Auto-detect preview only, don't override uploadType
     if (f.type.startsWith("image/")) {
-      setUploadType("image");
       const reader = new FileReader();
       reader.onload = (e) => setPreview(e.target?.result as string);
       reader.readAsDataURL(f);
-    } else if (f.type.startsWith("video/")) {
-      setUploadType("video");
-      setPreview(null);
-    } else if (textExts.includes(ext) || docExts.includes(ext)) {
-      setUploadType("document");
-      setPreview(null);
-    } else if (musicExts.includes(ext) || f.type.startsWith("audio/")) {
-      setUploadType("audio");
-      setPreview(null);
     } else {
-      setUploadType("document");
       setPreview(null);
     }
   };
@@ -259,8 +244,15 @@ export default function UploadPage() {
 
     setProgress(100);
 
-    // If document or audio, also create a lore_item
-    if ((uploadType === "document" || uploadType === "audio" || uploadType === "artifact") && mediaData.media) {
+    // Determine if this should go to lore (artifacts)
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+    const docExts = ["pdf", "doc", "docx"];
+    const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
+    const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
+
+    // Create lore_item for documents/audio
+    if (isArtifact && mediaData.media) {
       await supabase.from("lore_items").insert({
         title: caption || file.name,
         description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
@@ -270,7 +262,7 @@ export default function UploadPage() {
       });
     }
 
-    if (uploadType === "document" || uploadType === "audio" || uploadType === "artifact") {
+    if (isArtifact) {
       router.push("/lore");
     } else {
       router.push("/gallery");
