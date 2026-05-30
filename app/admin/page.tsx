@@ -125,6 +125,12 @@ export default function AdminPage() {
   }
 
   async function updateRole(userId: string, newRole: string) {
+    // Prevent self-role change
+    if (userId === currentUser?.id) {
+      alert("Не можна змінювати свою роль!");
+      return;
+    }
+
     setUpdating(userId);
 
     // Get old role for notification
@@ -518,7 +524,7 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-3">
               {profiles.map((profile) => {
-                const editable = canEditUser(profile.role);
+                const editable = canEditUser(profile.role) && profile.id !== currentUser?.id;
                 const userStorage = storage.byUser[profile.id];
 
                 return (

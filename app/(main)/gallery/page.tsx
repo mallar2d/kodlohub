@@ -10,6 +10,7 @@ interface Media {
   caption: string;
   created_at: string;
   author_id: string;
+  profiles?: { display_name: string; username: string; avatar_url: string | null };
 }
 
 export default function GalleryPage() {
@@ -24,7 +25,8 @@ export default function GalleryPage() {
     async function fetchMedia() {
       let query = supabase
         .from("media")
-        .select("*")
+        .select("*, profiles(display_name, username, avatar_url)")
+        .in("file_type", ["image", "video"])
         .order("created_at", { ascending: false });
 
       if (filter !== "all") {
@@ -163,6 +165,21 @@ export default function GalleryPage() {
               <p className="text-center text-on-primary-mute mt-4 caption">
                 {selected.caption}
               </p>
+            )}
+
+            {selected.profiles && (
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="w-6 h-6 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xs font-bold overflow-hidden">
+                  {selected.profiles.avatar_url ? (
+                    <img src={selected.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    selected.profiles.display_name?.charAt(0) || "?"
+                  )}
+                </div>
+                <span className="caption text-ink-mute">
+                  {selected.profiles.display_name}
+                </span>
+              </div>
             )}
           </div>
         </div>

@@ -14,7 +14,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [uploadType, setUploadType] = useState<"image" | "video" | "document" | "post">("image");
+  const [uploadType, setUploadType] = useState<"image" | "video" | "document" | "audio" | "post" | "artifact">("image");
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
   const [postTags, setPostTags] = useState("");
@@ -74,6 +74,11 @@ export default function UploadPage() {
 
     setFile(f);
 
+    const ext = f.name.split(".").pop()?.toLowerCase() || "";
+    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+    const docExts = ["pdf", "doc", "docx"];
+    const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
+
     if (f.type.startsWith("image/")) {
       setUploadType("image");
       const reader = new FileReader();
@@ -81,6 +86,12 @@ export default function UploadPage() {
       reader.readAsDataURL(f);
     } else if (f.type.startsWith("video/")) {
       setUploadType("video");
+      setPreview(null);
+    } else if (textExts.includes(ext) || docExts.includes(ext)) {
+      setUploadType("document");
+      setPreview(null);
+    } else if (musicExts.includes(ext) || f.type.startsWith("audio/")) {
+      setUploadType("audio");
       setPreview(null);
     } else {
       setUploadType("document");
@@ -205,6 +216,26 @@ export default function UploadPage() {
     }
 
     setProgress(100);
+
+    // If document or audio, also create a lore_item
+    if ((uploadType === "document" || uploadType === "audio") && data.media) {
+      const category = uploadType === "audio" ? "artifact" : "artifact";
+      await supabase.from("lore_items").insert({
+        title: caption || file.name,
+        description: `${uploadType === "audio" ? "Музичний файл" : "Документ"}: ${file.name}`,
+        category,
+        media_id: data.media.id,
+        author_id: (user as { id: string }).id,
+      });
+    }
+
+    if (data.success) {
+      if (uploadType === "document" || uploadType === "audio") {
+        router.push("/lore");
+      } else {
+        router.push("/gallery");
+      }
+    }
 
     if (data.success) {
       router.push("/gallery");
@@ -422,7 +453,7 @@ export default function UploadPage() {
 
         {/* Type selector */}
         <div className="flex flex-wrap gap-3 mb-8">
-          {(["image", "video", "document", "post"] as const).map((type) => (
+          {(["image", "video", "document", "audio", "post", "artifact"] as const).map((type) => (
             <button
               key={type}
               onClick={() => setUploadType(type)}
@@ -438,6 +469,10 @@ export default function UploadPage() {
                 ? "ВІДЕО"
                 : type === "document"
                 ? "ДОКУМЕНТ"
+                : type === "audio"
+                ? "МУЗИКА"
+                : type === "artifact"
+                ? "АРТЕФАКТ"
                 : "ПОСТ"}
             </button>
           ))}
