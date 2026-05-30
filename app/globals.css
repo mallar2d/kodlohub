@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-canvas-night: #000000;
+  --color-canvas-night-soft: #0a0a0a;
+  --color-canvas-light: #ffffff;
+  --color-canvas-cool: #f0f0fa;
+  --color-on-primary: #ffffff;
+  --color-on-primary-mute: #f0f0fa;
+  --color-ink: #000000;
+  --color-ink-mute: #5a5a5f;
+  --color-hairline-dark: #3a3a3f;
+  --color-hairline-light: #e0e0e8;
+
+  --font-display: "Inter", "Arial Narrow", Arial, Verdana, sans-serif;
+  --font-body: "Inter", Arial, Verdana, sans-serif;
+}
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* Uppercase display headings */
+.heading-hero {
+  font-family: var(--font-display);
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.heading-section {
+  font-family: var(--font-display);
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.heading-sub {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.96px;
+  text-transform: uppercase;
+}
+
+/* Ghost pill button */
+.btn-ghost {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: 1.17px;
+  text-transform: uppercase;
+  padding: 18px 24px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-ghost:hover {
+  opacity: 0.8;
+}
+
+/* Card styles */
+.card-dark {
+  background: var(--color-canvas-night);
+  border: 1px solid var(--color-hairline-dark);
+  border-radius: 4px;
+}
+
+.card-light {
+  background: var(--color-canvas-light);
+  border: 1px solid var(--color-hairline-light);
+  border-radius: 8px;
+}
+
+/* Micro cap text */
+.micro-cap {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 2.0;
+  letter-spacing: 0.96px;
+  text-transform: uppercase;
+}
+
+/* Button cap text */
+.button-cap {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: 1.17px;
+  text-transform: uppercase;
+}
+
+/* Caption text */
+.caption {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Responsive heading sizes */
+@media (max-width: 960px) {
+  .heading-hero {
+    font-size: 60px;
+    letter-spacing: 1.2px;
+  }
+}
+
+@media (max-width: 767px) {
+  .heading-hero {
+    font-size: 48px;
+    letter-spacing: 0.96px;
+  }
+  .heading-section {
+    font-size: 48px;
+    letter-spacing: 0.96px;
+  }
+}
+
+@media (max-width: 599px) {
+  .heading-hero {
+    font-size: 40px;
+    letter-spacing: 0.8px;
+  }
+  .heading-section {
+    font-size: 36px;
+    letter-spacing: 0.72px;
+  }
+}
