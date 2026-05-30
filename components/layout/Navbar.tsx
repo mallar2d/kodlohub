@@ -89,7 +89,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-canvas-night/80 backdrop-blur-sm border-b border-hairline-dark">
-      <div className="max-w-[1200px] mx-auto flex items-center justify-between px-6 py-4">
+      <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
         <Link
           href="/"
           className="font-[var(--font-display)] text-xl font-bold tracking-[1.6px] uppercase text-on-primary"
@@ -238,7 +238,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-canvas-night border-t border-hairline-dark px-6 py-4 flex flex-col gap-4">
+        <div className="md:hidden bg-canvas-night border-t border-hairline-dark px-4 sm:px-6 py-5 flex flex-col gap-4">
           {navLinks.map((link) =>
             "external" in link && link.external ? (
               <a

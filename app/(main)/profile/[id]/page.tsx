@@ -122,7 +122,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
         {/* Profile header */}
         <div className="flex flex-col md:flex-row items-start gap-8 mb-12">

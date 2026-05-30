@@ -70,7 +70,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <section className="pt-24 pb-16 px-6">
+      <section className="pt-24 pb-16 px-4 sm:px-6">
         <div className="max-w-[1200px] mx-auto">
           <h1 className="heading-hero mb-4">KodloHUB</h1>
           <p className="text-on-primary-mute text-xl max-w-2xl">
@@ -80,8 +80,8 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="px-6 pb-16">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-3 gap-4">
+      <section className="px-4 sm:px-6 pb-16">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { value: stats.profilesCount, label: "УЧАСНИКІВ" },
             { value: stats.mediaCount, label: "МЕДІА" },
@@ -96,7 +96,7 @@ export default function HomePage() {
       </section>
 
       {/* Recent media */}
-      <section className="px-6 pb-16">
+      <section className="px-4 sm:px-6 pb-16">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h2 className="heading-sub">ОСТАННЄ</h2>
@@ -126,7 +126,7 @@ export default function HomePage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentMedia.map((item) => (
                 <Link
                   key={item.id}
@@ -185,7 +185,7 @@ export default function HomePage() {
       </section>
 
       {/* Recent posts */}
-      <section className="px-6 pb-16">
+      <section className="px-4 sm:px-6 pb-16">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h2 className="heading-sub">БЛОГ</h2>
@@ -244,7 +244,7 @@ export default function HomePage() {
       </section>
 
       {/* Quick links */}
-      <section className="px-6 pb-16">
+      <section className="px-4 sm:px-6 pb-16">
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { href: "/gallery", title: "ГАЛЕРЕЯ", desc: "Фото та відео кодла" },

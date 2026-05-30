@@ -268,7 +268,7 @@ export default function AdminPage() {
   const owners = profiles.filter((p) => p.role === "owner");
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="mb-12">
@@ -367,7 +367,7 @@ export default function AdminPage() {
             <div className="space-y-4">
               {pendingPosts.map((post) => (
                 <div key={post.id} className="card-dark p-6 border-yellow-500/30">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="button-cap px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 text-[10px]">
@@ -417,7 +417,7 @@ export default function AdminPage() {
             <div className="space-y-4">
               {joinRequests.map((req) => (
                 <div key={req.id} className="card-dark p-6 border-purple-500/30">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="button-cap px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/50 text-[10px]">
@@ -474,7 +474,7 @@ export default function AdminPage() {
               {shemetovany.map((profile) => (
                 <div
                   key={profile.id}
-                  className="card-dark p-4 flex items-center justify-between border-yellow-500/30"
+                  className="card-dark p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-yellow-500/30"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden">
@@ -530,7 +530,7 @@ export default function AdminPage() {
                 return (
                   <div
                     key={profile.id}
-                    className="card-dark p-4 flex items-center justify-between"
+                    className="card-dark p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden">

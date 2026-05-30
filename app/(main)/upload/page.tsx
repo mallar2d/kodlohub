@@ -321,7 +321,7 @@ export default function UploadPage() {
   if (userRole === "shemetovany") {
     if (shemetovanyMode === "post") {
       return (
-        <div className="min-h-screen pt-24 pb-16 px-6">
+        <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
           <div className="max-w-3xl mx-auto">
             <div className="mb-8">
               <button
@@ -388,7 +388,7 @@ export default function UploadPage() {
 
     if (shemetovanyMode === "apply") {
       return (
-        <div className="min-h-screen pt-24 pb-16 px-6">
+        <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => setShemetovanyMode("menu")}
@@ -461,7 +461,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-12">

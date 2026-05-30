@@ -66,7 +66,7 @@ export default function LorePage() {
   }, [filter, search, supabase]);
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="mb-12">

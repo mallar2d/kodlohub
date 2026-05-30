@@ -138,7 +138,7 @@ export default function LoreItemPage() {
   const isAudio = item.media?.file_type === "audio" || ["mp3", "wav", "ogg", "flac", "aac"].includes(fileExt);
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <Link href="/lore" className="micro-cap text-ink-mute hover:text-on-primary mb-6 inline-block">
           ← НАЗАД ДО АРХІВУ

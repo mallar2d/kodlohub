@@ -54,7 +54,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="mb-12">
           <p className="micro-cap text-ink-mute mb-2">СПІЛЬНОТА</p>

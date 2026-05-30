@@ -112,7 +112,7 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         <div className="mb-12">
           <p className="micro-cap text-ink-mute mb-2">НАЛАШТУВАННЯ</p>

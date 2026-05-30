@@ -159,7 +159,7 @@ export default function BlogPostPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <article className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-12">
