@@ -1,0 +1,246 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import type { User } from "@supabase/supabase-js";
+
+interface LoreItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  media_id: string | null;
+  author_id: string;
+  created_at: string;
+  profiles?: { display_name: string; username: string; avatar_url: string | null };
+  media?: { id: string; file_url: string; file_type: string; file_size: number | null; caption: string };
+}
+
+const categoryLabels: Record<string, string> = {
+  person: "ЛЮДИНА",
+  event: "ПОДІЯ",
+  artifact: "АРТЕФАКТ",
+  meme: "МЕМ",
+  quote: "ЦИТАТА",
+};
+
+const categoryColors: Record<string, string> = {
+  person: "border-blue-500/50 text-blue-400",
+  event: "border-green-500/50 text-green-400",
+  artifact: "border-yellow-500/50 text-yellow-400",
+  meme: "border-purple-500/50 text-purple-400",
+  quote: "border-pink-500/50 text-pink-400",
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 Б";
+  const k = 1024;
+  const sizes = ["Б", "КБ", "МБ", "ГБ"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+export default function LoreItemPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [item, setItem] = useState<LoreItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthor, setIsAuthor] = useState(false);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      setUser(authUser);
+
+      const { data } = await supabase
+        .from("lore_items")
+        .select("*, profiles(display_name, username, avatar_url), media(*)")
+        .eq("id", params.id)
+        .single();
+
+      if (data) {
+        setItem(data);
+        if (authUser && authUser.id === data.author_id) setIsAuthor(true);
+      }
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [params.id, supabase]);
+
+  const handleDelete = async () => {
+    if (!item || !confirm("Видалити артефакт? Це незворотньо.")) return;
+
+    // Delete media if exists
+    if (item.media_id) {
+      await supabase.from("media").delete().eq("id", item.media_id);
+    }
+
+    const { error } = await supabase.from("lore_items").delete().eq("id", item.id);
+    if (!error) router.push("/lore");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="heading-sub text-hairline-dark mb-4">:(</p>
+          <p className="text-on-primary-mute">Артефакт не знайдено</p>
+        </div>
+      </div>
+    );
+  }
+
+  const fileExt = item.media?.file_url.split(".").pop()?.toLowerCase() || "";
+  const isMarkdown = ["md", "markdown"].includes(fileExt);
+  const isText = ["txt", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css", "md"].includes(fileExt);
+  const isPdf = fileExt === "pdf";
+  const isAudio = item.media?.file_type === "audio" || ["mp3", "wav", "ogg", "flac", "aac"].includes(fileExt);
+
+  return (
+    <div className="min-h-screen pt-24 pb-16 px-6">
+      <div className="max-w-4xl mx-auto">
+        <Link href="/lore" className="micro-cap text-ink-mute hover:text-on-primary mb-6 inline-block">
+          ← НАЗАД ДО АРХІВУ
+        </Link>
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className={`button-cap px-3 py-1 rounded-full border ${categoryColors[item.category] || "border-hairline-dark text-ink-mute"}`}>
+              {categoryLabels[item.category] || item.category}
+            </span>
+            <span className="caption text-ink-mute">
+              {new Date(item.created_at).toLocaleDateString("uk-UA")}
+            </span>
+          </div>
+
+          <h1 className="heading-sub mb-4">{item.title}</h1>
+
+          <div className="flex items-center justify-between">
+            {item.profiles && (
+              <Link href={`/profile/${item.author_id}`} className="flex items-center gap-3 group">
+                <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden">
+                  {item.profiles.avatar_url ? (
+                    <img src={item.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (item.profiles.display_name?.charAt(0) || "?")}
+                </div>
+                <div>
+                  <p className="font-bold text-on-primary group-hover:text-on-primary-mute transition-colors">{item.profiles.display_name}</p>
+                  <p className="caption text-ink-mute">@{item.profiles.username}</p>
+                </div>
+              </Link>
+            )}
+
+            {isAuthor && (
+              <button
+                onClick={handleDelete}
+                className="button-cap px-3 py-1 rounded-full border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                ВИДАЛИТИ
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Description */}
+        {item.description && (
+          <div className="mb-8">
+            <div className="whitespace-pre-wrap text-on-primary leading-relaxed">
+              <ReactMarkdown>{item.description}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Media file */}
+        {item.media && (
+          <div className="mb-8">
+            <h2 className="micro-cap text-ink-mute mb-4">ФАЙЛ</h2>
+            <div className="card-dark p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="font-bold text-on-primary">{item.media.file_url.split("/").pop()}</p>
+                  {item.media.file_size && (
+                    <p className="caption text-ink-mute">{formatBytes(item.media.file_size)}</p>
+                  )}
+                </div>
+                <a
+                  href={item.media.file_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost text-on-primary"
+                >
+                  СКАЧАТИ
+                </a>
+              </div>
+
+              {/* Preview based on file type */}
+              {item.media.file_type === "image" && (
+                <img src={item.media.file_url} alt={item.title} className="max-w-full max-h-[600px] object-contain rounded-lg mx-auto" />
+              )}
+
+              {item.media.file_type === "video" && (
+                <video src={item.media.file_url} controls className="max-w-full max-h-[600px] mx-auto rounded-lg" />
+              )}
+
+              {isAudio && (
+                <audio src={item.media.file_url} controls className="w-full" />
+              )}
+
+              {isPdf && (
+                <iframe src={item.media.file_url} className="w-full h-[600px] rounded-lg border border-hairline-dark" />
+              )}
+
+              {(isMarkdown || isText) && !isPdf && (
+                <MarkdownFileViewer url={item.media.file_url} isMarkdown={isMarkdown} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarkdownFileViewer({ url, isMarkdown }: { url: string; isMarkdown: boolean }) {
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(url)
+      .then((res) => res.text())
+      .then((text) => { setContent(text); setLoading(false); })
+      .catch(() => { setContent("Помилка завантаження файлу"); setLoading(false); });
+  }, [url]);
+
+  if (loading) return <div className="text-center py-8"><div className="animate-spin w-6 h-6 border-2 border-on-primary border-t-transparent rounded-full mx-auto" /></div>;
+  if (!content) return null;
+
+  return (
+    <div className="bg-canvas-night-soft rounded-lg p-6 overflow-auto max-h-[600px]">
+      {isMarkdown ? (
+        <div className="whitespace-pre-wrap text-on-primary leading-relaxed">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
+      ) : (
+        <pre className="text-on-primary text-sm whitespace-pre-wrap font-mono">{content}</pre>
+      )}
+    </div>
+  );
+}

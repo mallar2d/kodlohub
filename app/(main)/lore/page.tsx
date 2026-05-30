@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface LoreItem {
   id: string;
@@ -11,6 +12,7 @@ interface LoreItem {
   media_id: string | null;
   author_id: string;
   created_at: string;
+  profiles?: { display_name: string; avatar_url: string | null };
 }
 
 const categories = [
@@ -42,7 +44,7 @@ export default function LorePage() {
     async function fetchLore() {
       let query = supabase
         .from("lore_items")
-        .select("*")
+        .select("*, profiles(display_name, avatar_url)")
         .order("created_at", { ascending: false });
 
       if (filter !== "all") {
@@ -119,9 +121,10 @@ export default function LorePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => (
-              <div
+              <Link
                 key={item.id}
-                className="card-dark p-6 hover:border-on-primary-mute transition-colors"
+                href={`/lore/${item.id}`}
+                className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <span
@@ -133,9 +136,12 @@ export default function LorePage() {
                     {categories.find((c) => c.key === item.category)?.label ||
                       item.category}
                   </span>
+                  {item.media_id && (
+                    <span className="micro-cap text-ink-mute">📎</span>
+                  )}
                 </div>
 
-                <h3 className="font-bold text-lg text-on-primary mb-2">
+                <h3 className="font-bold text-lg text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors">
                   {item.title}
                 </h3>
 
@@ -143,12 +149,17 @@ export default function LorePage() {
                   {item.description}
                 </p>
 
-                <div className="mt-4 pt-3 border-t border-hairline-dark">
+                <div className="mt-4 pt-3 border-t border-hairline-dark flex items-center justify-between">
                   <span className="caption text-ink-mute">
                     {new Date(item.created_at).toLocaleDateString("uk-UA")}
                   </span>
+                  {item.profiles && (
+                    <span className="caption text-ink-mute">
+                      {item.profiles.display_name}
+                    </span>
+                  )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -28,6 +28,7 @@ interface Media {
   file_type: string;
   caption: string;
   created_at: string;
+  lore_items?: { id: string }[];
 }
 
 export default function ProfilePage() {
@@ -84,7 +85,7 @@ export default function ProfilePage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("media")
-            .select("id, file_url, file_type, caption, created_at")
+            .select("id, file_url, file_type, caption, created_at, lore_items(id)")
             .eq("author_id", params.id)
             .order("created_at", { ascending: false }),
         ]);
@@ -243,40 +244,46 @@ export default function ProfilePage() {
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {media.map((item) => (
-              <Link
-                key={item.id}
-                href="/gallery"
-                className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
-              >
-                {item.file_type === "image" ? (
-                  <img
-                    src={item.file_url}
-                    alt={item.caption || "Медіа"}
-                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                ) : item.file_type === "video" ? (
-                  <video
-                    src={item.file_url}
-                    className="w-full h-48 object-cover"
-                    preload="metadata"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                  </div>
-                )}
-                {item.caption && (
-                  <div className="p-2">
-                    <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
-                  </div>
-                )}
-              </Link>
-            ))}
+            {media.map((item) => {
+              // Link to lore item if it's a document/audio, otherwise gallery
+              const loreItem = item.lore_items?.[0];
+              const href = loreItem ? `/lore/${loreItem.id}` : "/gallery";
+
+              return (
+                <Link
+                  key={item.id}
+                  href={href}
+                  className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
+                >
+                  {item.file_type === "image" ? (
+                    <img
+                      src={item.file_url}
+                      alt={item.caption || "Медіа"}
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : item.file_type === "video" ? (
+                    <video
+                      src={item.file_url}
+                      className="w-full h-48 object-cover"
+                      preload="metadata"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                  )}
+                  {item.caption && (
+                    <div className="p-2">
+                      <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

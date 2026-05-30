@@ -37,7 +37,7 @@ export default function Footer() {
             ⚡⚡ Powered by PODROID
           </span>
           <span className="caption text-ink-mute">
-            © 2025 КОДЛО. Всі права захищені.
+            © 22:00 КОДЛО. Всі права захищені.
           </span>
         </div>
       </div>
