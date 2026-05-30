@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -66,6 +67,8 @@ export async function POST(request: Request) {
       ...data,
       profiles: (data as any).profiles?.[0] || null,
     };
+
+    logActivity(user.id, "comment_created", "comment", data.id, { mediaId });
 
     return NextResponse.json({ comment });
   } catch (err) {

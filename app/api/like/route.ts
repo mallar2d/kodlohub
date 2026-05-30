@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       await supabase.from("likes").delete().eq("id", existing.id);
+      logActivity(userId, "like_removed", "like", undefined, { itemType, itemId });
       return NextResponse.json({ liked: false });
     } else {
       await supabase.from("likes").insert({
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
         item_type: itemType,
         item_id: itemId,
       });
+      logActivity(userId, "like_added", "like", undefined, { itemType, itemId });
       return NextResponse.json({ liked: true });
     }
   } catch (err) {

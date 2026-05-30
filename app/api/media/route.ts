@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -40,6 +41,8 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    logActivity(authorId, "media_uploaded", "media", data.id, { caption, fileType });
 
     return NextResponse.json({ success: true, media: data });
   } catch (err) {
