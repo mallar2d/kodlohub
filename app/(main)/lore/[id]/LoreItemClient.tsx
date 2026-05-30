@@ -195,7 +195,7 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
 
               {item.media.file_type === "image" && (
                 <div className="relative w-full max-h-[600px]">
-                  <Image src={item.media.file_url} alt={item.title} width={1200} height={800} className="max-w-full max-h-[600px] object-contain rounded-lg mx-auto" />
+                  <Image src={item.media.file_url} alt={item.title} width={1200} height={800} className="max-w-full max-h-[600px] object-contain rounded-lg mx-auto" sizes="(max-width: 768px) 100vw, 80vw" priority />
                 </div>
               )}
 

@@ -90,7 +90,7 @@ export default function GalleryClient({
                   <video
                     src={item.file_url}
                     className="w-full h-auto"
-                    preload="metadata"
+                    preload="none"
                   />
                 ) : (
                   <div className="p-6 text-center">
@@ -144,6 +144,8 @@ export default function GalleryClient({
                 width={1200}
                 height={900}
                 className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                sizes="100vw"
+                priority
               />
             ) : selected.file_type === "video" ? (
               <video

@@ -166,7 +166,7 @@ export default function ProfileClient({
                     <Image src={item.file_url} alt={item.caption || "Медіа"} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" loading="lazy" />
                   </div>
                 ) : item.file_type === "video" ? (
-                  <video src={item.file_url} className="w-full h-48 object-cover" preload="metadata" />
+                  <video src={item.file_url} className="w-full h-48 object-cover" preload="none" />
                 ) : (
                   <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">

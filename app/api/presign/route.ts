@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       Bucket: bucket,
       Key: filePath,
       ContentType: contentType,
+      CacheControl: 'public, max-age=31536000, immutable',
     });
 
     const presignedUrl = await getSignedUrl(r2, command, { expiresIn: 600 });
