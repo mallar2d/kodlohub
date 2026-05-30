@@ -10,10 +10,14 @@ import NotificationsBell from "@/components/ui/NotificationsBell";
 const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
   { href: "/blog", label: "БЛОГ" },
-  { href: "/lore", label: "ЛОРА" },
+  { href: "/lore", label: "АРТЕФАКТИ" },
   { href: "/upload", label: "ЗАВАНТАЖИТИ" },
   { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
-  { href: "https://soundcloud.com/zt-barista", label: "BARISTA", external: true },
+  {
+    href: "https://soundcloud.com/zt-barista",
+    label: "BARISTA",
+    external: true,
+  },
 ];
 
 export default function Navbar() {
@@ -103,7 +107,7 @@ export default function Navbar() {
               >
                 {link.label}
               </Link>
-            )
+            ),
           )}
 
           {user && (userRole === "owner" || userRole === "podrofikovany") && (
@@ -111,8 +115,12 @@ export default function Navbar() {
               href="/admin"
               className={`micro-cap transition-opacity hover:opacity-70 ${
                 pathname === "/admin"
-                  ? userRole === "owner" ? "text-yellow-400" : "text-purple-400"
-                  : userRole === "owner" ? "text-yellow-400/70" : "text-purple-400/70"
+                  ? userRole === "owner"
+                    ? "text-yellow-400"
+                    : "text-purple-400"
+                  : userRole === "owner"
+                    ? "text-yellow-400/70"
+                    : "text-purple-400/70"
               }`}
             >
               АДМІН
@@ -145,7 +153,14 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary hover:bg-canvas-night transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
@@ -159,7 +174,14 @@ export default function Navbar() {
                     }}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary-mute hover:bg-canvas-night hover:text-red-400 transition-colors w-full text-left cursor-pointer"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                       <polyline points="16 17 21 12 16 7" />
                       <line x1="21" y1="12" x2="9" y2="12" />
@@ -182,7 +204,14 @@ export default function Navbar() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Меню"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             {menuOpen ? (
               <path d="M6 6l12 12M6 18L18 6" />
             ) : (
@@ -216,7 +245,7 @@ export default function Navbar() {
               >
                 {link.label}
               </Link>
-            )
+            ),
           )}
           {user && (userRole === "owner" || userRole === "podrofikovany") && (
             <Link
@@ -254,7 +283,14 @@ export default function Navbar() {
                 }}
                 className="micro-cap text-on-primary-mute hover:text-red-400 flex items-center gap-2 text-left cursor-pointer"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
@@ -263,7 +299,11 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link href="/login" className="btn-ghost text-on-primary w-fit" onClick={() => setMenuOpen(false)}>
+            <Link
+              href="/login"
+              className="btn-ghost text-on-primary w-fit"
+              onClick={() => setMenuOpen(false)}
+            >
               УВІЙТИ
             </Link>
           )}

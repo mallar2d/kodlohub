@@ -7,9 +7,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center md:items-start gap-2">
             <span className="button-cap text-on-primary">KODLOHOST</span>
-            <span className="caption text-ink-mute">
-              Хостинг для кодла
-            </span>
+            <span className="caption text-ink-mute">Хостинг для кодла</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -29,7 +27,7 @@ export default function Footer() {
               href="/lore"
               className="micro-cap text-on-primary-mute hover:text-on-primary transition-opacity"
             >
-              ЛОРА
+              АРТЕФАКТИ
             </Link>
           </div>
         </div>

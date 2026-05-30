@@ -68,8 +68,8 @@ export default function BlogPage() {
                     {post.type === "blog"
                       ? "БЛОГ"
                       : post.type === "lore"
-                      ? "ЛОРА"
-                      : "ПОДІЯ"}
+                        ? "АРТЕФАКТИ"
+                        : "ПОДІЯ"}
                   </span>
                   <span className="caption text-ink-mute">
                     {new Date(post.created_at).toLocaleDateString("uk-UA")}

@@ -50,7 +50,9 @@ export default function LorePage() {
       }
 
       if (search) {
-        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+        query = query.or(
+          `title.ilike.%${search}%,description.ilike.%${search}%`,
+        );
       }
 
       const { data } = await query;
@@ -67,7 +69,7 @@ export default function LorePage() {
         {/* Header */}
         <div className="mb-12">
           <p className="micro-cap text-ink-mute mb-2">АРХІВ КОДЛА</p>
-          <h1 className="heading-section mb-4">ЛОРА-БІБЛІОТЕКА</h1>
+          <h1 className="heading-section mb-4">АРТЕФАКТ-БІБЛІОТЕКА</h1>
           <p className="text-on-primary-mute text-lg max-w-2xl">
             Все найкраще, що створило кодло. Від мемів до фільмів. Від ботів до
             ігор.
@@ -111,7 +113,7 @@ export default function LorePage() {
           <div className="text-center py-24">
             <p className="heading-sub text-hairline-dark mb-4">:(</p>
             <p className="text-on-primary-mute">
-              брєдік в чат нє пішем — лора порожня
+              брєдік в чат нє пішем — артефактів нема
             </p>
           </div>
         ) : (
@@ -124,7 +126,8 @@ export default function LorePage() {
                 <div className="flex items-center gap-2 mb-3">
                   <span
                     className={`button-cap px-3 py-1 rounded-full border ${
-                      categoryColors[item.category] || "border-hairline-dark text-ink-mute"
+                      categoryColors[item.category] ||
+                      "border-hairline-dark text-ink-mute"
                     }`}
                   >
                     {categories.find((c) => c.key === item.category)?.label ||
