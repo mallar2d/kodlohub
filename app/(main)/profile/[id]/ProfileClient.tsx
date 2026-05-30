@@ -32,6 +32,20 @@ interface Media {
   lore_items?: { id: string }[] | null;
 }
 
+interface LoreItem {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  media?: { file_url: string; file_type: string } | null;
+  created_at: string;
+}
+
+interface LikedItem {
+  item_type: string;
+  item_id: string;
+}
+
 const roleLabels: Record<string, string> = {
   owner: "ГОЛОВНИЙ ПОДРО",
   podrofikovany: "ПОДРОФІКОВАНИЙ",
@@ -56,8 +70,12 @@ export default function ProfileClient({
   initialMedia: Media[];
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"posts" | "media">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "media" | "liked">("posts");
   const [isOwner, setIsOwner] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
+  const [likedMedia, setLikedMedia] = useState<Media[]>([]);
+  const [likedLore, setLikedLore] = useState<LoreItem[]>([]);
+  const [likedLoading, setLikedLoading] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -65,6 +83,51 @@ export default function ProfileClient({
       if (data.user && data.user.id === profile.id) setIsOwner(true);
     });
   }, [profile.id, supabase]);
+
+  useEffect(() => {
+    if (activeTab !== "liked") return;
+    if (likedPosts.length > 0 || likedMedia.length > 0 || likedLore.length > 0) return;
+
+    setLikedLoading(true);
+    supabase
+      .from("likes")
+      .select("item_type, item_id")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .then(async ({ data: likes }: { data: LikedItem[] | null }) => {
+        if (!likes || likes.length === 0) {
+          setLikedLoading(false);
+          return;
+        }
+
+        const postIds = likes.filter((l: LikedItem) => l.item_type === "post").map((l: LikedItem) => l.item_id);
+        const mediaIds = likes.filter((l: LikedItem) => l.item_type === "media").map((l: LikedItem) => l.item_id);
+        const loreIds = likes.filter((l: LikedItem) => l.item_type === "lore").map((l: LikedItem) => l.item_id);
+
+        const [postsRes, mediaRes, loreRes] = await Promise.all([
+          postIds.length > 0
+            ? supabase.from("posts").select("id, title, content, created_at").in("id", postIds)
+            : { data: [] as Post[] },
+          mediaIds.length > 0
+            ? supabase.from("media").select("id, file_url, file_type, caption, created_at").in("id", mediaIds)
+            : { data: [] as Media[] },
+          loreIds.length > 0
+            ? supabase.from("lore_items").select("id, title, description, category, media:media_id(file_url, file_type), created_at").in("id", loreIds)
+            : { data: [] as LoreItem[] },
+        ]);
+
+        setLikedPosts(postsRes.data || []);
+        setLikedMedia(mediaRes.data || []);
+        setLikedLore(loreRes.data || []);
+        setLikedLoading(false);
+      });
+  }, [activeTab, profile.id, likedPosts.length, likedMedia.length, likedLore.length, supabase]);
+
+  const tabs = [
+    { key: "posts" as const, label: `ПОСТИ (${initialPosts.length})` },
+    { key: "media" as const, label: `МЕДІА (${initialMedia.length})` },
+    { key: "liked" as const, label: "ЛУБЛЕНІ" },
+  ];
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -119,21 +182,21 @@ export default function ProfileClient({
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-hairline-dark pb-4">
-          {(["posts", "media"] as const).map((tab) => (
+          {tabs.map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`button-cap px-4 py-2 transition-opacity ${
-                activeTab === tab ? "text-on-primary border-b-2 border-on-primary" : "text-ink-mute hover:text-on-primary"
+                activeTab === tab.key ? "text-on-primary border-b-2 border-on-primary" : "text-ink-mute hover:text-on-primary"
               }`}
             >
-              {tab === "posts" ? `ПОСТИ (${initialPosts.length})` : `МЕДІА (${initialMedia.length})`}
+              {tab.label}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        {activeTab === "posts" ? (
+        {activeTab === "posts" && (
           initialPosts.length === 0 ? (
             <p className="text-on-primary-mute text-center py-12">Поки немає постів</p>
           ) : (
@@ -151,38 +214,117 @@ export default function ProfileClient({
               ))}
             </div>
           )
-        ) : initialMedia.length === 0 ? (
-          <p className="text-on-primary-mute text-center py-12">Поки немає медіа</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {initialMedia.map((item) => (
-              <Link
-                key={item.id}
-                href="/gallery"
-                className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
-              >
-                {item.file_type === "image" ? (
-                  <div className="relative w-full h-48">
-                    <Image src={item.file_url} alt={item.caption || "Медіа"} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" loading="lazy" />
+        )}
+
+        {activeTab === "media" && (
+          initialMedia.length === 0 ? (
+            <p className="text-on-primary-mute text-center py-12">Поки немає медіа</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {initialMedia.map((item) => (
+                <Link
+                  key={item.id}
+                  href="/gallery"
+                  className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
+                >
+                  {item.file_type === "image" ? (
+                    <div className="relative w-full h-48">
+                      <Image src={item.file_url} alt={item.caption || "Медіа"} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" loading="lazy" />
+                    </div>
+                  ) : item.file_type === "video" ? (
+                    <video src={item.file_url} className="w-full h-48 object-cover" preload="none" />
+                  ) : (
+                    <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                  )}
+                  {item.caption && (
+                    <div className="p-2">
+                      <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )
+        )}
+
+        {activeTab === "liked" && (
+          likedLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full mx-auto" />
+            </div>
+          ) : (likedPosts.length === 0 && likedMedia.length === 0 && likedLore.length === 0) ? (
+            <p className="text-on-primary-mute text-center py-12">Поки немає лайків</p>
+          ) : (
+            <div className="space-y-8">
+              {likedPosts.length > 0 && (
+                <div>
+                  <p className="micro-cap text-ink-mute mb-4">ПОСТИ</p>
+                  <div className="space-y-4">
+                    {likedPosts.map((post) => (
+                      <Link
+                        key={post.id}
+                        href={`/blog/${post.id}`}
+                        className="card-dark p-6 block hover:border-on-primary-mute transition-colors group"
+                      >
+                        <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors">{post.title}</h3>
+                        <p className="text-on-primary-mute text-sm line-clamp-2">{post.content.slice(0, 200)}</p>
+                        <p className="caption text-ink-mute mt-2">{new Date(post.created_at).toLocaleDateString("uk-UA")}</p>
+                      </Link>
+                    ))}
                   </div>
-                ) : item.file_type === "video" ? (
-                  <video src={item.file_url} className="w-full h-48 object-cover" preload="none" />
-                ) : (
-                  <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
+                </div>
+              )}
+              {likedMedia.length > 0 && (
+                <div>
+                  <p className="micro-cap text-ink-mute mb-4">МЕДІА</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {likedMedia.map((item) => (
+                      <Link
+                        key={item.id}
+                        href="/gallery"
+                        className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
+                      >
+                        {item.file_type === "image" ? (
+                          <div className="relative w-full h-48">
+                            <Image src={item.file_url} alt={item.caption || "Медіа"} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" loading="lazy" />
+                          </div>
+                        ) : (
+                          <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
+                            <p className="micro-cap text-ink-mute">ВІДЕО</p>
+                          </div>
+                        )}
+                      </Link>
+                    ))}
                   </div>
-                )}
-                {item.caption && (
-                  <div className="p-2">
-                    <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
+                </div>
+              )}
+              {likedLore.length > 0 && (
+                <div>
+                  <p className="micro-cap text-ink-mute mb-4">АРТЕФАКТИ</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {likedLore.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/lore/${item.id}`}
+                        className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
+                      >
+                        <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors line-clamp-2">{item.title}</h3>
+                        {item.description && (
+                          <p className="text-on-primary-mute text-sm line-clamp-2">{item.description.slice(0, 150)}</p>
+                        )}
+                        <p className="micro-cap text-ink-mute mt-2">{item.category.toUpperCase()}</p>
+                      </Link>
+                    ))}
                   </div>
-                )}
-              </Link>
-            ))}
-          </div>
+                </div>
+              )}
+            </div>
+          )
         )}
       </div>
     </div>

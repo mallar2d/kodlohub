@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import LikeButton from "@/components/ui/LikeButton";
 
 interface Media {
   id: string;
@@ -10,6 +11,7 @@ interface Media {
   caption: string | null;
   created_at: string;
   author_id: string;
+  like_count?: number;
   profiles?: { display_name: string; username: string; avatar_url: string | null } | null;
 }
 
@@ -105,6 +107,9 @@ export default function GalleryClient({
                     </p>
                   </div>
                 )}
+                <div className="bg-canvas-night/80 px-3 py-2 flex justify-end">
+                  <LikeButton itemType="media" itemId={item.id} initialCount={item.like_count || 0} compact />
+                </div>
               </div>
             ))}
           </div>
@@ -166,6 +171,9 @@ export default function GalleryClient({
                 {selected.profiles.display_name}
               </p>
             )}
+            <div className="flex justify-center mt-4">
+              <LikeButton itemType="media" itemId={selected.id} initialCount={selected.like_count || 0} />
+            </div>
           </div>
         </div>
       )}

@@ -33,7 +33,11 @@ export default function UploadPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
+    setIsMobile(
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      ) || window.innerWidth < 768,
+    );
     supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
       if (!data.user) {
         router.push("/login");
@@ -97,21 +101,34 @@ export default function UploadPage() {
       setUploading(true);
       const userId = (user as { id: string }).id;
 
-      const { data: existing } = await supabase.from("profiles").select("id").eq("id", userId).single();
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single();
       if (!existing) {
-        const meta = (user as { user_metadata?: Record<string, string> }).user_metadata || {};
-        await supabase.from("profiles").upsert({
-          id: userId,
-          username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
-          display_name: meta.full_name || meta.name || "Учасник кодла",
-          avatar_url: meta.avatar_url || meta.picture || null,
-          bio: "",
-        }, { onConflict: "id" });
+        const meta =
+          (user as { user_metadata?: Record<string, string> }).user_metadata ||
+          {};
+        await supabase.from("profiles").upsert(
+          {
+            id: userId,
+            username: meta.email?.split("@")[0] || `user_${userId.slice(0, 8)}`,
+            display_name: meta.full_name || meta.name || "Учасник кодла",
+            avatar_url: meta.avatar_url || meta.picture || null,
+            bio: "",
+          },
+          { onConflict: "id" },
+        );
       }
 
       let status = "approved";
       if (userRole === "shemetovany") {
-        const { count } = await supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("status", "pending");
+        const { count } = await supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", userId)
+          .eq("status", "pending");
         if ((count || 0) >= 3) {
           alert("Вже є 3 пости на розгляді.");
           setUploading(false);
@@ -124,14 +141,20 @@ export default function UploadPage() {
         author_id: userId,
         title: postTitle,
         content: postContent,
-        tags: postTags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: postTags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
         type: "blog",
         status,
       });
 
       if (!error) {
         if (status === "pending") {
-          const { data: admins } = await supabase.from("profiles").select("id").in("role", ["owner", "podrofikovany"]);
+          const { data: admins } = await supabase
+            .from("profiles")
+            .select("id")
+            .in("role", ["owner", "podrofikovany"]);
           if (admins) {
             for (const admin of admins) {
               await supabase.from("notifications").insert({
@@ -179,7 +202,9 @@ export default function UploadPage() {
 
     if (!presignRes.ok) {
       let errorMsg = "Помилка отримання presigned URL";
-      try { errorMsg = (await presignRes.json()).error || errorMsg; } catch {}
+      try {
+        errorMsg = (await presignRes.json()).error || errorMsg;
+      } catch {}
       alert(errorMsg);
       setUploading(false);
       return;
@@ -197,12 +222,16 @@ export default function UploadPage() {
       });
 
       if (!uploadRes.ok) {
-        alert(`Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`);
+        alert(
+          `Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`,
+        );
         setUploading(false);
         return;
       }
     } catch (e) {
-      alert(`Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`);
+      alert(
+        `Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`,
+      );
       setUploading(false);
       return;
     }
@@ -231,7 +260,9 @@ export default function UploadPage() {
 
     if (!mediaRes.ok) {
       let errorMsg = "Помилка збереження в БД";
-      try { errorMsg = (await mediaRes.json()).error || errorMsg; } catch {}
+      try {
+        errorMsg = (await mediaRes.json()).error || errorMsg;
+      } catch {}
       alert(errorMsg);
       setUploading(false);
       return;
@@ -242,10 +273,26 @@ export default function UploadPage() {
 
     // Determine if this should go to lore (artifacts)
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+    const textExts = [
+      "txt",
+      "md",
+      "json",
+      "xml",
+      "csv",
+      "log",
+      "py",
+      "js",
+      "ts",
+      "html",
+      "css",
+    ];
     const docExts = ["pdf", "doc", "docx"];
     const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-    const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
+    const isArtifact =
+      textExts.includes(ext) ||
+      docExts.includes(ext) ||
+      musicExts.includes(ext) ||
+      file.type.startsWith("audio/");
 
     if (isArtifact && mediaData.media) {
       await supabase.from("lore_items").insert({
@@ -259,7 +306,8 @@ export default function UploadPage() {
 
     setProgress(100);
     const dest = isArtifact ? "/lore" : "/gallery";
-    const msg = "Файл завантажено! Він з'явиться на сторінці через ~1 хвилину — чекай на кеш.";
+    const msg =
+      "Файл завантажено! Він з'явиться на сторінці через ~1 хвилину — чекай на кеш.";
     setUploadSuccess(msg);
     setTimeout(() => router.push(dest), 4000);
     setUploading(false);
@@ -481,9 +529,12 @@ export default function UploadPage() {
         {/* Mobile warning */}
         {isMobile && (
           <div className="mb-6 p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
-            <p className="text-yellow-400 text-sm font-bold mb-1">⚠️ МОБІЛЬНИЙ ПРИСТРІЙ</p>
+            <p className="text-yellow-400 text-sm font-bold mb-1">
+              ⚠️ МОБІЛЬНИЙ ПРИСТРІЙ
+            </p>
             <p className="text-yellow-400/80 text-xs">
-              Завантаження файлів на телефоні працює нестабільно. Краще використовувати комп'ютер.
+              Завантаження файлів на телефоні працює нестабільно. Краще
+              використовувати комп'ютер.
             </p>
           </div>
         )}
@@ -491,7 +542,7 @@ export default function UploadPage() {
         {/* Upload success message */}
         {uploadSuccess && (
           <div className="mb-6 p-4 rounded-lg border border-green-500/50 bg-green-500/10">
-            <p className="text-green-400 text-sm font-bold mb-1">✅ ГОТОВО</p>
+            <p className="text-green-400 text-sm font-bold mb-1">ГОТОВО</p>
             <p className="text-green-400/80 text-xs">{uploadSuccess}</p>
           </div>
         )}

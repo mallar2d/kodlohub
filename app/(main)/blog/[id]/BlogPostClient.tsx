@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import Image from "next/image";
+import LikeButton from "@/components/ui/LikeButton";
 import type { User } from "@supabase/supabase-js";
 
 interface Post {
@@ -188,7 +189,9 @@ export default function BlogPostClient({
                 </div>
               </Link>
             )}
-            {isAuthor && !editing && (
+            <div className="flex items-center gap-4">
+              <LikeButton itemType="post" itemId={initialPost.id} />
+              {isAuthor && !editing && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
@@ -204,6 +207,7 @@ export default function BlogPostClient({
                 </button>
               </div>
             )}
+            </div>
           </div>
         </div>
 

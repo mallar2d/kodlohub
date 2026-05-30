@@ -7,6 +7,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from "next/image";
+import LikeButton from "@/components/ui/LikeButton";
 
 interface LoreItem {
   id: string;
@@ -159,7 +160,9 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
               </Link>
             )}
 
-            {canDelete && (
+            <div className="flex items-center gap-4">
+              <LikeButton itemType="lore" itemId={item.id} />
+              {canDelete && (
               <button
                 onClick={handleDelete}
                 className="button-cap px-3 py-1 rounded-full border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors"
@@ -167,6 +170,7 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
                 ВИДАЛИТИ
               </button>
             )}
+            </div>
           </div>
         </div>
 

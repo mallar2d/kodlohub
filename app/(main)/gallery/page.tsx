@@ -9,6 +9,7 @@ interface Media {
   caption: string | null;
   created_at: string;
   author_id: string;
+  like_count?: number;
   profiles?: { display_name: string; username: string; avatar_url: string | null } | null;
 }
 
@@ -17,9 +18,12 @@ const getMedia = unstable_cache(
     const supabase = createAdminClient();
     let query = supabase
       .from("media")
-      .select("id, file_url, file_type, caption, created_at, author_id")
+      .select(`
+        id, file_url, file_type, caption, created_at, author_id,
+        profiles(display_name, username, avatar_url),
+        likes:likes(id)
+      `)
       .in("file_type", ["image", "video"])
-      .order("created_at", { ascending: false })
       .limit(50);
 
     if (filter === "image") {
@@ -29,7 +33,16 @@ const getMedia = unstable_cache(
     }
 
     const { data } = await query;
-    return (data || []) as Media[];
+
+    const mediaWithLikes = (data || []).map((item: any) => ({
+      ...item,
+      like_count: item.likes?.length || 0,
+      profiles: item.profiles?.[0] || null,
+    }));
+
+    mediaWithLikes.sort((a: Media, b: Media) => (b.like_count || 0) - (a.like_count || 0));
+
+    return mediaWithLikes as Media[];
   },
   ["gallery-media"],
   { revalidate: 30 }

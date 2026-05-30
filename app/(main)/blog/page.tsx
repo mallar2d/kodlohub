@@ -11,6 +11,7 @@ interface Post {
   status: string;
   created_at: string;
   author_id: string;
+  like_count?: number;
   profiles?: { display_name: string; username: string } | null;
 }
 
@@ -19,10 +20,18 @@ const getPosts = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("posts")
-      .select("*, profiles(display_name, username)")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false });
-    return (data || []).map((p: any) => ({ ...p, profiles: p.profiles?.[0] || null }));
+      .select("*, profiles(display_name, username), likes:likes(id)")
+      .eq("status", "approved");
+
+    const postsWithLikes = (data || []).map((p: any) => ({
+      ...p,
+      like_count: p.likes?.length || 0,
+      profiles: p.profiles?.[0] || null,
+    }));
+
+    postsWithLikes.sort((a: Post, b: Post) => (b.like_count || 0) - (a.like_count || 0));
+
+    return postsWithLikes;
   },
   ["blog-posts"],
   { revalidate: 30 }
@@ -88,9 +97,19 @@ export default async function BlogPage() {
                   </div>
                 )}
                 {post.profiles && (
-                  <p className="caption text-ink-mute">
-                    {post.profiles.display_name}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="caption text-ink-mute">
+                      {post.profiles.display_name}
+                    </p>
+                    {(post.like_count || 0) > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-ink-mute">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                        <span>{post.like_count}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </Link>
             ))}

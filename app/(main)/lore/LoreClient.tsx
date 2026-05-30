@@ -12,6 +12,7 @@ interface LoreItem {
   file_url: string | null;
   author_id: string;
   created_at: string;
+  like_count?: number;
   profiles?: { display_name: string; avatar_url: string | null } | null;
 }
 
@@ -128,6 +129,14 @@ export default function LoreClient({
                   <p className="caption text-ink-mute">
                     {item.profiles.display_name}
                   </p>
+                )}
+                {(item.like_count || 0) > 0 && (
+                  <div className="flex items-center gap-1 mt-2 text-xs text-ink-mute">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    <span>{item.like_count}</span>
+                  </div>
                 )}
               </Link>
             ))}
