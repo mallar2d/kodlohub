@@ -107,7 +107,7 @@ export default function GalleryClient({
                     </p>
                   </div>
                 )}
-                <div className="bg-canvas-night/80 px-3 py-2 flex justify-end">
+                <div className="bg-canvas-night/80 px-3 py-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
                   <LikeButton itemType="media" itemId={item.id} initialCount={item.like_count || 0} compact />
                 </div>
               </div>
