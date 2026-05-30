@@ -155,66 +155,106 @@ export default function UploadPage() {
       alert("Максимум 100 МБ.");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      if (!confirm(`Файл ${(file.size / 1024 / 1024).toFixed(1)} МБ. Vercel має ліміт ~4 МБ. Спробувати?`)) {
-        return;
-      }
-    }
 
     setUploading(true);
     setProgress(10);
 
     const userId = (user as { id: string }).id;
-    setProgress(30);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("authorId", userId);
-    formData.append("caption", caption || file.name);
+    // Step 1: Get presigned URL
+    setProgress(20);
+    const presignRes = await fetch("/api/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        authorId: userId,
+      }),
+    });
 
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    if (!presignRes.ok) {
+      let errorMsg = "Помилка отримання presigned URL";
+      try { errorMsg = (await presignRes.json()).error || errorMsg; } catch {}
+      alert(errorMsg);
+      setUploading(false);
+      return;
+    }
+
+    const presignData = await presignRes.json();
+    setProgress(40);
+
+    // Step 2: Upload directly to R2
+    try {
+      const uploadRes = await fetch(presignData.presignedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        alert(`Помилка завантаження в R2: ${uploadRes.status} ${uploadRes.statusText}`);
+        setUploading(false);
+        return;
+      }
+    } catch (e) {
+      alert(`Помилка мережі: ${e instanceof Error ? e.message : "Невідома помилка"}`);
+      setUploading(false);
+      return;
+    }
+
     setProgress(70);
 
-    if (!res.ok) {
-      let errorMsg = "Невідома помилка";
-      try {
-        const errData = await res.json();
-        errorMsg = errData.error || errorMsg;
-      } catch {
-        errorMsg = `Сервер повернув ${res.status}. Можливо файл занадто великий для Vercel (макс ~4 МБ).`;
-      }
-      alert(`Помилка: ${errorMsg}`);
+    // Step 3: Save to database
+    const determineType = () => {
+      if (file.type.startsWith("image/")) return "image";
+      if (file.type.startsWith("video/")) return "video";
+      if (file.type.startsWith("audio/")) return "audio";
+      return "document";
+    };
+
+    const mediaRes = await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        authorId: userId,
+        fileUrl: presignData.publicUrl,
+        fileType: determineType(),
+        fileSize: file.size,
+        caption: caption || file.name,
+      }),
+    });
+
+    if (!mediaRes.ok) {
+      let errorMsg = "Помилка збереження в БД";
+      try { errorMsg = (await mediaRes.json()).error || errorMsg; } catch {}
+      alert(errorMsg);
       setUploading(false);
       return;
     }
 
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      alert("Помилка читання відповіді сервера");
-      setUploading(false);
-      return;
-    }
+    const mediaData = await mediaRes.json();
+    setProgress(90);
 
-    setProgress(100);
-
+    // Determine if this should go to lore (artifacts)
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
     const docExts = ["pdf", "doc", "docx"];
     const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
     const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
 
-    if (isArtifact && data.media) {
+    if (isArtifact && mediaData.media) {
       await supabase.from("lore_items").insert({
         title: caption || file.name,
         description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
         category: "artifact",
-        media_id: data.media.id,
+        media_id: mediaData.media.id,
         author_id: userId,
       });
     }
 
+    setProgress(100);
     router.push(isArtifact ? "/lore" : "/gallery");
     setUploading(false);
   };
