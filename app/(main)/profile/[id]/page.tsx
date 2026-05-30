@@ -1,16 +1,13 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { unstable_cache } from "next/cache";
+import ProfileClient from "./ProfileClient";
 
 interface Profile {
   id: string;
   username: string;
   display_name: string;
   avatar_url: string | null;
-  bio: string;
+  bio: string | null;
   role: string;
   created_at: string;
 }
@@ -26,267 +23,66 @@ interface Media {
   id: string;
   file_url: string;
   file_type: string;
-  caption: string;
+  caption: string | null;
   created_at: string;
-  lore_items?: { id: string }[];
+  lore_items?: { id: string }[] | null;
 }
 
-export default function ProfilePage() {
-  const params = useParams();
-  const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [media, setMedia] = useState<Media[]>([]);
-  const [activeTab, setActiveTab] = useState<"posts" | "media">("posts");
-  const [loading, setLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
+const getProfileData = unstable_cache(
+  async (id: string): Promise<{ profile: Profile | null; posts: Post[]; media: Media[] }> => {
+    const supabase = createAdminClient();
 
-  const supabase = createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  useEffect(() => {
-    async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.id === params.id) setIsOwner(true);
-
-      let { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", params.id)
-        .single();
-
-      // Auto-create profile from auth data if missing
-      if (!profileData && user && user.id === params.id) {
-        const meta = user.user_metadata || {};
-        const newProfile = {
-          id: user.id,
-          username: meta.email?.split("@")[0] || user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`,
-          display_name: meta.full_name || meta.name || user.email?.split("@")[0] || "Учасник кодла",
-          avatar_url: meta.avatar_url || meta.picture || null,
-          bio: "",
-        };
-
-        const { data: created } = await supabase
-          .from("profiles")
-          .upsert(newProfile, { onConflict: "id" })
-          .select()
-          .single();
-
-        profileData = created;
-      }
-
-      if (profileData) {
-        setProfile(profileData);
-
-        const [{ data: postsData }, { data: mediaData }] = await Promise.all([
-          supabase
-            .from("posts")
-            .select("id, title, content, created_at")
-            .eq("author_id", params.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("media")
-            .select("id, file_url, file_type, caption, created_at, lore_items(id)")
-            .eq("author_id", params.id)
-            .order("created_at", { ascending: false }),
-        ]);
-
-        setPosts(postsData || []);
-        setMedia(mediaData || []);
-      }
-
-      setLoading(false);
+    if (!profile) {
+      return { profile: null, posts: [], media: [] };
     }
 
-    fetchProfile();
-  }, [params.id, supabase]);
+    const [postsRes, mediaRes] = await Promise.all([
+      supabase
+        .from("posts")
+        .select("id, title, content, created_at")
+        .eq("author_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("media")
+        .select("id, file_url, file_type, caption, created_at")
+        .eq("author_id", id)
+        .order("created_at", { ascending: false }),
+    ]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+    return {
+      profile: profile as Profile,
+      posts: (postsRes.data || []) as Post[],
+      media: (mediaRes.data || []) as Media[],
+    };
+  },
+  ["profile-data"],
+  { revalidate: 60 }
+);
+
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const { profile, posts, media } = await getProfileData(id);
 
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="heading-sub text-hairline-dark mb-4">:(</p>
-          <p className="text-on-primary-mute">
-            брєдік в чат нє пішем — профіль не знайдено
-          </p>
+          <p className="text-on-primary-mute">брєдік в чат нє пішем — профіль не знайдено</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
-      <div className="max-w-[1200px] mx-auto">
-        {/* Profile header */}
-        <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
-          <div className="w-24 h-24 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-3xl font-bold shrink-0 overflow-hidden">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.display_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              profile.display_name?.charAt(0) || "?"
-            )}
-          </div>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="heading-sub">{profile.display_name}</h1>
-              {profile.role === "owner" && (
-                <span className="button-cap px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">
-                  ГОЛОВНИЙ ПОДРО
-                </span>
-              )}
-              {profile.role === "podrofikovany" && (
-                <span className="button-cap px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/50">
-                  ПОДРОФІКОВАНИЙ
-                </span>
-              )}
-              {profile.role === "kodlo" && (
-                <span className="button-cap px-2 py-1 rounded bg-on-primary/10 text-on-primary border border-on-primary/30">
-                  КОДЛО
-                </span>
-              )}
-              {profile.role === "shemetovany" && (
-                <span className="button-cap px-2 py-1 rounded bg-ink-mute/10 text-ink-mute border border-ink-mute/30">
-                  ШЕМЕТОВАНИЙ
-                </span>
-              )}
-              {isOwner && (
-                <button
-                  onClick={() => router.push(`/profile/${params.id}/edit`)}
-                  className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-ink-mute hover:text-on-primary hover:border-on-primary transition-colors"
-                >
-                  РЕДАГУВАТИ
-                </button>
-              )}
-            </div>
-            <p className="text-on-primary-mute mb-2">@{profile.username}</p>
-            {profile.bio && (
-              <p className="text-on-primary-mute">{profile.bio}</p>
-            )}
-            <p className="caption text-ink-mute mt-2">
-              Приєднався:{" "}
-              {new Date(profile.created_at).toLocaleDateString("uk-UA")}
-            </p>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-          {[
-            { label: "ПОСТІВ", value: posts.length },
-            { label: "МЕДІА", value: media.length },
-            { label: "КОМЕНТАРІВ", value: 0 },
-            { label: "ДНІВ В КОДЛІ", value: Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) },
-          ].map((stat) => (
-            <div key={stat.label} className="card-dark p-4 text-center">
-              <p className="heading-sub text-on-primary">{stat.value}</p>
-              <p className="micro-cap text-ink-mute mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-hairline-dark pb-4">
-          {(["posts", "media"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`button-cap px-4 py-2 transition-opacity ${
-                activeTab === tab
-                  ? "text-on-primary border-b-2 border-on-primary"
-                  : "text-ink-mute hover:text-on-primary"
-              }`}
-            >
-              {tab === "posts" ? `ПОСТИ (${posts.length})` : `МЕДІА (${media.length})`}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        {activeTab === "posts" ? (
-          posts.length === 0 ? (
-            <p className="text-on-primary-mute text-center py-12">
-              Поки немає постів
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/blog/${post.id}`}
-                  className="card-dark p-6 block hover:border-on-primary-mute transition-colors group"
-                >
-                  <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors">{post.title}</h3>
-                  <p className="text-on-primary-mute text-sm line-clamp-2">
-                    {post.content.slice(0, 200)}
-                  </p>
-                  <p className="caption text-ink-mute mt-2">
-                    {new Date(post.created_at).toLocaleDateString("uk-UA")}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )
-        ) : media.length === 0 ? (
-          <p className="text-on-primary-mute text-center py-12">
-            Поки немає медіа
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {media.map((item) => {
-              // Link to lore item if it's a document/audio, otherwise gallery
-              const loreItem = item.lore_items?.[0];
-              const href = loreItem ? `/lore/${loreItem.id}` : "/gallery";
-
-              return (
-                <Link
-                  key={item.id}
-                  href={href}
-                  className="rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors group"
-                >
-                  {item.file_type === "image" ? (
-                    <img
-                      src={item.file_url}
-                      alt={item.caption || "Медіа"}
-                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : item.file_type === "video" ? (
-                    <video
-                      src={item.file_url}
-                      className="w-full h-48 object-cover"
-                      preload="metadata"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-canvas-night flex items-center justify-center">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                    </div>
-                  )}
-                  {item.caption && (
-                    <div className="p-2">
-                      <p className="caption text-on-primary-mute line-clamp-1 text-xs">{item.caption}</p>
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <ProfileClient profile={profile} initialPosts={posts} initialMedia={media} />;
 }
