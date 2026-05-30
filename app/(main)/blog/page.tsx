@@ -19,7 +19,7 @@ const getPosts = unstable_cache(
     const { data } = await supabase
       .from("posts")
       .select("*")
-      .eq("status", "published")
+      .eq("status", "approved")
       .order("created_at", { ascending: false });
     return (data || []) as Post[];
   },

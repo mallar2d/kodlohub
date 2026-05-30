@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "KodloHUB — Хостинг для кодла",
   description:
     "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
+  icons: {
+    icon: "/kodlohub-icon.png",
+  },
 };
 
 export default function RootLayout({

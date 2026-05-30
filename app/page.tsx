@@ -45,7 +45,7 @@ const getRecentPosts = unstable_cache(
     const { data } = await supabase
       .from("posts")
       .select("id, title, content, tags, created_at")
-      .eq("status", "published")
+      .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(3);
     return data || [];
@@ -59,7 +59,7 @@ const getStats = unstable_cache(
     const supabase = createAdminClient();
     const [mediaRes, postsRes, profilesRes] = await Promise.all([
       supabase.from("media").select("id", { count: "exact", head: true }),
-      supabase.from("posts").select("id", { count: "exact", head: true }).eq("status", "published"),
+      supabase.from("posts").select("id", { count: "exact", head: true }).eq("status", "approved"),
       supabase.from("profiles").select("id", { count: "exact", head: true }),
     ]);
     return {

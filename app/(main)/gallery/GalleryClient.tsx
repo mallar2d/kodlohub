@@ -71,11 +71,11 @@ export default function GalleryClient({
             {filteredMedia.map((item) => (
               <div
                 key={item.id}
-                className="break-inside-avoid group cursor-pointer rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors"
+                className="break-inside-avoid group cursor-pointer rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors relative"
                 onClick={() => setSelected(item)}
               >
                 {item.file_type === "image" ? (
-                  <div className="relative w-full" style={{ aspectRatio: "auto" }}>
+                  <div className="relative w-full">
                     <Image
                       src={item.file_url}
                       alt={item.caption || "Медіа"}
@@ -93,13 +93,13 @@ export default function GalleryClient({
                     preload="metadata"
                   />
                 ) : (
-                  <div className="p-8 text-center">
+                  <div className="p-6 text-center">
                     <p className="micro-cap text-ink-mute">ДОКУМЕНТ</p>
                   </div>
                 )}
 
                 {item.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-canvas-night/80 p-3">
+                  <div className="bg-canvas-night/80 p-3">
                     <p className="caption text-on-primary-mute">
                       {item.caption}
                     </p>
