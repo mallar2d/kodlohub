@@ -40,6 +40,16 @@ interface JoinRequest {
   profiles?: { display_name: string; username: string; avatar_url: string | null };
 }
 
+interface AdminComment {
+  id: string;
+  content: string;
+  author_id: string;
+  created_at: string;
+  source: "post" | "media";
+  source_id: string;
+  profiles?: { display_name: string; username: string };
+}
+
 interface StorageInfo {
   totalBytes: number;
   byUser: Record<string, { bytes: number; count: number }>;
@@ -75,6 +85,7 @@ export default function AdminPage() {
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+  const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -97,16 +108,41 @@ export default function AdminPage() {
   }, []);
 
   async function fetchData() {
-    const [profilesRes, mediaRes, pendingRes, joinRes] = await Promise.all([
+    const [profilesRes, mediaRes, pendingRes, joinRes, postCommentsRes, mediaCommentsRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: true }),
       supabase.from("media").select("id, author_id, file_size"),
       supabase.from("posts").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("join_requests").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
+      supabase.from("comments").select("*, profiles(display_name, username)").order("created_at", { ascending: false }).limit(50),
+      supabase.from("media_comments").select("*, profiles(display_name, username)").order("created_at", { ascending: false }).limit(50),
     ]);
 
     setProfiles(profilesRes.data || []);
     setPendingPosts(pendingRes.data || []);
     setJoinRequests(joinRes.data || []);
+
+    const allComments: AdminComment[] = [
+      ...(postCommentsRes.data || []).map((c: any) => ({
+        id: c.id,
+        content: c.content,
+        author_id: c.author_id,
+        created_at: c.created_at,
+        source: "post" as const,
+        source_id: c.post_id,
+        profiles: c.profiles?.[0] || null,
+      })),
+      ...(mediaCommentsRes.data || []).map((c: any) => ({
+        id: c.id,
+        content: c.content,
+        author_id: c.author_id,
+        created_at: c.created_at,
+        source: "media" as const,
+        source_id: c.media_id,
+        profiles: c.profiles?.[0] || null,
+      })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    setComments(allComments);
 
     // Calculate storage
     const mediaItems = mediaRes.data || [];
@@ -277,6 +313,15 @@ export default function AdminPage() {
     } else {
       setSelectedPosts(new Set(pendingPosts.map((p) => p.id)));
     }
+  }
+
+  async function deleteComment(comment: AdminComment) {
+    if (!confirm("Видалити коментар?")) return;
+
+    const table = comment.source === "post" ? "comments" : "media_comments";
+    await supabase.from(table).delete().eq("id", comment.id);
+    setComments((prev) => prev.filter((c) => c.id !== comment.id));
+    toast("Коментар видалено", "success");
   }
 
   async function approveJoinRequest(requestId: string, userId: string) {
@@ -637,6 +682,41 @@ export default function AdminPage() {
         )}
 
         {/* All users */}
+        {/* Comment moderation */}
+        {comments.length > 0 && (
+          <div className="mb-12">
+            <h2 className="heading-sub mb-6">КОМЕНТАРІ ({comments.length})</h2>
+            <div className="space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="card-dark p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="button-cap px-2 py-0.5 rounded text-[10px] border border-hairline-dark text-ink-mute">
+                          {comment.source === "post" ? "БЛОГ" : "МЕДІА"}
+                        </span>
+                        <span className="text-xs font-bold text-on-primary">
+                          {comment.profiles?.display_name || "?"}
+                        </span>
+                        <span className="text-[10px] text-ink-mute">
+                          {new Date(comment.created_at).toLocaleString("uk-UA")}
+                        </span>
+                      </div>
+                      <p className="text-sm text-on-primary-mute line-clamp-2">{comment.content}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteComment(comment)}
+                      className="button-cap px-2 py-1 rounded text-red-400 hover:bg-red-500/10 text-xs shrink-0"
+                    >
+                      ВИДАЛИТИ
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="heading-sub mb-6">ВСІ КОРИСТУВАЧІ ({profiles.length})</h2>
 
