@@ -61,10 +61,10 @@ export default function BlogPage() {
               <Link
                 key={post.id}
                 href={`/blog/${post.id}`}
-                className="card-light p-6 hover:border-ink-mute transition-colors group"
+                className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="button-cap px-3 py-1 rounded-full border border-hairline-light text-ink-mute">
+                  <span className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-on-primary-mute">
                     {post.type === "blog"
                       ? "БЛОГ"
                       : post.type === "lore"
@@ -76,11 +76,11 @@ export default function BlogPage() {
                   </span>
                 </div>
 
-                <h2 className="font-bold text-xl mb-3 group-hover:text-ink-mute transition-colors">
+                <h2 className="font-bold text-xl mb-3 text-on-primary group-hover:text-on-primary-mute transition-colors">
                   {post.title}
                 </h2>
 
-                <p className="text-ink-mute text-sm line-clamp-3 mb-4">
+                <p className="text-on-primary-mute text-sm line-clamp-3 mb-4">
                   {post.content.slice(0, 200)}
                   {post.content.length > 200 ? "..." : ""}
                 </p>
@@ -90,7 +90,7 @@ export default function BlogPage() {
                     {post.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="micro-cap px-2 py-1 rounded bg-canvas-cool text-ink-mute"
+                        className="micro-cap px-2 py-1 rounded bg-canvas-night-soft text-on-primary-mute border border-hairline-dark"
                       >
                         {tag}
                       </span>
