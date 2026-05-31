@@ -162,11 +162,22 @@ function initGlobalIframe() {
       w.bind(SC.Widget.Events.READY, () => {
         try {
           globalReady = true;
-          w.getSounds((sounds: Track[]) => {
-            globalTracks = sounds;
-            generateShuffleOrder(sounds.length);
-            notify();
-          });
+          notify();
+
+          // getSounds may return empty right after READY — retry until tracks load
+          const fetchTracks = (attempt: number) => {
+            w.getSounds((sounds: Track[]) => {
+              if (sounds && sounds.length > 0) {
+                globalTracks = sounds;
+                generateShuffleOrder(sounds.length);
+                notify();
+              } else if (attempt < 10) {
+                setTimeout(() => fetchTracks(attempt + 1), 500);
+              }
+            });
+          };
+          fetchTracks(0);
+
           w.getCurrentSound((sound: Track) => {
             if (sound && sound.title) {
               globalCurrentTrack = sound;
@@ -182,7 +193,6 @@ function initGlobalIframe() {
         } catch (err) {
           console.error("SC READY error:", err);
         }
-        notify();
       });
 
       w.bind(SC.Widget.Events.PLAY, () => {
