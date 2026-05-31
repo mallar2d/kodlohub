@@ -11,13 +11,16 @@ export default function SpinTrickClient() {
   const [metricZ, setMetricZ] = useState(0);
   const [metricTotal, setMetricTotal] = useState(0);
   const [metricEvents, setMetricEvents] = useState(0);
-  const [metricPermission, setMetricPermission] = useState<"idle" | "requested" | "granted" | "denied" | "no-api">("idle");
+  const [metricPermission, setMetricPermission] = useState<
+    "idle" | "requested" | "granted" | "denied" | "no-api"
+  >("idle");
 
   const totalRotationRef = useRef(0);
   const comboDirRef = useRef(0);
   const comboCountRef = useRef(0);
   const eventCountRef = useRef(0);
   const lastTimeRef = useRef(0);
+  const lastTriggerTimeRef = useRef(0);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const comboSoundRef = useRef<HTMLAudioElement | null>(null);
   const silentRef = useRef<HTMLAudioElement | null>(null);
@@ -60,10 +63,10 @@ export default function SpinTrickClient() {
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
-      const RAD_TO_DEG = 57.29;
-      const VELOCITY_THRESHOLD = 45;
+      const SPIN_RATE_THRESHOLD = 450;
       const ROTATION_THRESHOLD = 270;
-      const NOISE_THRESHOLD = 5;
+      const NOISE_RATE_THRESHOLD = 25;
+      const TRIGGER_COOLDOWN_MS = 700;
 
       const raw = event.rotationRate as Record<string, number> | null;
       if (!raw) return;
@@ -82,32 +85,40 @@ export default function SpinTrickClient() {
 
       if (dt <= 0 || dt > 0.5) return;
 
-      const nRateZ = z * dt * RAD_TO_DEG;
+      const rotationDeltaZ = z * dt;
 
-      if (Math.abs(nRateZ) < NOISE_THRESHOLD) {
+      if (
+        Math.abs(z) < NOISE_RATE_THRESHOLD &&
+        Math.abs(totalRotationRef.current) === 0
+      ) {
         return;
       }
 
-      totalRotationRef.current += nRateZ;
+      totalRotationRef.current += rotationDeltaZ;
 
-      if (Math.abs(nRateZ) < VELOCITY_THRESHOLD) {
+      if (Math.abs(z) < SPIN_RATE_THRESHOLD) {
         if (comboDirRef.current === 0) {
           comboDirRef.current = Math.sign(totalRotationRef.current);
         }
 
         if (Math.abs(totalRotationRef.current) > ROTATION_THRESHOLD) {
           const currentDir = Math.sign(totalRotationRef.current);
+          const canTrigger = now - lastTriggerTimeRef.current > TRIGGER_COOLDOWN_MS;
 
-          if (currentDir === comboDirRef.current) {
-            comboCountRef.current += 1;
-            setCombo(comboCountRef.current);
-            triggerTrick(false);
-            comboDirRef.current = currentDir;
-          } else {
-            comboCountRef.current = 0;
-            setCombo(0);
-            triggerTrick(true);
-            comboDirRef.current = 0;
+          if (canTrigger) {
+            lastTriggerTimeRef.current = now;
+
+            if (currentDir === comboDirRef.current) {
+              comboCountRef.current += 1;
+              setCombo(comboCountRef.current);
+              triggerTrick(false);
+              comboDirRef.current = currentDir;
+            } else {
+              comboCountRef.current = 0;
+              setCombo(0);
+              triggerTrick(true);
+              comboDirRef.current = 0;
+            }
           }
         }
 
@@ -120,7 +131,7 @@ export default function SpinTrickClient() {
       }
 
       eventCountRef.current += 1;
-      setMetricZ(nRateZ);
+      setMetricZ(z);
       setMetricTotal(totalRotationRef.current);
       setMetricEvents(eventCountRef.current);
     },
@@ -225,9 +236,7 @@ export default function SpinTrickClient() {
             {emoji}
           </span>
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-[60px] sm:text-[72px] opacity-20 group-hover:opacity-40 transition-opacity">
-            📱
-          </span>
+          <span className="absolute inset-0 flex items-center justify-center text-[60px] sm:text-[72px] opacity-20 group-hover:opacity-40 transition-opacity"></span>
         )}
       </button>
 
@@ -260,18 +269,25 @@ export default function SpinTrickClient() {
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="flex flex-col gap-1">
             <span className="text-ink-mute">Gyroscope</span>
-            <span className={`font-mono font-bold ${motionReady ? "text-green-400" : "text-red-400"}`}>
+            <span
+              className={`font-mono font-bold ${motionReady ? "text-green-400" : "text-red-400"}`}
+            >
               {motionReady ? "ACTIVE" : "INACTIVE"}
             </span>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-ink-mute">Permission</span>
-            <span className={`font-mono font-bold ${
-              metricPermission === "granted" ? "text-green-400" :
-              metricPermission === "denied" ? "text-red-400" :
-              metricPermission === "no-api" ? "text-yellow-400" :
-              "text-on-primary-mute"
-            }`}>
+            <span
+              className={`font-mono font-bold ${
+                metricPermission === "granted"
+                  ? "text-green-400"
+                  : metricPermission === "denied"
+                    ? "text-red-400"
+                    : metricPermission === "no-api"
+                      ? "text-yellow-400"
+                      : "text-on-primary-mute"
+              }`}
+            >
               {metricPermission.toUpperCase()}
             </span>
           </div>
@@ -283,7 +299,9 @@ export default function SpinTrickClient() {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-ink-mute">Total Rotation (°)</span>
-            <span className={`font-mono font-bold ${Math.abs(metricTotal) > 270 ? "text-indigo-400" : "text-on-primary"}`}>
+            <span
+              className={`font-mono font-bold ${Math.abs(metricTotal) > 270 ? "text-indigo-400" : "text-on-primary"}`}
+            >
               {metricTotal.toFixed(0)}
             </span>
           </div>
@@ -315,10 +333,21 @@ export default function SpinTrickClient() {
 
       <style jsx global>{`
         @keyframes emojiPop {
-          0% { opacity: 0; transform: scale(0.3) rotate(-20deg); }
-          40% { opacity: 1; transform: scale(1.3) rotate(5deg); }
-          70% { transform: scale(0.95) rotate(-2deg); }
-          100% { opacity: 1; transform: scale(1) rotate(0deg); }
+          0% {
+            opacity: 0;
+            transform: scale(0.3) rotate(-20deg);
+          }
+          40% {
+            opacity: 1;
+            transform: scale(1.3) rotate(5deg);
+          }
+          70% {
+            transform: scale(0.95) rotate(-2deg);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+          }
         }
       `}</style>
     </div>
