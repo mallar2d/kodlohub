@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import CoffeeReminder from "@/components/ui/CoffeeReminder";
+import SoundCloudPlayer from "@/components/ui/SoundCloudPlayer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -33,8 +34,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <ToastProvider>
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20">{children}</main>
             <Footer />
+            <SoundCloudPlayer />
             <CoffeeReminder />
           </ToastProvider>
         </ErrorBoundary>

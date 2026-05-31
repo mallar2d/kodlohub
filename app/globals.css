@@ -249,3 +249,19 @@ body {
 .prose tbody tr:hover {
   background: var(--color-canvas-night);
 }
+
+/* SoundCloud hidden iframe — must remain in DOM for widget API */
+.soundcloud-iframe-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.8); }
+}
