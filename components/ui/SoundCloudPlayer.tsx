@@ -145,134 +145,132 @@ function initGlobalIframe() {
   iframe.allow = "autoplay";
   iframe.title = "SoundCloud Player";
   iframe.className = "soundcloud-iframe-hidden";
-  document.body.appendChild(iframe);
-  globalIframe = iframe;
 
-  const tryBind = () => {
-    const SC = window.SC;
-    if (!SC?.Widget) {
-      setTimeout(tryBind, 300);
-      return;
-    }
+  // Set onload BEFORE appending to DOM — browser may fire it immediately
+  iframe.onload = () => {
+    const tryBind = (attempt: number) => {
+      const SC = window.SC;
+      if (!SC?.Widget) {
+        if (attempt < 20) setTimeout(() => tryBind(attempt + 1), 200);
+        return;
+      }
 
-    try {
-      const w = SC.Widget(iframe);
-      globalWidget = w;
+      try {
+        const w = SC.Widget(iframe);
+        globalWidget = w;
 
-      w.bind(SC.Widget.Events.READY, () => {
-        try {
-          globalReady = true;
-          notify();
+        w.bind(SC.Widget.Events.READY, () => {
+          try {
+            globalReady = true;
+            notify();
 
-          // getSounds may return empty right after READY — retry until tracks load
-          const fetchTracks = (attempt: number) => {
-            w.getSounds((sounds: Track[]) => {
-              if (sounds && sounds.length > 0) {
-                globalTracks = sounds;
-                generateShuffleOrder(sounds.length);
+            const fetchTracks = (attempt: number) => {
+              w.getSounds((sounds: Track[]) => {
+                if (sounds && sounds.length > 0) {
+                  globalTracks = sounds;
+                  generateShuffleOrder(sounds.length);
+                  notify();
+                } else if (attempt < 15) {
+                  setTimeout(() => fetchTracks(attempt + 1), 500);
+                }
+              });
+            };
+            fetchTracks(0);
+
+            w.getCurrentSound((sound: Track) => {
+              if (sound && sound.title) {
+                globalCurrentTrack = sound;
                 notify();
-              } else if (attempt < 10) {
-                setTimeout(() => fetchTracks(attempt + 1), 500);
               }
             });
-          };
-          fetchTracks(0);
-
-          w.getCurrentSound((sound: Track) => {
-            if (sound && sound.title) {
-              globalCurrentTrack = sound;
-              notify();
-            }
-          });
-          w.getCurrentSoundIndex((idx: number) => {
-            if (typeof idx === "number") {
-              globalTrackIndex = idx;
-              notify();
-            }
-          });
-        } catch (err) {
-          console.error("SC READY error:", err);
-        }
-      });
-
-      w.bind(SC.Widget.Events.PLAY, () => {
-        try {
-          globalPlaying = true;
-          // Reset duration so it updates for the new track
-          globalDuration = 0;
-          w.getCurrentSound((sound: Track) => {
-            if (sound && sound.title) {
-              globalCurrentTrack = sound;
-              // Get duration from current sound directly
-              if (typeof sound.duration === "number" && sound.duration > 0) {
-                globalDuration = sound.duration;
+            w.getCurrentSoundIndex((idx: number) => {
+              if (typeof idx === "number") {
+                globalTrackIndex = idx;
+                notify();
               }
-            }
-          });
-          w.getCurrentSoundIndex((idx: number) => {
-            if (typeof idx === "number") globalTrackIndex = idx;
-          });
-        } catch (err) {
-          console.error("SC PLAY error:", err);
-        }
-        notify();
-      });
-
-      w.bind(SC.Widget.Events.PAUSE, () => {
-        globalPlaying = false;
-        notify();
-      });
-
-      w.bind(SC.Widget.Events.FINISH, () => {
-        handleFinish();
-      });
-
-      w.bind(SC.Widget.Events.PLAY_PROGRESS, (e: unknown) => {
-        try {
-          const ev = e as { currentPosition?: number };
-          if (ev && typeof ev.currentPosition === "number") {
-            globalProgress = ev.currentPosition;
-            notify();
+            });
+          } catch (err) {
+            console.error("SC READY error:", err);
           }
-        } catch (err) {
-          console.error("SC PLAY_PROGRESS error:", err);
-        }
-      });
+        });
 
-      w.bind(SC.Widget.Events.TIME_UPDATE, (e: unknown) => {
-        try {
-          const ev = e as { currentPosition?: number; duration?: number };
-          if (ev && typeof ev.currentPosition === "number")
-            globalProgress = ev.currentPosition;
-          if (ev && typeof ev.duration === "number" && ev.duration > 0)
-            globalDuration = ev.duration;
+        w.bind(SC.Widget.Events.PLAY, () => {
+          try {
+            globalPlaying = true;
+            globalDuration = 0;
+            w.getCurrentSound((sound: Track) => {
+              if (sound && sound.title) {
+                globalCurrentTrack = sound;
+                if (typeof sound.duration === "number" && sound.duration > 0) {
+                  globalDuration = sound.duration;
+                }
+              }
+            });
+            w.getCurrentSoundIndex((idx: number) => {
+              if (typeof idx === "number") globalTrackIndex = idx;
+            });
+          } catch (err) {
+            console.error("SC PLAY error:", err);
+          }
           notify();
-        } catch (err) {
-          console.error("SC TIME_UPDATE error:", err);
-        }
-      });
+        });
 
-      // Periodically fetch duration (doesn't clear — re-fetches on track change)
-      setInterval(() => {
-        try {
-          w.getCurrentSound((sound: Track) => {
-            if (sound?.duration && sound.duration > 0 && globalDuration === 0) {
-              globalDuration = sound.duration;
+        w.bind(SC.Widget.Events.PAUSE, () => {
+          globalPlaying = false;
+          notify();
+        });
+
+        w.bind(SC.Widget.Events.FINISH, () => {
+          handleFinish();
+        });
+
+        w.bind(SC.Widget.Events.PLAY_PROGRESS, (e: unknown) => {
+          try {
+            const ev = e as { currentPosition?: number };
+            if (ev && typeof ev.currentPosition === "number") {
+              globalProgress = ev.currentPosition;
               notify();
             }
-          });
-        } catch {
-          // widget destroyed
-        }
-      }, 2000);
-    } catch (err) {
-      console.error("SC bindWidget error:", err);
-    }
+          } catch (err) {
+            console.error("SC PLAY_PROGRESS error:", err);
+          }
+        });
+
+        w.bind(SC.Widget.Events.TIME_UPDATE, (e: unknown) => {
+          try {
+            const ev = e as { currentPosition?: number; duration?: number };
+            if (ev && typeof ev.currentPosition === "number")
+              globalProgress = ev.currentPosition;
+            if (ev && typeof ev.duration === "number" && ev.duration > 0)
+              globalDuration = ev.duration;
+            notify();
+          } catch (err) {
+            console.error("SC TIME_UPDATE error:", err);
+          }
+        });
+
+        setInterval(() => {
+          try {
+            w.getCurrentSound((sound: Track) => {
+              if (sound?.duration && sound.duration > 0 && globalDuration === 0) {
+                globalDuration = sound.duration;
+                notify();
+              }
+            });
+          } catch {
+            // widget destroyed
+          }
+        }, 2000);
+      } catch (err) {
+        console.error("SC bindWidget error:", err);
+      }
+    };
+
+    tryBind(0);
   };
 
-  iframe.onload = () => {
-    setTimeout(tryBind, 100);
-  };
+  document.body.appendChild(iframe);
+  globalIframe = iframe;
 
   return iframe;
 }
