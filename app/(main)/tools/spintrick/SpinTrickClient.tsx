@@ -8,11 +8,18 @@ export default function SpinTrickClient() {
   const [spinning, setSpinning] = useState(false);
   const [motionReady, setMotionReady] = useState(false);
 
+  const [metricZ, setMetricZ] = useState(0);
+  const [metricTotal, setMetricTotal] = useState(0);
+  const [metricEvents, setMetricEvents] = useState(0);
+  const [metricTriggered, setMetricTriggered] = useState(false);
+  const [metricPermission, setMetricPermission] = useState<"idle" | "requested" | "granted" | "denied" | "no-api">("idle");
+
   const totalRotationRef = useRef(0);
   const comboDirRef = useRef(0);
   const lastTimeRef = useRef(0);
   const comboCountRef = useRef(0);
   const triggeredRef = useRef(false);
+  const eventCountRef = useRef(0);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const comboSoundRef = useRef<HTMLAudioElement | null>(null);
   const dragStartRef = useRef<{ x: number; time: number } | null>(null);
@@ -78,6 +85,12 @@ export default function SpinTrickClient() {
       const angularVelDeg = data.z * (180 / Math.PI);
       const degreesMoved = angularVelDeg * dt;
       totalRotationRef.current += degreesMoved;
+      eventCountRef.current += 1;
+
+      setMetricZ(angularVelDeg);
+      setMetricTotal(totalRotationRef.current);
+      setMetricEvents(eventCountRef.current);
+      setMetricTriggered(triggeredRef.current);
 
       const absTotal = Math.abs(totalRotationRef.current);
 
@@ -109,18 +122,26 @@ export default function SpinTrickClient() {
         })
       | undefined;
 
-    if (!DeviceMotionEventCtor) return;
+    if (!DeviceMotionEventCtor) {
+      setMetricPermission("no-api");
+      return;
+    }
 
     try {
       if (typeof DeviceMotionEventCtor.requestPermission === "function") {
+        setMetricPermission("requested");
         const permission = await DeviceMotionEventCtor.requestPermission();
-        if (permission !== "granted") return;
+        if (permission !== "granted") {
+          setMetricPermission("denied");
+          return;
+        }
       }
 
+      setMetricPermission("granted");
       window.addEventListener("devicemotion", handleMotion);
       setMotionReady(true);
     } catch {
-      // permission denied
+      setMetricPermission("denied");
     }
   }, [handleMotion, motionReady]);
 
@@ -217,6 +238,70 @@ export default function SpinTrickClient() {
           JumperOnJava/spintrick
         </a>
       </p>
+
+      <div className="w-full max-w-md card-dark p-4 mt-4">
+        <p className="micro-cap text-ink-mute mb-3">DEBUG METRICS</p>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Gyroscope</span>
+            <span className={`font-mono font-bold ${motionReady ? "text-green-400" : "text-red-400"}`}>
+              {motionReady ? "ACTIVE" : "INACTIVE"}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Permission</span>
+            <span className={`font-mono font-bold ${
+              metricPermission === "granted" ? "text-green-400" :
+              metricPermission === "denied" ? "text-red-400" :
+              metricPermission === "no-api" ? "text-yellow-400" :
+              "text-on-primary-mute"
+            }`}>
+              {metricPermission.toUpperCase()}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Angular Vel (°/s)</span>
+            <span className="font-mono font-bold text-on-primary">
+              {metricZ.toFixed(1)}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Total Rotation (°)</span>
+            <span className={`font-mono font-bold ${Math.abs(metricTotal) > 270 ? "text-indigo-400" : "text-on-primary"}`}>
+              {metricTotal.toFixed(0)}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Events</span>
+            <span className="font-mono font-bold text-on-primary">
+              {metricEvents}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-ink-mute">Triggered</span>
+            <span className={`font-mono font-bold ${metricTriggered ? "text-indigo-400" : "text-on-primary-mute"}`}>
+              {metricTriggered ? "YES" : "NO"}
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-hairline-dark">
+          <div className="relative h-2 w-full rounded-full bg-canvas-night-soft overflow-hidden">
+            <div
+              className="absolute top-0 left-1/2 h-full rounded-full transition-all duration-75"
+              style={{
+                width: `${Math.min(50, Math.abs(metricZ) / 3)}%`,
+                marginLeft: metricZ >= 0 ? "0" : "auto",
+                marginRight: metricZ < 0 ? "0" : "auto",
+                background: Math.abs(metricTotal) > 270 ? "#818cf8" : "#4b5563",
+              }}
+            />
+            <div className="absolute top-0 left-1/2 h-full w-px bg-white/20" />
+          </div>
+          <p className="text-ink-mute text-[10px] mt-1 text-center">
+            {Math.abs(metricTotal).toFixed(0)}° / 270° to trick
+          </p>
+        </div>
+      </div>
 
       <style jsx global>{`
         @keyframes emojiPop {
