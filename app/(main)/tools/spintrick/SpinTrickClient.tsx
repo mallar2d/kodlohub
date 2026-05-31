@@ -17,6 +17,7 @@ export default function SpinTrickClient() {
   const comboDirRef = useRef(0);
   const comboCountRef = useRef(0);
   const eventCountRef = useRef(0);
+  const lastTimeRef = useRef(0);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const comboSoundRef = useRef<HTMLAudioElement | null>(null);
   const silentRef = useRef<HTMLAudioElement | null>(null);
@@ -59,10 +60,10 @@ export default function SpinTrickClient() {
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
-      const DELTA = 0.1;
       const RAD_TO_DEG = 57.29;
       const VELOCITY_THRESHOLD = 45;
       const ROTATION_THRESHOLD = 270;
+      const NOISE_THRESHOLD = 5;
 
       const raw = event.rotationRate as Record<string, number> | null;
       if (!raw) return;
@@ -70,7 +71,23 @@ export default function SpinTrickClient() {
       const z = raw.z ?? raw.alpha ?? null;
       if (z === null) return;
 
-      const nRateZ = z * DELTA * RAD_TO_DEG;
+      const now = performance.now();
+      if (lastTimeRef.current === 0) {
+        lastTimeRef.current = now;
+        return;
+      }
+
+      const dt = (now - lastTimeRef.current) / 1000;
+      lastTimeRef.current = now;
+
+      if (dt <= 0 || dt > 0.5) return;
+
+      const nRateZ = z * dt * RAD_TO_DEG;
+
+      if (Math.abs(nRateZ) < NOISE_THRESHOLD) {
+        return;
+      }
+
       totalRotationRef.current += nRateZ;
 
       if (Math.abs(nRateZ) < VELOCITY_THRESHOLD) {
