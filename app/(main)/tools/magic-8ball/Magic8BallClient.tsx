@@ -109,7 +109,7 @@ export default function Magic8BallClient() {
   return (
     <div className="flex flex-col items-center gap-8 select-none">
       <p className="text-on-primary-mute text-center text-sm max-w-md">
-        Запитай щось і натисни на кулю. На телефоні після першого натиску можна просто потрясти.
+        Запитай щось і натисни на кулю
       </p>
 
       <button
@@ -147,21 +147,27 @@ export default function Magic8BallClient() {
           }}
         >
           <span
-            className="relative flex h-[70%] w-[70%] items-center justify-center transition-transform duration-700 ease-out"
+            className="relative flex h-[78%] w-[78%] items-center justify-center transition-transform duration-700 ease-out"
             style={{
-              transform: `perspective(480px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotateZ(${tilt.z}deg)`,
+              transform: `perspective(560px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotateZ(${tilt.z}deg)`,
               transformStyle: "preserve-3d",
             }}
           >
-            <span className="absolute h-full w-full rotate-180 bg-indigo-400/90 [clip-path:polygon(50%_92%,5%_14%,95%_14%)]" />
-            <span className="absolute h-[92%] w-[92%] rotate-180 bg-[#11175a] [clip-path:polygon(50%_90%,8%_16%,92%_16%)]" />
-            <span className="absolute h-[78%] w-[78%] rotate-180 bg-gradient-to-b from-indigo-400/40 to-indigo-950 [clip-path:polygon(50%_88%,9%_17%,91%_17%)]" />
+            <span className="absolute h-full w-full translate-x-[7px] translate-y-[8px] bg-black/55 blur-sm [clip-path:polygon(50%_3%,4%_93%,96%_93%)]" />
+            <span className="absolute h-full w-full bg-indigo-200/80 [clip-path:polygon(50%_3%,4%_93%,96%_93%)] shadow-[0_0_20px_rgba(129,140,248,0.7)]" />
+            <span className="absolute h-[94%] w-[94%] bg-[#11145c] [clip-path:polygon(50%_6%,6%_93%,94%_93%)]" />
+            <span className="absolute h-[88%] w-[88%] bg-indigo-500/35 [clip-path:polygon(50%_8%,8%_91%,50%_72%)]" />
+            <span className="absolute h-[88%] w-[88%] bg-indigo-950/75 [clip-path:polygon(50%_8%,50%_72%,92%_91%)]" />
+            <span className="absolute h-[88%] w-[88%] bg-gradient-to-b from-indigo-300/55 via-indigo-600/30 to-indigo-950/80 [clip-path:polygon(50%_8%,15%_86%,85%_86%)]" />
+            <span className="absolute left-[16%] top-[84%] h-[2px] w-[68%] bg-indigo-100/80 shadow-[0_0_12px_rgba(199,210,254,0.9)]" />
+            <span className="absolute left-[28%] top-[40%] h-[2px] w-[47%] rotate-[62deg] bg-indigo-100/65 shadow-[0_0_10px_rgba(199,210,254,0.8)]" />
+            <span className="absolute right-[28%] top-[40%] h-[2px] w-[47%] rotate-[-62deg] bg-indigo-100/65 shadow-[0_0_10px_rgba(199,210,254,0.8)]" />
 
-            <span className="absolute top-[22%] text-[44px] font-black leading-none tracking-tight text-white/95 drop-shadow-[0_0_14px_rgba(165,180,252,0.9)] transition-opacity duration-300 sm:text-[58px]">
+            <span className="absolute top-[36%] -translate-y-1/2 text-[42px] font-black leading-none tracking-tight text-white/95 drop-shadow-[0_0_14px_rgba(165,180,252,0.9)] transition-opacity duration-300 sm:text-[54px]">
               {answer ? "" : "8"}
             </span>
             {answer && (
-              <span className="absolute top-[31%] max-w-[74%] text-center text-sm font-black uppercase leading-tight tracking-[0.08em] text-indigo-50 drop-shadow-[0_0_12px_rgba(165,180,252,0.85)] animate-[answerPop_0.42s_ease-out] sm:text-base">
+              <span className="absolute top-[52%] max-w-[62%] -translate-y-1/2 text-center text-[12px] font-black uppercase leading-none tracking-[0.04em] text-indigo-50 drop-shadow-[0_0_12px_rgba(165,180,252,0.95)] animate-[answerPop_0.42s_ease-out] sm:text-[15px]">
                 {answer}
               </span>
             )}
