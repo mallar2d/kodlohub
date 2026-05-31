@@ -7,7 +7,12 @@ type MediaInput = {
   fileType?: string;
   fileSize?: number;
   caption?: string;
+  fileName?: string;
 };
+
+const ARTIFACT_TEXT_EXTS = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+const ARTIFACT_DOC_EXTS = ["pdf", "doc", "docx"];
+const ARTIFACT_MUSIC_EXTS = ["mp3", "wav", "ogg", "flac", "aac"];
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +28,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
-    // Ensure profile exists
-    const { data: existing } = await admin.from("profiles").select("id").eq("id", authorId).single();
+    const { data: existing } = await admin.from("profiles").select("id").eq("id", authorId).maybeSingle();
     if (!existing) {
       const { data: userData } = await admin.auth.admin.getUserById(authorId);
       const meta = userData?.user?.user_metadata || {};
@@ -60,6 +64,25 @@ export async function POST(request: Request) {
         }),
       ),
     );
+
+    const artifactRows = (data || []).flatMap((mediaItem, index) => {
+      const item = items[index];
+      if (!item || !item.fileName) return [];
+      const ext = item.fileName.split(".").pop()?.toLowerCase() || "";
+      const isArtifact = ARTIFACT_TEXT_EXTS.includes(ext) || ARTIFACT_DOC_EXTS.includes(ext) || ARTIFACT_MUSIC_EXTS.includes(ext) || (item.fileType || "").startsWith("audio/");
+      if (!isArtifact) return [];
+      return [{
+        title: item.caption || item.fileName,
+        description: `${(item.fileType || "").startsWith("audio/") ? "Музичний файл" : "Документ"}: ${item.fileName}`,
+        category: "artifact",
+        media_id: mediaItem.id,
+        author_id: authorId,
+      }];
+    });
+
+    if (artifactRows.length > 0) {
+      await admin.from("lore_items").insert(artifactRows);
+    }
 
     return NextResponse.json({ success: true, media: Array.isArray(media) ? data : data?.[0] });
   } catch (err) {

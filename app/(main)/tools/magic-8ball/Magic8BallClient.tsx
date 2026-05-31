@@ -52,7 +52,8 @@ export default function Magic8BallClient() {
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
       const accel = event.accelerationIncludingGravity;
-      if (!accel || accel.x === null || accel.y === null || accel.z === null) return;
+      if (!accel || accel.x === null || accel.y === null || accel.z === null)
+        return;
 
       const dx = Math.abs(accel.x - lastAccelRef.current.x);
       const dy = Math.abs(accel.y - lastAccelRef.current.y);
@@ -74,7 +75,9 @@ export default function Magic8BallClient() {
     if (motionEnabledRef.current || typeof window === "undefined") return;
 
     const MotionEventCtor = window.DeviceMotionEvent as
-      | (typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> })
+      | (typeof DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>;
+        })
       | undefined;
     if (!MotionEventCtor) return;
 
@@ -99,7 +102,8 @@ export default function Magic8BallClient() {
   useEffect(() => {
     return () => {
       clearTimer();
-      if (motionEnabledRef.current) window.removeEventListener("devicemotion", handleMotion);
+      if (motionEnabledRef.current)
+        window.removeEventListener("devicemotion", handleMotion);
     };
   }, [clearTimer, handleMotion]);
 
@@ -117,7 +121,7 @@ export default function Magic8BallClient() {
         onClick={handleBallClick}
         disabled={isShaking}
         className="group relative h-[300px] w-[300px] cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 sm:h-[380px] sm:w-[380px] disabled:cursor-wait"
-        aria-label="Magic 8-Ball"
+        aria-label="Magic PODRO-BALL"
       >
         <span className="absolute -inset-10 rounded-full bg-indigo-500/10 blur-[70px] transition-opacity duration-700 group-hover:opacity-90" />
         <span className="absolute inset-x-10 bottom-0 h-10 rounded-full bg-black/80 blur-2xl" />
@@ -179,27 +183,54 @@ export default function Magic8BallClient() {
         {isShaking ? (
           <p className="micro-cap text-indigo-200">КУЛЯ ДУМАЄ...</p>
         ) : isShown ? (
-          <button type="button" onClick={trigger} className="btn-ghost text-on-primary">
+          <button
+            type="button"
+            onClick={trigger}
+            className="btn-ghost text-on-primary"
+          >
             ЩЕ РАЗ
           </button>
         ) : (
-          <p className="text-on-primary-mute/45 text-xs animate-pulse">торкнись кулю</p>
+          <p className="text-on-primary-mute/45 text-xs animate-pulse">
+            торкнись кулю
+          </p>
         )}
       </div>
 
       <style jsx global>{`
         @keyframes ballShake {
-          0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-          12% { transform: translate3d(-7px, 4px, 0) rotate(-3deg); }
-          24% { transform: translate3d(8px, -5px, 0) rotate(3deg); }
-          36% { transform: translate3d(-8px, -3px, 0) rotate(-2deg); }
-          48% { transform: translate3d(7px, 5px, 0) rotate(2deg); }
-          60% { transform: translate3d(-5px, 2px, 0) rotate(-1deg); }
-          74% { transform: translate3d(4px, -2px, 0) rotate(1deg); }
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0) rotate(0deg);
+          }
+          12% {
+            transform: translate3d(-7px, 4px, 0) rotate(-3deg);
+          }
+          24% {
+            transform: translate3d(8px, -5px, 0) rotate(3deg);
+          }
+          36% {
+            transform: translate3d(-8px, -3px, 0) rotate(-2deg);
+          }
+          48% {
+            transform: translate3d(7px, 5px, 0) rotate(2deg);
+          }
+          60% {
+            transform: translate3d(-5px, 2px, 0) rotate(-1deg);
+          }
+          74% {
+            transform: translate3d(4px, -2px, 0) rotate(1deg);
+          }
         }
         @keyframes answerPop {
-          from { opacity: 0; transform: scale(0.72) translateY(8px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
+          from {
+            opacity: 0;
+            transform: scale(0.72) translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
         }
       `}</style>
     </div>
