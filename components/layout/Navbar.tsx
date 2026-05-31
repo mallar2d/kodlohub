@@ -13,6 +13,7 @@ const navLinks = [
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "АРТЕФАКТИ" },
   { href: "/users", label: "УЧАСНИКИ" },
+  { href: "/tools", label: "TOOLS" },
   { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
   {
     href: "https://soundcloud.com/zt-barista",
