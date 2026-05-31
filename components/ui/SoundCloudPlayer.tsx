@@ -188,8 +188,16 @@ function initGlobalIframe() {
       w.bind(SC.Widget.Events.PLAY, () => {
         try {
           globalPlaying = true;
+          // Reset duration so it updates for the new track
+          globalDuration = 0;
           w.getCurrentSound((sound: Track) => {
-            if (sound && sound.title) globalCurrentTrack = sound;
+            if (sound && sound.title) {
+              globalCurrentTrack = sound;
+              // Get duration from current sound directly
+              if (typeof sound.duration === "number" && sound.duration > 0) {
+                globalDuration = sound.duration;
+              }
+            }
           });
           w.getCurrentSoundIndex((idx: number) => {
             if (typeof idx === "number") globalTrackIndex = idx;
@@ -234,19 +242,19 @@ function initGlobalIframe() {
         }
       });
 
-      const durationInterval = setInterval(() => {
+      // Periodically fetch duration (doesn't clear — re-fetches on track change)
+      setInterval(() => {
         try {
           w.getCurrentSound((sound: Track) => {
-            if (sound?.duration && sound.duration > 0) {
+            if (sound?.duration && sound.duration > 0 && globalDuration === 0) {
               globalDuration = sound.duration;
               notify();
-              clearInterval(durationInterval);
             }
           });
         } catch {
-          clearInterval(durationInterval);
+          // widget destroyed
         }
-      }, 1000);
+      }, 2000);
     } catch (err) {
       console.error("SC bindWidget error:", err);
     }
@@ -379,6 +387,7 @@ export default function SoundCloudPlayer() {
   );
 
   const formatTime = useCallback((ms: number) => {
+    if (!ms || ms <= 0 || !Number.isFinite(ms)) return "0:00";
     const totalSec = Math.floor(ms / 1000);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
@@ -575,13 +584,17 @@ export default function SoundCloudPlayer() {
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-medium truncate">{track.title}</p>
+                    <p className="text-[11px] font-medium truncate">
+                      {track.title || `Тrek #${idx + 1}`}
+                    </p>
                     <p className="text-[10px] text-ink-mute truncate">
                       {safeUsername(track)}
                     </p>
                   </div>
                   <span className="text-[10px] text-ink-mute font-mono tabular-nums shrink-0">
-                    {formatTime(track.duration)}
+                    {typeof track.duration === "number" && track.duration > 0
+                      ? formatTime(track.duration)
+                      : "--:--"}
                   </span>
                 </button>
               ))}
