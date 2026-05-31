@@ -34,7 +34,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <ToastProvider>
             <Navbar />
-            <main className="flex-1 pb-20">{children}</main>
+            <main className="flex-1">{children}</main>
             <Footer />
             <SoundCloudPlayer />
             <CoffeeReminder />

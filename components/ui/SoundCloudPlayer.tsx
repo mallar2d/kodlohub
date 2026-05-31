@@ -48,7 +48,6 @@ export default function SoundCloudPlayer() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [ready, setReady] = useState(false);
-  const [totalTracks, setTotalTracks] = useState(0);
 
   const sendCommand = useCallback((action: string, value?: string) => {
     const iframe = iframeRef.current;
@@ -96,9 +95,6 @@ export default function SoundCloudPlayer() {
             const ev = e as { currentPosition?: number };
             if (ev.currentPosition !== undefined) setProgress(ev.currentPosition);
           });
-          w.getSounds((sounds: Track[]) => {
-            setTotalTracks(sounds.length);
-          });
           w.getCurrentSound((sound: Track) => {
             if (sound) setCurrentTrack(sound);
           });
@@ -112,17 +108,9 @@ export default function SoundCloudPlayer() {
         setProgress(data.currentPosition);
       }
 
-      if (data.event === "play") {
-        setPlaying(true);
-      }
-
-      if (data.event === "pause") {
-        setPlaying(false);
-      }
-
-      if (data.event === "finish") {
-        setPlaying(false);
-      }
+      if (data.event === "play") setPlaying(true);
+      if (data.event === "pause") setPlaying(false);
+      if (data.event === "finish") setPlaying(false);
     }
 
     window.addEventListener("message", onMessage);
@@ -166,7 +154,7 @@ export default function SoundCloudPlayer() {
 
   return (
     <>
-      {/* Hidden iframe — SoundCloud widget */}
+      {/* Hidden iframe */}
       <iframe
         ref={iframeRef}
         src={WIDGET_SRC}
@@ -175,144 +163,130 @@ export default function SoundCloudPlayer() {
         title="SoundCloud Player"
       />
 
-      {/* Floating player bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-out">
-        {/* Progress bar — thin line at the very top */}
-        <div
-          className="h-[2px] w-full bg-hairline-dark cursor-pointer group relative"
-          onClick={seek}
-        >
-          <div
-            className="h-full bg-on-primary transition-[width] duration-100"
-            style={{ width: `${progressPct}%` }}
-          />
-          <div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-on-primary opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ left: `calc(${progressPct}% - 4px)` }}
-          />
-        </div>
+      {/* Floating pill — minimized by default */}
+      <div className="fixed bottom-6 right-6 z-40">
+        {/* Expanded card */}
+        {expanded && (
+          <div className="mb-3 w-72 bg-canvas-night/95 backdrop-blur-sm border border-hairline-dark rounded-lg overflow-hidden animate-slide-up">
+            {/* Progress bar */}
+            <div
+              className="h-[2px] w-full bg-hairline-dark cursor-pointer group relative"
+              onClick={seek}
+            >
+              <div
+                className="h-full bg-on-primary transition-[width] duration-100"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
 
-        {/* Main bar */}
-        <div className="bg-canvas-night/95 backdrop-blur-sm border-t border-hairline-dark">
-          <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 sm:px-6 h-16">
-            {/* Left: track info */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* Waveform dots indicator */}
-              <div className="flex items-center gap-[2px] shrink-0">
+            <div className="p-3">
+              {/* Track info */}
+              <div className="mb-3 min-w-0">
+                {currentTrack ? (
+                  <>
+                    <p className="text-xs text-on-primary font-medium truncate">
+                      {currentTrack.title}
+                    </p>
+                    <p className="text-[11px] text-on-primary-mute truncate">
+                      {currentTrack.user.username}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-on-primary-mute">
+                    {ready ? "PODRO GREATEST HIT MOJ" : "ЗАВАНТАЖЕННЯ..."}
+                  </p>
+                )}
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={prevTrack}
+                    disabled={!ready}
+                    className="p-1.5 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
+                    aria-label="Попередній"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={togglePlay}
+                    disabled={!ready}
+                    className="w-7 h-7 rounded-full border border-on-primary flex items-center justify-center text-on-primary hover:bg-on-primary hover:text-canvas-night transition-all disabled:opacity-30 cursor-pointer"
+                    aria-label={playing ? "Пауза" : "Грати"}
+                  >
+                    {playing ? (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+                      </svg>
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={nextTrack}
+                    disabled={!ready}
+                    className="p-1.5 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
+                    aria-label="Наступний"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <span className="text-[10px] text-on-primary-mute font-mono tabular-nums">
+                  {formatTime(progress)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toggle pill button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={`flex items-center gap-2 h-10 pl-3 pr-4 rounded-full border transition-all duration-200 cursor-pointer ${
+              playing
+                ? "bg-canvas-night/95 border-on-primary text-on-primary"
+                : "bg-canvas-night/95 border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
+            }`}
+            aria-label={expanded ? "Згорнути плеєр" : "Відкрити плеєр"}
+          >
+            {/* Waveform dots when playing */}
+            {playing && (
+              <div className="flex items-center gap-[2px]">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className={`w-[3px] h-3 rounded-full transition-all duration-300 ${
-                      playing ? "bg-on-primary animate-pulse" : "bg-hairline-dark"
-                    }`}
+                    className="w-[2px] rounded-full bg-on-primary animate-pulse"
                     style={{
+                      height: "8px",
                       animationDelay: `${i * 0.15}s`,
                     }}
                   />
                 ))}
               </div>
+            )}
 
-              <div className="min-w-0">
-                {currentTrack ? (
-                  <>
-                    <p className="text-sm text-on-primary font-medium truncate">
-                      {currentTrack.title}
-                    </p>
-                    <p className="text-xs text-on-primary-mute truncate">
-                      {currentTrack.user.username}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-on-primary-mute">
-                    {ready ? "PODRO GREATEST HIT MOJ" : "ЗАВАНТАЖЕННЯ..."}
-                  </p>
-                )}
-              </div>
-            </div>
+            {/* Play icon when not playing */}
+            {!playing && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
 
-            {/* Center: controls */}
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <button
-                onClick={prevTrack}
-                disabled={!ready}
-                className="p-2 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
-                aria-label="Попередній"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
-                </svg>
-              </button>
-
-              <button
-                onClick={togglePlay}
-                disabled={!ready}
-                className="w-10 h-10 rounded-full border border-on-primary flex items-center justify-center text-on-primary hover:bg-on-primary hover:text-canvas-night transition-all disabled:opacity-30 cursor-pointer"
-                aria-label={playing ? "Пауза" : "Грати"}
-              >
-                {playing ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-                  </svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-              </button>
-
-              <button
-                onClick={nextTrack}
-                disabled={!ready}
-                className="p-2 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
-                aria-label="Наступний"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Right: time + expand */}
-            <div className="flex items-center gap-3 justify-end flex-1">
-              <span className="text-xs text-on-primary-mute font-mono tabular-nums hidden sm:block">
-                {formatTime(progress)}
-                <span className="mx-1">/</span>
-                {formatTime(duration)}
-              </span>
-
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="p-1 text-on-primary-mute hover:text-on-primary transition-colors cursor-pointer"
-                aria-label={expanded ? "Згорнути" : "Розгорнути"}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-                >
-                  <path d="M18 15l-6-6-6 6" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Expanded: track list */}
-          {expanded && (
-            <div className="border-t border-hairline-dark bg-canvas-night-soft">
-              <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-3">
-                <p className="micro-cap text-on-primary-mute mb-2">
-                  ПОДРО GREATEST HIT MOJ — {totalTracks} ТРЕКІВ
-                </p>
-                <p className="text-xs text-ink-mute">
-                  Звучить з SoundCloud. Натисни play щоб почати.
-                </p>
-              </div>
-            </div>
-          )}
+            <span className="text-[11px] font-bold tracking-[1.17px] uppercase">
+              PODRO
+            </span>
+          </button>
         </div>
       </div>
     </>
