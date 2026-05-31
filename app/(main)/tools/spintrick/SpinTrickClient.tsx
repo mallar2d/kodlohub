@@ -69,8 +69,10 @@ export default function SpinTrickClient() {
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
-      const data = event.rotationRate as { x: number; y: number; z: number } | null;
-      if (!data || data.z === null) return;
+      const raw = event.rotationRate as Record<string, number> | null;
+      if (!raw) return;
+      const z = raw.z ?? raw.alpha ?? null;
+      if (z === null) return;
 
       const now = performance.now();
       if (lastTimeRef.current === 0) {
@@ -82,7 +84,7 @@ export default function SpinTrickClient() {
 
       if (dt <= 0 || dt > 0.5) return;
 
-      const angularVelDeg = data.z * (180 / Math.PI);
+      const angularVelDeg = z * (180 / Math.PI);
       const degreesMoved = angularVelDeg * dt;
       totalRotationRef.current += degreesMoved;
       eventCountRef.current += 1;
