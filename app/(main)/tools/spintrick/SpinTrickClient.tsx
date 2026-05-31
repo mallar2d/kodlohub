@@ -12,8 +12,10 @@ export default function SpinTrickClient() {
   const comboDirRef = useRef(0);
   const lastTimeRef = useRef(0);
   const comboCountRef = useRef(0);
+  const triggeredRef = useRef(false);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const comboSoundRef = useRef<HTMLAudioElement | null>(null);
+  const dragStartRef = useRef<{ x: number; time: number } | null>(null);
 
   useEffect(() => {
     soundRef.current = new Audio("/spintrick-sound.mp3");
@@ -36,10 +38,13 @@ export default function SpinTrickClient() {
 
   const triggerTrick = useCallback(
     (direction: number) => {
-      const isCombo =
-        comboDirRef.current !== 0 && comboDirRef.current === direction;
+      const isCombo = comboDirRef.current !== 0 && comboDirRef.current === direction;
 
-      comboCountRef.current = isCombo ? comboCountRef.current + 1 : 1;
+      if (isCombo) {
+        comboCountRef.current += 1;
+      } else {
+        comboCountRef.current = 1;
+      }
       comboDirRef.current = direction;
 
       setCombo(comboCountRef.current);
@@ -70,32 +75,29 @@ export default function SpinTrickClient() {
 
       if (dt <= 0 || dt > 0.5) return;
 
-      const nRate = data.z * dt * (180 / Math.PI);
-      totalRotationRef.current += nRate;
+      const angularVelDeg = data.z * (180 / Math.PI);
+      const degreesMoved = angularVelDeg * dt;
+      totalRotationRef.current += degreesMoved;
 
-      if (Math.abs(data.z * (180 / Math.PI)) < 45) {
-        if (comboDirRef.current === 0) {
-          comboDirRef.current = Math.sign(totalRotationRef.current) as
-            | 0
-            | 1
-            | -1;
-        }
+      const absTotal = Math.abs(totalRotationRef.current);
 
-        if (Math.abs(totalRotationRef.current) > 270) {
-          const dir = Math.sign(totalRotationRef.current);
-          if (dir === comboDirRef.current) {
-            triggerTrick(dir);
-          } else {
-            comboCountRef.current = 0;
-            comboDirRef.current = 0;
-            setCombo(0);
-            playTrickSound(true);
-          }
-          totalRotationRef.current = 0;
+      if (absTotal > 270 && !triggeredRef.current) {
+        const dir = Math.sign(totalRotationRef.current);
+        triggerTrick(dir);
+        triggeredRef.current = true;
+      }
+
+      if (Math.abs(angularVelDeg) < 10) {
+        totalRotationRef.current = 0;
+        triggeredRef.current = false;
+        if (comboDirRef.current !== 0) {
+          comboDirRef.current = 0;
+          comboCountRef.current = 0;
+          setCombo(0);
         }
       }
     },
-    [triggerTrick, playTrickSound],
+    [triggerTrick],
   );
 
   const enableMotion = useCallback(async () => {
@@ -128,19 +130,38 @@ export default function SpinTrickClient() {
     };
   }, [handleMotion]);
 
-  const handleTap = useCallback(() => {
-    enableMotion();
-  }, [enableMotion]);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      enableMotion();
+      dragStartRef.current = { x: e.clientX, time: Date.now() };
+    },
+    [enableMotion],
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragStartRef.current) return;
+      const dx = e.clientX - dragStartRef.current.x;
+      const dt = Date.now() - dragStartRef.current.time;
+      dragStartRef.current = null;
+
+      if (dt < 600 && Math.abs(dx) > 80) {
+        triggerTrick(dx > 0 ? 1 : -1);
+      }
+    },
+    [triggerTrick],
+  );
 
   return (
     <div className="flex flex-col items-center gap-8 select-none">
       <p className="text-on-primary-mute text-center text-sm max-w-md">
-        Оберти телефон щоб отримати 😎
+        Оберти телефон щоб отримати 😎. На десктопі — свайпни по кулі.
       </p>
 
       <button
         type="button"
-        onClick={handleTap}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
         className="group relative h-[280px] w-[280px] cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 sm:h-[360px] sm:w-[360px]"
         aria-label="SpinTrick"
       >
@@ -167,7 +188,9 @@ export default function SpinTrickClient() {
             {emoji}
           </span>
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-[60px] sm:text-[72px] opacity-20 group-hover:opacity-40 transition-opacity"></span>
+          <span className="absolute inset-0 flex items-center justify-center text-[60px] sm:text-[72px] opacity-20 group-hover:opacity-40 transition-opacity">
+            📱
+          </span>
         )}
       </button>
 
@@ -178,9 +201,7 @@ export default function SpinTrickClient() {
           <p className="micro-cap text-indigo-200">COMBO x{combo}</p>
         ) : (
           <p className="text-on-primary-mute/45 text-xs animate-pulse">
-            {motionReady
-              ? "обертай телефон"
-              : "торкнись щоб увімкнути гіроскоп"}
+            {motionReady ? "обертай телефон" : "свайпни або оберти"}
           </p>
         )}
       </div>
@@ -199,21 +220,10 @@ export default function SpinTrickClient() {
 
       <style jsx global>{`
         @keyframes emojiPop {
-          0% {
-            opacity: 0;
-            transform: scale(0.3) rotate(-20deg);
-          }
-          40% {
-            opacity: 1;
-            transform: scale(1.3) rotate(5deg);
-          }
-          70% {
-            transform: scale(0.95) rotate(-2deg);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-          }
+          0% { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+          40% { opacity: 1; transform: scale(1.3) rotate(5deg); }
+          70% { transform: scale(0.95) rotate(-2deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
         }
       `}</style>
     </div>
