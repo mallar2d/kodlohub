@@ -14,15 +14,6 @@ interface Track {
   permalink_url?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type WidgetAPI = any;
-
-declare global {
-  interface Window {
-    SC?: { Widget: WidgetAPI };
-  }
-}
-
 type RepeatMode = "off" | "all" | "one";
 
 function safeUsername(track: Track | null): string {
@@ -30,8 +21,7 @@ function safeUsername(track: Track | null): string {
   return track.user?.username ?? "Unknown";
 }
 
-// ── Module-level singletons (survive React remounts) ──────────────
-let globalWidget: WidgetAPI = null;
+// ── Module-level state (survives React remounts) ──────────────────
 let globalIframe: HTMLIFrameElement | null = null;
 let globalReady = false;
 let globalTracks: Track[] = [];
@@ -50,6 +40,12 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+function scPostMessage(method: string, value?: unknown) {
+  if (!globalIframe?.contentWindow) return;
+  const msg = value !== undefined ? { method, value } : { method };
+  globalIframe.contentWindow.postMessage(JSON.stringify(msg), "*");
+}
+
 function generateShuffleOrder(count: number) {
   const order = Array.from({ length: count }, (_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
@@ -60,28 +56,12 @@ function generateShuffleOrder(count: number) {
   shufflePos = 0;
 }
 
-// Called when a track finishes — implements shuffle/repeat auto-advance
 function handleFinish() {
-  const w = globalWidget;
-  if (!w) {
-    globalPlaying = false;
-    notify();
-    return;
-  }
-
-  // repeat one → restart same track
   if (globalRepeat === "one") {
-    try {
-      w.seekTo(0);
-      w.play();
-    } catch {
-      globalPlaying = false;
-      notify();
-    }
+    scPostMessage("play");
     return;
   }
 
-  // shuffle → pick next from shuffled list
   if (globalShuffle) {
     shufflePos++;
     if (shufflePos >= shuffleOrder.length) {
@@ -93,24 +73,17 @@ function handleFinish() {
       generateShuffleOrder(globalTracks.length);
     }
     const nextIdx = shuffleOrder[shufflePos % shuffleOrder.length];
-    try {
-      w.skip(nextIdx);
-      w.play();
-    } catch {
-      globalPlaying = false;
-      notify();
-    }
+    scPostMessage("skip", nextIdx);
     return;
   }
 
-  // linear: if last track and repeat off → stop
   if (globalTrackIndex >= globalTracks.length - 1 && globalRepeat === "off") {
     globalPlaying = false;
     notify();
     return;
   }
 
-  // otherwise let widget auto-advance (it will fire PLAY with new index)
+  scPostMessage("next");
 }
 
 function usePlayerState() {
@@ -146,127 +119,135 @@ function initGlobalIframe() {
   iframe.title = "SoundCloud Player";
   iframe.className = "soundcloud-iframe-hidden";
 
-  // Set onload BEFORE appending to DOM — browser may fire it immediately
   iframe.onload = () => {
-    const tryBind = (attempt: number) => {
-      const SC = window.SC;
-      if (!SC?.Widget) {
-        if (attempt < 20) setTimeout(() => tryBind(attempt + 1), 200);
+    // Listen for postMessage from SoundCloud widget
+    function onMessage(event: MessageEvent) {
+      // Only listen from our iframe
+      if (event.source !== iframe.contentWindow) return;
+
+      let data: { method?: string; value?: unknown };
+      try {
+        data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+      } catch {
         return;
       }
 
-      try {
-        const w = SC.Widget(iframe);
-        globalWidget = w;
+      if (!data || !data.method) return;
 
-        w.bind(SC.Widget.Events.READY, () => {
-          try {
-            globalReady = true;
-            notify();
-
-            const fetchTracks = (attempt: number) => {
-              w.getSounds((sounds: Track[]) => {
-                if (sounds && sounds.length > 0) {
-                  globalTracks = sounds;
-                  generateShuffleOrder(sounds.length);
-                  notify();
-                } else if (attempt < 15) {
-                  setTimeout(() => fetchTracks(attempt + 1), 500);
-                }
-              });
-            };
-            fetchTracks(0);
-
-            w.getCurrentSound((sound: Track) => {
-              if (sound && sound.title) {
-                globalCurrentTrack = sound;
-                notify();
-              }
-            });
-            w.getCurrentSoundIndex((idx: number) => {
-              if (typeof idx === "number") {
-                globalTrackIndex = idx;
-                notify();
-              }
-            });
-          } catch (err) {
-            console.error("SC READY error:", err);
-          }
-        });
-
-        w.bind(SC.Widget.Events.PLAY, () => {
-          try {
-            globalPlaying = true;
-            globalDuration = 0;
-            w.getCurrentSound((sound: Track) => {
-              if (sound && sound.title) {
-                globalCurrentTrack = sound;
-                if (typeof sound.duration === "number" && sound.duration > 0) {
-                  globalDuration = sound.duration;
-                }
-              }
-            });
-            w.getCurrentSoundIndex((idx: number) => {
-              if (typeof idx === "number") globalTrackIndex = idx;
-            });
-          } catch (err) {
-            console.error("SC PLAY error:", err);
-          }
+      switch (data.method) {
+        case "ready": {
+          globalReady = true;
           notify();
-        });
 
-        w.bind(SC.Widget.Events.PAUSE, () => {
+          // Fetch tracks
+          scPostMessage("getSounds");
+          scPostMessage("getCurrentSound");
+          scPostMessage("getDuration");
+
+          // Retry getSounds until we get data
+          let attempts = 0;
+          const retryGetSounds = () => {
+            if (globalTracks.length > 0 || attempts >= 20) return;
+            attempts++;
+            scPostMessage("getSounds");
+            setTimeout(retryGetSounds, 500);
+          };
+          setTimeout(retryGetSounds, 500);
+          break;
+        }
+
+        case "getSounds": {
+          const sounds = data.value as Track[] | undefined;
+          if (Array.isArray(sounds) && sounds.length > 0) {
+            globalTracks = sounds;
+            generateShuffleOrder(sounds.length);
+            notify();
+          }
+          break;
+        }
+
+        case "getCurrentSound": {
+          const sound = data.value as Track | undefined;
+          if (sound && typeof sound === "object" && sound.title) {
+            globalCurrentTrack = sound;
+            if (typeof sound.duration === "number" && sound.duration > 0) {
+              globalDuration = sound.duration;
+            }
+            notify();
+          }
+          break;
+        }
+
+        case "getCurrentSoundIndex": {
+          const idx = data.value as number;
+          if (typeof idx === "number") {
+            globalTrackIndex = idx;
+            notify();
+          }
+          break;
+        }
+
+        case "getDuration": {
+          const dur = data.value as number;
+          if (typeof dur === "number" && dur > 0) {
+            globalDuration = dur;
+            notify();
+          }
+          break;
+        }
+
+        case "playProgress": {
+          const val = data.value as { loadedProgress?: number; currentPosition?: number; relativePosition?: number } | number;
+          if (typeof val === "object" && val !== null && typeof val.currentPosition === "number") {
+            globalProgress = val.currentPosition;
+            notify();
+          }
+          break;
+        }
+
+        case "time": {
+          const val = data.value as { currentPosition?: number; relativePosition?: number } | number;
+          if (typeof val === "object" && val !== null && typeof val.currentPosition === "number") {
+            globalProgress = val.currentPosition;
+            notify();
+          } else if (typeof val === "number") {
+            globalProgress = val;
+            notify();
+          }
+          break;
+        }
+
+        case "play": {
+          globalPlaying = true;
+          globalDuration = 0;
+          scPostMessage("getCurrentSound");
+          scPostMessage("getDuration");
+          notify();
+          break;
+        }
+
+        case "pause": {
           globalPlaying = false;
           notify();
-        });
+          break;
+        }
 
-        w.bind(SC.Widget.Events.FINISH, () => {
+        case "finish": {
           handleFinish();
-        });
-
-        w.bind(SC.Widget.Events.PLAY_PROGRESS, (e: unknown) => {
-          try {
-            const ev = e as { currentPosition?: number };
-            if (ev && typeof ev.currentPosition === "number") {
-              globalProgress = ev.currentPosition;
-              notify();
-            }
-          } catch (err) {
-            console.error("SC PLAY_PROGRESS error:", err);
-          }
-        });
-
-        w.bind(SC.Widget.Events.TIME_UPDATE, (e: unknown) => {
-          try {
-            const ev = e as { currentPosition?: number; duration?: number };
-            if (ev && typeof ev.currentPosition === "number")
-              globalProgress = ev.currentPosition;
-            if (ev && typeof ev.duration === "number" && ev.duration > 0)
-              globalDuration = ev.duration;
-            notify();
-          } catch (err) {
-            console.error("SC TIME_UPDATE error:", err);
-          }
-        });
-
-        setInterval(() => {
-          try {
-            w.getCurrentSound((sound: Track) => {
-              if (sound?.duration && sound.duration > 0 && globalDuration === 0) {
-                globalDuration = sound.duration;
-                notify();
-              }
-            });
-          } catch {
-            // widget destroyed
-          }
-        }, 2000);
-      } catch (err) {
-        console.error("SC bindWidget error:", err);
+          break;
+        }
       }
-    };
+    }
 
-    tryBind(0);
+    window.addEventListener("message", onMessage);
+
+    // Periodically request duration for current track
+    setInterval(() => {
+      if (globalReady && globalDuration === 0) {
+        scPostMessage("getDuration");
+        scPostMessage("getCurrentSound");
+      }
+    }, 2000);
   };
 
   document.body.appendChild(iframe);
@@ -288,87 +269,62 @@ export default function SoundCloudPlayer() {
   }, []);
 
   const togglePlay = useCallback(() => {
-    if (!state.ready || !globalWidget) return;
-    try {
-      if (state.playing) globalWidget.pause();
-      else globalWidget.play();
-    } catch (err) {
-      console.error("SC togglePlay error:", err);
-    }
+    if (!state.ready) return;
+    scPostMessage(state.playing ? "pause" : "play");
   }, [state.ready, state.playing]);
 
   const skipToTrack = useCallback((index: number) => {
-    if (!globalWidget) return;
-    try {
-      if (globalShuffle) {
-        shufflePos = shuffleOrder.indexOf(index);
-        if (shufflePos === -1) shufflePos = 0;
-      }
-      globalWidget.skip(index);
-      globalWidget.play();
-    } catch (err) {
-      console.error("SC skipToTrack error:", err);
+    if (globalShuffle) {
+      shufflePos = shuffleOrder.indexOf(index);
+      if (shufflePos === -1) shufflePos = 0;
     }
+    scPostMessage("skip", index);
   }, []);
 
   const nextTrack = useCallback(() => {
-    if (!globalWidget) return;
-    try {
-      if (globalRepeat === "one") {
-        globalWidget.seekTo(0);
-        globalWidget.play();
-        return;
-      }
-      if (globalShuffle) {
-        shufflePos++;
-        if (shufflePos >= shuffleOrder.length) {
-          if (globalRepeat === "off") {
-            globalWidget.pause();
-            return;
-          }
-          generateShuffleOrder(globalTracks.length);
-        }
-        const nextIdx = shuffleOrder[shufflePos % shuffleOrder.length];
-        globalWidget.skip(nextIdx);
-        globalWidget.play();
-        return;
-      }
-      if (globalTrackIndex >= globalTracks.length - 1 && globalRepeat === "off") {
-        globalWidget.pause();
-        return;
-      }
-      globalWidget.next();
-    } catch (err) {
-      console.error("SC nextTrack error:", err);
+    if (globalRepeat === "one") {
+      scPostMessage("seekTo", 0);
+      scPostMessage("play");
+      return;
     }
+    if (globalShuffle) {
+      shufflePos++;
+      if (shufflePos >= shuffleOrder.length) {
+        if (globalRepeat === "off") {
+          scPostMessage("pause");
+          return;
+        }
+        generateShuffleOrder(globalTracks.length);
+      }
+      const nextIdx = shuffleOrder[shufflePos % shuffleOrder.length];
+      scPostMessage("skip", nextIdx);
+      return;
+    }
+    if (globalTrackIndex >= globalTracks.length - 1 && globalRepeat === "off") {
+      scPostMessage("pause");
+      return;
+    }
+    scPostMessage("next");
   }, []);
 
   const prevTrack = useCallback(() => {
-    if (!globalWidget) return;
-    try {
-      if (state.progress > 3000) {
-        globalWidget.seekTo(0);
-        return;
-      }
-      if (globalShuffle) {
-        shufflePos--;
-        if (shufflePos < 0) shufflePos = shuffleOrder.length - 1;
-        const prevIdx = shuffleOrder[shufflePos];
-        globalWidget.skip(prevIdx);
-        globalWidget.play();
-        return;
-      }
-      globalWidget.prev();
-    } catch (err) {
-      console.error("SC prevTrack error:", err);
+    if (state.progress > 3000) {
+      scPostMessage("seekTo", 0);
+      return;
     }
+    if (globalShuffle) {
+      shufflePos--;
+      if (shufflePos < 0) shufflePos = shuffleOrder.length - 1;
+      const prevIdx = shuffleOrder[shufflePos];
+      scPostMessage("skip", prevIdx);
+      return;
+    }
+    scPostMessage("prev");
   }, [state.progress]);
 
   const toggleShuffle = useCallback(() => {
     globalShuffle = !globalShuffle;
-    if (globalShuffle) {
-      generateShuffleOrder(globalTracks.length);
-    }
+    if (globalShuffle) generateShuffleOrder(globalTracks.length);
     notify();
   }, []);
 
@@ -381,15 +337,10 @@ export default function SoundCloudPlayer() {
 
   const seek = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!state.ready || !globalWidget || state.duration <= 0) return;
-      try {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const pct = x / rect.width;
-        globalWidget.seekTo(Math.floor(pct * state.duration));
-      } catch (err) {
-        console.error("SC seek error:", err);
-      }
+      if (!state.ready || state.duration <= 0) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      scPostMessage("seekTo", Math.floor(pct * state.duration));
     },
     [state.ready, state.duration]
   );
@@ -451,7 +402,6 @@ export default function SoundCloudPlayer() {
             </div>
           </div>
 
-          {/* Progress */}
           <div
             className="h-[2px] w-full bg-hairline-dark cursor-pointer relative"
             onClick={seek}
@@ -462,10 +412,8 @@ export default function SoundCloudPlayer() {
             />
           </div>
 
-          {/* Controls */}
           <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-0.5">
-              {/* Shuffle */}
               <button
                 onClick={toggleShuffle}
                 className={`relative p-1.5 rounded transition-colors cursor-pointer ${
@@ -487,7 +435,6 @@ export default function SoundCloudPlayer() {
                 )}
               </button>
 
-              {/* Prev */}
               <button
                 onClick={prevTrack}
                 disabled={!state.ready}
@@ -499,7 +446,6 @@ export default function SoundCloudPlayer() {
                 </svg>
               </button>
 
-              {/* Play/Pause */}
               <button
                 onClick={togglePlay}
                 disabled={!state.ready}
@@ -517,7 +463,6 @@ export default function SoundCloudPlayer() {
                 )}
               </button>
 
-              {/* Next */}
               <button
                 onClick={nextTrack}
                 disabled={!state.ready}
@@ -529,7 +474,6 @@ export default function SoundCloudPlayer() {
                 </svg>
               </button>
 
-              {/* Repeat */}
               <button
                 onClick={toggleRepeat}
                 className={`relative p-1.5 rounded transition-colors cursor-pointer ${
@@ -567,7 +511,6 @@ export default function SoundCloudPlayer() {
             </span>
           </div>
 
-          {/* Track list */}
           {state.tracks.length > 0 && (
             <div className="border-t border-hairline-dark max-h-48 overflow-y-auto">
               {state.tracks.map((track, idx) => (
@@ -611,7 +554,6 @@ export default function SoundCloudPlayer() {
         </div>
       )}
 
-      {/* Toggle pill */}
       <div className="flex justify-end">
         <button
           onClick={() => setExpanded(!expanded)}
