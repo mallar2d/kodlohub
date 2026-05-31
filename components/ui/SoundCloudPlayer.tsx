@@ -221,6 +221,7 @@ function initGlobalIframe() {
           globalPlaying = true;
           globalDuration = 0;
           scPostMessage("getCurrentSound");
+          scPostMessage("getCurrentSoundIndex");
           scPostMessage("getDuration");
           notify();
           break;
@@ -278,6 +279,10 @@ export default function SoundCloudPlayer() {
       shufflePos = shuffleOrder.indexOf(index);
       if (shufflePos === -1) shufflePos = 0;
     }
+    globalTrackIndex = index;
+    globalCurrentTrack = globalTracks[index] ?? null;
+    globalProgress = 0;
+    notify();
     scPostMessage("skip", index);
   }, []);
 
