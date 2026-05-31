@@ -13,47 +13,31 @@ export default function SpinTrickClient() {
   const totalRotationRef = useRef(0);
   const comboDirRef = useRef<SpinDirection>(0);
   const lastAlphaRef = useRef<number | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const comboCountRef = useRef(0);
+  const soundRef = useRef<HTMLAudioElement | null>(null);
+  const comboSoundRef = useRef<HTMLAudioElement | null>(null);
+  const silentRef = useRef<HTMLAudioElement | null>(null);
 
-  const getAudioCtx = useCallback(() => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
-    }
-    return audioCtxRef.current;
+  useEffect(() => {
+    soundRef.current = new Audio("/spintrick-sound.mp3");
+    comboSoundRef.current = new Audio("/spintrick-combosound.mp3");
+    silentRef.current = new Audio("/spintrick-silent.mp3");
+    [soundRef.current, comboSoundRef.current, silentRef.current].forEach((a) => {
+      a.preload = "auto";
+    });
   }, []);
 
-  const playTrickSound = useCallback(
-    (isCombo: boolean) => {
-      try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        if (isCombo) {
-          osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(880, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.08);
-          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
-        } else {
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(660, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
-        }
-
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (isCombo ? 0.2 : 0.15));
-
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + (isCombo ? 0.2 : 0.15));
-      } catch {
-        // Audio context may not be available
+  const playTrickSound = useCallback((isCombo: boolean) => {
+    try {
+      const audio = isCombo ? comboSoundRef.current : soundRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
       }
-    },
-    [getAudioCtx],
-  );
+    } catch {
+      // audio unavailable
+    }
+  }, []);
 
   const triggerTrick = useCallback(
     (direction: SpinDirection) => {
