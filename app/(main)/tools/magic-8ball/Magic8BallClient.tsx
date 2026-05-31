@@ -13,312 +13,187 @@ const ANSWERS = [
   "Похуй.",
 ];
 
-type Phase = "idle" | "spinning" | "revealing" | "shown" | "hiding";
-
-function makeTri(cx: number, cy: number, r: number, angles: number[]): string {
-  return angles
-    .map((a) => {
-      const rad = (a * Math.PI) / 180;
-      return `${cx + r * Math.cos(rad)},${cy + r * Math.sin(rad)}`;
-    })
-    .join(" ");
-}
-
-const R = 52;
-const CX = 60;
-const CY = 60;
-
-const FACES: { points: string; rot: string }[] = [
-  { points: makeTri(CX, CY, R, [90, 210, 330]), rot: "rotateX(0deg)" },
-  { points: makeTri(CX, CY, R, [90, 210, 330]), rot: "rotateY(90deg)" },
-  { points: makeTri(CX, CY, R, [90, 210, 330]), rot: "rotateY(180deg)" },
-  { points: makeTri(CX, CY, R, [90, 210, 330]), rot: "rotateY(270deg)" },
-  { points: makeTri(CX, CY, R, [30, 150, 270]), rot: "rotateX(90deg)" },
-  { points: makeTri(CX, CY, R, [30, 150, 270]), rot: "rotateX(-90deg)" },
-  { points: makeTri(CX, CY, R, [90, 210, 330]), rot: "rotateX(45deg) rotateZ(45deg)" },
-  { points: makeTri(CX, CY, R, [30, 150, 270]), rot: "rotateX(-45deg) rotateZ(-45deg)" },
-];
+type Phase = "idle" | "shaking" | "shown";
 
 export default function Magic8BallClient() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [answer, setAnswer] = useState<string | null>(null);
-  const [dieRotation, setDieRotation] = useState({ x: 0, y: 0, z: 0 });
-  const [windowGlow, setWindowGlow] = useState(0);
+  const [tilt, setTilt] = useState({ x: -8, y: 10, z: 0 });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastAccel = useRef({ x: 0, y: 0, z: 0 });
+  const motionEnabledRef = useRef(false);
+  const lastAccelRef = useRef({ x: 0, y: 0, z: 0 });
   const shakeCountRef = useRef(0);
 
-  const clearTimeouts = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const clearTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   }, []);
 
   const trigger = useCallback(() => {
-    if (phase === "spinning" || phase === "revealing") return;
-
-    clearTimeouts();
-    const newAnswer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
-    setAnswer(newAnswer);
-    setPhase("spinning");
-
-    let step = 0;
-    intervalRef.current = setInterval(() => {
-      step++;
-      const speed = Math.max(0.1, 1 - step / 60);
-      setDieRotation((prev) => ({
-        x: prev.x + 12 * speed + Math.random() * 4,
-        y: prev.y + 8 * speed + Math.random() * 3,
-        z: prev.z + 5 * speed + Math.random() * 2,
-      }));
-      setWindowGlow(Math.min(1, step / 40));
-    }, 30);
+    clearTimer();
+    setPhase("shaking");
+    setAnswer(null);
+    setTilt({
+      x: -24 + Math.random() * 48,
+      y: -28 + Math.random() * 56,
+      z: -10 + Math.random() * 20,
+    });
 
     timeoutRef.current = setTimeout(() => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setPhase("revealing");
-      timeoutRef.current = setTimeout(() => {
-        setPhase("shown");
-      }, 800);
-    }, 2000);
-  }, [phase, clearTimeouts]);
+      setAnswer(ANSWERS[Math.floor(Math.random() * ANSWERS.length)]);
+      setPhase("shown");
+      setTilt({ x: -7 + Math.random() * 14, y: -8 + Math.random() * 16, z: 0 });
+      timeoutRef.current = null;
+    }, 980);
+  }, [clearTimer]);
 
-  const reset = useCallback(() => {
-    clearTimeouts();
-    setPhase("hiding");
-    setWindowGlow(0);
-    timeoutRef.current = setTimeout(() => {
-      setPhase("idle");
-      setAnswer(null);
-      setDieRotation({ x: 0, y: 0, z: 0 });
-    }, 600);
-  }, [clearTimeouts]);
-
-  useEffect(() => {
-    let permitGranted = false;
-
-    const handleMotion = (e: DeviceMotionEvent) => {
-      const accel = e.accelerationIncludingGravity;
+  const handleMotion = useCallback(
+    (event: DeviceMotionEvent) => {
+      const accel = event.accelerationIncludingGravity;
       if (!accel || accel.x === null || accel.y === null || accel.z === null) return;
 
-      const dx = Math.abs(accel.x - lastAccel.current.x);
-      const dy = Math.abs(accel.y - lastAccel.current.y);
-      const dz = Math.abs(accel.z - lastAccel.current.z);
-      lastAccel.current = { x: accel.x, y: accel.y, z: accel.z };
+      const dx = Math.abs(accel.x - lastAccelRef.current.x);
+      const dy = Math.abs(accel.y - lastAccelRef.current.y);
+      const dz = Math.abs(accel.z - lastAccelRef.current.z);
+      lastAccelRef.current = { x: accel.x, y: accel.y, z: accel.z };
 
-      if (dx + dy + dz > 18) {
-        shakeCountRef.current++;
-        if (shakeCountRef.current >= 4 && phase !== "spinning" && phase !== "revealing") {
+      if (dx + dy + dz > 20) {
+        shakeCountRef.current += 1;
+        if (shakeCountRef.current >= 3) {
           shakeCountRef.current = 0;
           trigger();
         }
       }
-    };
+    },
+    [trigger],
+  );
 
-    const requestPermission = async () => {
-      if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
-        try {
-          const res = await (DeviceMotionEvent as any).requestPermission();
-          if (res === "granted") {
-            permitGranted = true;
-            window.addEventListener("devicemotion", handleMotion);
-          }
-        } catch { /* denied */ }
-      } else {
-        permitGranted = true;
-        window.addEventListener("devicemotion", handleMotion);
+  const enableMotion = useCallback(async () => {
+    if (motionEnabledRef.current || typeof window === "undefined") return;
+
+    const MotionEventCtor = window.DeviceMotionEvent as
+      | (typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> })
+      | undefined;
+    if (!MotionEventCtor) return;
+
+    try {
+      if (typeof MotionEventCtor.requestPermission === "function") {
+        const permission = await MotionEventCtor.requestPermission();
+        if (permission !== "granted") return;
       }
-    };
 
-    requestPermission();
+      window.addEventListener("devicemotion", handleMotion);
+      motionEnabledRef.current = true;
+    } catch {
+      // Some browsers expose DeviceMotionEvent but deny access without noise.
+    }
+  }, [handleMotion]);
+
+  const handleBallClick = useCallback(() => {
+    enableMotion();
+    if (phase !== "shaking") trigger();
+  }, [enableMotion, phase, trigger]);
+
+  useEffect(() => {
     return () => {
-      if (permitGranted) window.removeEventListener("devicemotion", handleMotion);
-      clearTimeouts();
+      clearTimer();
+      if (motionEnabledRef.current) window.removeEventListener("devicemotion", handleMotion);
     };
-  }, [phase, trigger, clearTimeouts]);
+  }, [clearTimer, handleMotion]);
 
-  const isAnimating = phase === "spinning" || phase === "revealing" || phase === "hiding";
-  const showAnswer = phase === "revealing" || phase === "shown";
+  const isShaking = phase === "shaking";
+  const isShown = phase === "shown";
 
   return (
-    <div className="flex flex-col items-center gap-10 select-none">
+    <div className="flex flex-col items-center gap-8 select-none">
       <p className="text-on-primary-mute text-center text-sm max-w-md">
-        Запитай щось і натисни на кулю
+        Запитай щось і натисни на кулю. На телефоні після першого натиску можна просто потрясти.
       </p>
 
       <button
-        onClick={isAnimating ? undefined : trigger}
-        className="relative cursor-pointer focus:outline-none group"
+        type="button"
+        onClick={handleBallClick}
+        disabled={isShaking}
+        className="group relative h-[300px] w-[300px] cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 sm:h-[380px] sm:w-[380px] disabled:cursor-wait"
         aria-label="Magic 8-Ball"
       >
-        {/* Ambient glow */}
-        <div
-          className="absolute rounded-full blur-[80px] transition-all duration-1000 ease-out"
+        <span className="absolute -inset-10 rounded-full bg-indigo-500/10 blur-[70px] transition-opacity duration-700 group-hover:opacity-90" />
+        <span className="absolute inset-x-10 bottom-0 h-10 rounded-full bg-black/80 blur-2xl" />
+
+        <span
+          className={`absolute inset-0 rounded-full transition-transform duration-700 ease-out ${isShaking ? "animate-[ballShake_0.98s_cubic-bezier(.36,.07,.19,.97)]" : ""}`}
           style={{
-            inset: "-40px",
-            background: showAnswer
-              ? "radial-gradient(circle, rgba(99,102,241,0.25), transparent 70%)"
-              : "radial-gradient(circle, rgba(99,102,241,0.06), transparent 70%)",
+            background:
+              "radial-gradient(circle at 31% 23%, rgba(255,255,255,0.42) 0 5%, rgba(255,255,255,0.13) 12%, transparent 28%), " +
+              "radial-gradient(circle at 68% 74%, rgba(59,70,130,0.28), transparent 20%), " +
+              "radial-gradient(circle at 50% 50%, #171824 0%, #070711 50%, #010104 79%, #000 100%)",
+            boxShadow:
+              "inset 24px 18px 46px rgba(255,255,255,0.08), inset -42px -50px 70px rgba(0,0,0,0.95), 0 34px 70px rgba(0,0,0,0.85)",
           }}
         />
 
-        {/* Sphere */}
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80">
-          {/* Sphere body */}
-          <div
-            className="absolute inset-0 rounded-full transition-all duration-300"
-            style={{
-              background:
-                "radial-gradient(ellipse 35% 30% at 38% 32%, rgba(255,255,255,0.07), transparent), " +
-                "radial-gradient(ellipse 50% 50% at 65% 70%, rgba(0,0,0,0.5), transparent), " +
-                "radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0d0d1a 40%, #050510 70%, #000005 100%)",
-              boxShadow:
-                "inset 0 2px 20px rgba(255,255,255,0.04), " +
-                "inset 0 -4px 30px rgba(0,0,0,0.6), " +
-                "0 0 60px -10px rgba(99,102,241," + (0.1 + windowGlow * 0.25) + "), " +
-                "0 20px 50px -15px rgba(0,0,0,0.8)",
-              transform: phase === "spinning" ? "scale(1.02)" : "scale(1)",
-            }}
-          />
+        <span className="absolute left-[18%] top-[12%] h-[22%] w-[34%] rotate-[-24deg] rounded-full bg-white/18 blur-xl" />
+        <span className="absolute inset-[18%] rounded-full border border-white/5" />
 
-          {/* Specular highlight */}
-          <div
-            className="absolute rounded-full"
+        <span
+          className={`absolute left-1/2 top-1/2 flex h-[43%] w-[43%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition-all duration-700 ${isShown ? "scale-100" : "scale-95"}`}
+          style={{
+            background:
+              "radial-gradient(circle at 45% 38%, #13214a 0%, #05091d 44%, #01020a 100%)",
+            boxShadow:
+              "inset 0 0 32px rgba(0,0,0,0.96), inset 0 0 18px rgba(99,102,241,0.35), 0 0 28px rgba(99,102,241,0.18)",
+          }}
+        >
+          <span
+            className="relative flex h-[70%] w-[70%] items-center justify-center transition-transform duration-700 ease-out"
             style={{
-              top: "8%",
-              left: "22%",
-              width: "35%",
-              height: "18%",
-              background:
-                "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.06), transparent 70%)",
-              transform: "rotate(-15deg)",
-            }}
-          />
-
-          {/* Bottom rim light */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              bottom: "12%",
-              right: "18%",
-              width: "25%",
-              height: "10%",
-              background:
-                "radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.08), transparent 70%)",
-              transform: "rotate(20deg)",
-            }}
-          />
-
-          {/* Inner viewport - dark indigo circle */}
-          <div
-            className="absolute rounded-full flex items-center justify-center overflow-hidden transition-all duration-700"
-            style={{
-              top: "25%",
-              left: "25%",
-              width: "50%",
-              height: "50%",
-              background:
-                "radial-gradient(circle at 45% 40%, #0f0a2a 0%, #080520 50%, #030212 100%)",
-              boxShadow:
-                "inset 0 0 40px rgba(0,0,0,0.8), " +
-                "inset 0 2px 15px rgba(99,102,241," + (0.05 + windowGlow * 0.2) + "), " +
-                "0 0 " + (20 + windowGlow * 30) + "px rgba(99,102,241," + (0.05 + windowGlow * 0.2) + ")",
+              transform: `perspective(480px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotateZ(${tilt.z}deg)`,
+              transformStyle: "preserve-3d",
             }}
           >
-            {/* 3D Scene container */}
-            <div
-              className="relative w-full h-full flex items-center justify-center"
-              style={{ perspective: "400px" }}
-            >
-              {/* 3D Octahedron */}
-              <div
-                className="relative"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  transformStyle: "preserve-3d",
-                  transform: `translateZ(-20px) rotateX(${dieRotation.x}deg) rotateY(${dieRotation.y}deg) rotateZ(${dieRotation.z}deg)`,
-                  transition: phase === "idle" || phase === "hiding" ? "transform 0.6s ease-out" : "none",
-                  opacity: phase === "idle" ? 0.3 : 1,
-                }}
-              >
-                {FACES.map((face, i) => (
-                  <div
-                    key={i}
-                    className="absolute inset-0"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      transform: face.rot,
-                    }}
-                  >
-                    <svg viewBox="0 0 120 120" className="w-full h-full">
-                      <polygon
-                        points={face.points}
-                        fill="rgba(67,56,202,0.12)"
-                        stroke="rgba(129,140,248,0.35)"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                  </div>
-                ))}
-              </div>
+            <span className="absolute h-full w-full rotate-180 bg-indigo-400/90 [clip-path:polygon(50%_92%,5%_14%,95%_14%)]" />
+            <span className="absolute h-[92%] w-[92%] rotate-180 bg-[#11175a] [clip-path:polygon(50%_90%,8%_16%,92%_16%)]" />
+            <span className="absolute h-[78%] w-[78%] rotate-180 bg-gradient-to-b from-indigo-400/40 to-indigo-950 [clip-path:polygon(50%_88%,9%_17%,91%_17%)]" />
 
-              {/* Answer text overlay */}
-              {answer && showAnswer && (
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{
-                    animation: "answerReveal 0.8s ease-out forwards",
-                  }}
-                >
-                  <span
-                    className="text-indigo-200 font-bold tracking-wider text-center px-2"
-                    style={{
-                      fontSize: "clamp(14px, 4vw, 20px)",
-                      textShadow: "0 0 20px rgba(99,102,241,0.6), 0 0 40px rgba(99,102,241,0.3)",
-                      filter: "drop-shadow(0 0 8px rgba(99,102,241,0.4))",
-                    }}
-                  >
-                    {answer}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            <span className="absolute top-[22%] text-[44px] font-black leading-none tracking-tight text-white/95 drop-shadow-[0_0_14px_rgba(165,180,252,0.9)] transition-opacity duration-300 sm:text-[58px]">
+              {answer ? "" : "8"}
+            </span>
+            {answer && (
+              <span className="absolute top-[31%] max-w-[74%] text-center text-sm font-black uppercase leading-tight tracking-[0.08em] text-indigo-50 drop-shadow-[0_0_12px_rgba(165,180,252,0.85)] animate-[answerPop_0.42s_ease-out] sm:text-base">
+                {answer}
+              </span>
+            )}
+          </span>
+        </span>
       </button>
 
-      {/* Hint */}
-      {phase === "idle" && (
-        <p className="text-on-primary-mute/40 text-xs animate-pulse">
-          торкнись кулю
-        </p>
-      )}
+      <div className="h-12 text-center">
+        {isShaking ? (
+          <p className="micro-cap text-indigo-200">КУЛЯ ДУМАЄ...</p>
+        ) : isShown ? (
+          <button type="button" onClick={trigger} className="btn-ghost text-on-primary">
+            ЩЕ РАЗ
+          </button>
+        ) : (
+          <p className="text-on-primary-mute/45 text-xs animate-pulse">торкнись кулю</p>
+        )}
+      </div>
 
-      {/* Reset */}
-      {phase === "shown" && (
-        <button
-          onClick={reset}
-          className="btn-ghost text-on-primary"
-          style={{ animation: "uiFadeIn 0.4s ease-out" }}
-        >
-          ЩЕ РАЗ
-        </button>
-      )}
-
-      <p className="text-on-primary-mute/30 text-[10px] sm:hidden">
-        потряси телефон для відповіді
-      </p>
-
-      <style jsx>{`
-        @keyframes answerReveal {
-          0% { opacity: 0; transform: scale(0.7) translateY(6px); }
-          60% { opacity: 1; transform: scale(1.05) translateY(-2px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
+      <style jsx global>{`
+        @keyframes ballShake {
+          0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+          12% { transform: translate3d(-7px, 4px, 0) rotate(-3deg); }
+          24% { transform: translate3d(8px, -5px, 0) rotate(3deg); }
+          36% { transform: translate3d(-8px, -3px, 0) rotate(-2deg); }
+          48% { transform: translate3d(7px, 5px, 0) rotate(2deg); }
+          60% { transform: translate3d(-5px, 2px, 0) rotate(-1deg); }
+          74% { transform: translate3d(4px, -2px, 0) rotate(1deg); }
         }
-        @keyframes uiFadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes answerPop {
+          from { opacity: 0; transform: scale(0.72) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>
