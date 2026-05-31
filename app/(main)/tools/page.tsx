@@ -3,7 +3,7 @@ import Link from "next/link";
 const tools = [
   {
     href: "/tools/audio-combiner",
-    name: "AUDIO COMBINER",
+    name: "PDRLIFY",
     description: "Додай PDR звук до будь-якого аудіофайлу з налаштовуваною затримкою",
   },
 ];
