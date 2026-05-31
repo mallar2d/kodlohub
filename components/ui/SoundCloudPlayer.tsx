@@ -369,7 +369,7 @@ export default function SoundCloudPlayer() {
                   </>
                 ) : (
                   <p className="text-xs text-on-primary-mute">
-                    {ready ? "PODRO GREATEST HIT MOJ" : "ЗАВАНТАЖЕННЯ..."}
+                    {ready ? "PDR GREATEST HIT MOJ" : "ЗАВАНТАЖЕННЯ..."}
                   </p>
                 )}
               </div>
@@ -588,7 +588,7 @@ export default function SoundCloudPlayer() {
               </svg>
             )}
             <span className="text-[11px] font-bold tracking-[1.17px] uppercase">
-              PODRO
+              PDR
             </span>
           </button>
         </div>
