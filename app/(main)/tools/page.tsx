@@ -6,6 +6,11 @@ const tools = [
     name: "PDRLIFY",
     description: "Додай PDR звук до будь-якого аудіофайлу з налаштовуваною затримкою",
   },
+  {
+    href: "/tools/magic-8ball",
+    name: "8-BALL",
+    description: "Магічна куля відповідей. Запитай щось і потряси.",
+  },
 ];
 
 export default function ToolsPage() {
