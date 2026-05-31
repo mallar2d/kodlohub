@@ -2,11 +2,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
+type MediaInput = {
+  fileUrl: string;
+  fileType?: string;
+  fileSize?: number;
+  caption?: string;
+};
+
 export async function POST(request: Request) {
   try {
-    const { authorId, fileUrl, fileType, fileSize, caption } = await request.json();
+    const { authorId, fileUrl, fileType, fileSize, caption, media } = await request.json();
 
-    if (!authorId || !fileUrl) {
+    const items: MediaInput[] = Array.isArray(media)
+      ? media
+      : [{ fileUrl, fileType, fileSize, caption }];
+
+    if (!authorId || items.length === 0 || items.some((item) => !item.fileUrl)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -28,23 +39,29 @@ export async function POST(request: Request) {
 
     const { data, error } = await admin
       .from("media")
-      .insert({
+      .insert(items.map((item) => ({
         author_id: authorId,
-        file_url: fileUrl,
-        file_type: fileType || "document",
-        file_size: fileSize || 0,
-        caption: caption || "",
-      })
-      .select()
-      .single();
+        file_url: item.fileUrl,
+        file_type: item.fileType || "document",
+        file_size: item.fileSize || 0,
+        caption: item.caption || "",
+      })))
+      .select();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    logActivity(authorId, "media_uploaded", "media", data.id, { caption, fileType });
+    await Promise.all(
+      (data || []).map((item, index) =>
+        logActivity(authorId, "media_uploaded", "media", item.id, {
+          caption: items[index]?.caption,
+          fileType: items[index]?.fileType,
+        }),
+      ),
+    );
 
-    return NextResponse.json({ success: true, media: data });
+    return NextResponse.json({ success: true, media: Array.isArray(media) ? data : data?.[0] });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

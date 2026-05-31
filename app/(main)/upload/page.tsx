@@ -6,6 +6,18 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 import MarkdownEditor from "@/components/ui/MarkdownEditor";
 
+const MAX_FILES_PER_UPLOAD = 10;
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+type PresignedUpload = {
+  presignedUrl: string;
+  publicUrl: string;
+};
+
+type UploadedMedia = {
+  id: string;
+};
+
 export default function UploadPage() {
   const router = useRouter();
   const [user, setUser] = useState<unknown>(null);
@@ -76,9 +88,14 @@ export default function UploadPage() {
     setDragActive(false);
 
     if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files).filter((f) => f.size <= 100 * 1024 * 1024);
-      if (newFiles.length < e.dataTransfer.files.length) {
+      const availableSlots = MAX_FILES_PER_UPLOAD - files.length;
+      const validFiles = Array.from(e.dataTransfer.files).filter((f) => f.size <= MAX_FILE_SIZE);
+      const newFiles = validFiles.slice(0, Math.max(availableSlots, 0));
+      if (validFiles.length < e.dataTransfer.files.length) {
         toast("Деякі файли перевищують 100 МБ і пропущені.", "error");
+      }
+      if (newFiles.length < validFiles.length) {
+        toast(`Максимум ${MAX_FILES_PER_UPLOAD} файлів за одне завантаження.`, "error");
       }
       setFiles((prev) => [...prev, ...newFiles]);
       if (newFiles.length > 0 && newFiles[0].type.startsWith("image/")) {
@@ -90,7 +107,12 @@ export default function UploadPage() {
   };
 
   const handleFile = (f: File) => {
-    if (f.size > 100 * 1024 * 1024) {
+    if (files.length >= MAX_FILES_PER_UPLOAD) {
+      toast(`Максимум ${MAX_FILES_PER_UPLOAD} файлів за одне завантаження.`, "error");
+      return;
+    }
+
+    if (f.size > MAX_FILE_SIZE) {
       toast("Файл занадто великий! Максимум 100 МБ.", "error");
       return;
     }
@@ -194,47 +216,56 @@ export default function UploadPage() {
     setProgress(0);
 
     const userId = (user as { id: string }).id;
-    let uploadedCount = 0;
     const totalFiles = files.length;
 
-    for (const f of files) {
-      if (f.size > 100 * 1024 * 1024) {
-        toast(`Пропущено ${f.name}: занадто великий.`, "error");
-        continue;
-      }
+    const validFiles = files.filter((f) => f.size <= MAX_FILE_SIZE).slice(0, MAX_FILES_PER_UPLOAD);
 
-      const baseProgress = (uploadedCount / totalFiles) * 100;
-      const fileWeight = 100 / totalFiles;
+    if (validFiles.length < files.length) {
+      toast(`Частину файлів пропущено: максимум ${MAX_FILES_PER_UPLOAD} файлів і 100 МБ на файл.`, "error");
+    }
 
-      setProgress(Math.round(baseProgress + fileWeight * 0.1));
-
-      const presignRes = await fetch("/api/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    const presignRes = await fetch("/api/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        authorId: userId,
+        files: validFiles.map((f) => ({
           fileName: f.name,
           fileType: f.type || "application/octet-stream",
           fileSize: f.size,
-          authorId: userId,
-        }),
-      });
+        })),
+      }),
+    });
 
-      if (!presignRes.ok) {
-        let errorMsg = "Помилка отримання presigned URL";
-        try { errorMsg = (await presignRes.json()).error || errorMsg; } catch {}
-        toast(errorMsg, "error");
+    if (!presignRes.ok) {
+      let errorMsg = "Помилка отримання presigned URL";
+      try { errorMsg = (await presignRes.json()).error || errorMsg; } catch {}
+      toast(errorMsg, "error");
+      setUploading(false);
+      return;
+    }
+
+    const presignData = await presignRes.json() as { uploads: PresignedUpload[] };
+    const uploadedFiles: { file: File; publicUrl: string }[] = [];
+
+    for (const [index, f] of validFiles.entries()) {
+      const baseProgress = (index / totalFiles) * 80;
+      const fileWeight = 80 / totalFiles;
+      const upload = presignData.uploads[index];
+
+      if (!upload) {
+        toast(`Не отримано URL для ${f.name}.`, "error");
         continue;
       }
 
-      const presignData = await presignRes.json();
-      setProgress(Math.round(baseProgress + fileWeight * 0.3));
+      setProgress(Math.round(baseProgress));
 
       try {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
-              const pct = Math.round(baseProgress + fileWeight * (0.3 + (e.loaded / e.total) * 0.5));
+              const pct = Math.round(baseProgress + fileWeight * (e.loaded / e.total));
               setProgress(pct);
             }
           };
@@ -243,52 +274,69 @@ export default function UploadPage() {
             else reject(new Error(`R2 ${xhr.status}`));
           };
           xhr.onerror = () => reject(new Error("Мережева помилка"));
-          xhr.open("PUT", presignData.presignedUrl);
+          xhr.open("PUT", upload.presignedUrl);
           xhr.setRequestHeader("Content-Type", f.type || "application/octet-stream");
           xhr.send(f);
         });
+        uploadedFiles.push({ file: f, publicUrl: upload.publicUrl });
       } catch (e) {
         toast(`Помилка завантаження ${f.name}: ${e instanceof Error ? e.message : "Невідома помилка"}`, "error");
         continue;
       }
+    }
 
-      setProgress(Math.round(baseProgress + fileWeight * 0.8));
+    if (uploadedFiles.length === 0) {
+      setUploading(false);
+      return;
+    }
 
-      const determineType = () => {
+    const determineType = (f: File) => {
         if (f.type.startsWith("image/")) return "image";
         if (f.type.startsWith("video/")) return "video";
         if (f.type.startsWith("audio/")) return "audio";
         return "document";
-      };
+    };
+
+    setProgress(85);
 
       const mediaRes = await fetch("/api/media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           authorId: userId,
-          fileUrl: presignData.publicUrl,
-          fileType: determineType(),
-          fileSize: f.size,
-          caption: caption || f.name,
+          media: uploadedFiles.map(({ file, publicUrl }) => ({
+            fileUrl: publicUrl,
+            fileType: determineType(file),
+            fileSize: file.size,
+            caption: caption || file.name,
+          })),
         }),
       });
 
       if (mediaRes.ok) {
-        const mediaData = await mediaRes.json();
-        const ext = f.name.split(".").pop()?.toLowerCase() || "";
-        const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
-        const docExts = ["pdf", "doc", "docx"];
-        const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
-        const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || f.type.startsWith("audio/");
+        const mediaData = await mediaRes.json() as { media: UploadedMedia[] };
+        const mediaItems = Array.isArray(mediaData.media) ? mediaData.media : [];
+        const artifactRows = uploadedFiles.flatMap(({ file }, index) => {
+          const ext = file.name.split(".").pop()?.toLowerCase() || "";
+          const textExts = ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css"];
+          const docExts = ["pdf", "doc", "docx"];
+          const musicExts = ["mp3", "wav", "ogg", "flac", "aac"];
+          const isArtifact = textExts.includes(ext) || docExts.includes(ext) || musicExts.includes(ext) || file.type.startsWith("audio/");
+          const media = mediaItems[index];
 
-        if (isArtifact && mediaData.media) {
-          await supabase.from("lore_items").insert({
-            title: caption || f.name,
-            description: `${f.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${f.name}`,
+          if (!isArtifact || !media) return [];
+
+          return [{
+            title: caption || file.name,
+            description: `${file.type.startsWith("audio/") ? "Музичний файл" : "Документ"}: ${file.name}`,
             category: "artifact",
-            media_id: mediaData.media.id,
+            media_id: media.id,
             author_id: userId,
-          });
+          }];
+        });
+
+        if (artifactRows.length > 0) {
+          await supabase.from("lore_items").insert(artifactRows);
         }
       } else {
         let errorMsg = "Помилка збереження в БД";
@@ -296,18 +344,15 @@ export default function UploadPage() {
         toast(errorMsg, "error");
       }
 
-      uploadedCount++;
-      setProgress(Math.round(baseProgress + fileWeight));
-    }
-
-    const hasArtifact = files.some((f) => {
+    const hasArtifact = uploadedFiles.some(({ file }) => {
+      const f = file;
       const ext = f.name.split(".").pop()?.toLowerCase() || "";
       return ["txt", "md", "json", "xml", "csv", "log", "py", "js", "ts", "html", "css", "pdf", "doc", "docx", "mp3", "wav", "ogg", "flac", "aac"].includes(ext) || f.type.startsWith("audio/");
     });
 
     setProgress(100);
     const dest = hasArtifact ? "/lore" : "/gallery";
-    const msg = `${uploadedCount} файл(ів) завантажено! Вони з'являться на сторінці через ~1 хвилину.`;
+    const msg = `${uploadedFiles.length} файл(ів) завантажено! Вони з'являться на сторінці через ~1 хвилину.`;
     setUploadSuccess(msg);
     setTimeout(() => router.push(dest), 4000);
     setUploading(false);
@@ -645,8 +690,24 @@ export default function UploadPage() {
                 accept="image/*,video/*,.pdf,.txt,.md,.json,.xml,.csv,.py,.js,.ts,.html,.css,.mp3,.wav,.ogg,.flac,.aac"
                 onChange={(e) => {
                   if (e.target.files) {
-                    const newFiles = Array.from(e.target.files);
-                    newFiles.forEach(handleFile);
+                    const availableSlots = MAX_FILES_PER_UPLOAD - files.length;
+                    const validFiles = Array.from(e.target.files).filter((f) => f.size <= MAX_FILE_SIZE);
+                    const newFiles = validFiles.slice(0, Math.max(availableSlots, 0));
+
+                    if (validFiles.length < e.target.files.length) {
+                      toast("Деякі файли перевищують 100 МБ і пропущені.", "error");
+                    }
+                    if (newFiles.length < validFiles.length) {
+                      toast(`Максимум ${MAX_FILES_PER_UPLOAD} файлів за одне завантаження.`, "error");
+                    }
+
+                    setFiles((prev) => [...prev, ...newFiles]);
+                    const firstImage = newFiles.find((f) => f.type.startsWith("image/"));
+                    if (firstImage && !preview) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => setPreview(event.target?.result as string);
+                      reader.readAsDataURL(firstImage);
+                    }
                   }
                 }}
                 className="hidden"
