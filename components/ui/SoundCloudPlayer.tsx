@@ -12,15 +12,6 @@ interface Track {
   duration: number;
 }
 
-interface WidgetEvent {
-  event: string;
-  currentTime?: number;
-  loadedProgress?: number;
-  relativePosition?: number;
-  currentPosition?: number;
-  duration?: number;
-}
-
 interface WidgetHandle {
   bind: (event: string, cb: (e: unknown) => void) => void;
   getSounds: (cb: (sounds: Track[]) => void) => void;
@@ -34,7 +25,17 @@ interface WidgetHandle {
 declare global {
   interface Window {
     SC?: {
-      Widget: (iframe: HTMLIFrameElement) => WidgetHandle;
+      Widget: {
+        (iframe: HTMLIFrameElement): WidgetHandle;
+        Events: {
+          READY: string;
+          PLAY: string;
+          PAUSE: string;
+          FINISH: string;
+          PLAY_PROGRESS: string;
+          TIME_UPDATE: string;
+        };
+      };
     };
   }
 }
@@ -42,6 +43,7 @@ declare global {
 export default function SoundCloudPlayer() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetRef = useRef<WidgetHandle | null>(null);
+  const scriptLoaded = useRef(false);
   const [expanded, setExpanded] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -49,88 +51,110 @@ export default function SoundCloudPlayer() {
   const [duration, setDuration] = useState(0);
   const [ready, setReady] = useState(false);
 
-  const sendCommand = useCallback((action: string, value?: string) => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    const msg = value !== undefined ? { method: action, value } : { method: action };
-    iframe.contentWindow?.postMessage(JSON.stringify(msg), "*");
-  }, []);
-
+  // Load SC.Widget API script
   useEffect(() => {
+    if (scriptLoaded.current) return;
     const script = document.createElement("script");
     script.src = "https://w.soundcloud.com/player/api.js";
     script.async = true;
-    document.head.appendChild(script);
-    return () => {
-      document.head.removeChild(script);
+    script.onload = () => {
+      scriptLoaded.current = true;
     };
+    document.head.appendChild(script);
   }, []);
 
-  useEffect(() => {
+  const bindWidget = useCallback(
+    (iframe: HTMLIFrameElement, Widget: { (el: HTMLIFrameElement): WidgetHandle; Events: Record<string, string> }) => {
+      const w = Widget(iframe);
+      widgetRef.current = w;
+
+      w.bind(Widget.Events.READY, () => {
+        setReady(true);
+        w.getCurrentSound((sound: Track) => {
+          if (sound) setCurrentTrack(sound);
+        });
+      });
+
+      w.bind(Widget.Events.PLAY, () => {
+        setPlaying(true);
+        w.getCurrentSound((sound: Track) => {
+          if (sound) setCurrentTrack(sound);
+        });
+      });
+      w.bind(Widget.Events.PAUSE, () => setPlaying(false));
+      w.bind(Widget.Events.FINISH, () => setPlaying(false));
+
+      w.bind(Widget.Events.PLAY_PROGRESS, (e: unknown) => {
+        const ev = e as { currentPosition?: number };
+        if (ev.currentPosition !== undefined) setProgress(ev.currentPosition);
+      });
+
+      w.bind(Widget.Events.TIME_UPDATE, (e: unknown) => {
+        const ev = e as { currentPosition?: number; duration?: number };
+        if (ev.currentPosition !== undefined) setProgress(ev.currentPosition);
+        if (ev.duration !== undefined && ev.duration > 0) setDuration(ev.duration);
+      });
+
+      const durationInterval = setInterval(() => {
+        w.getCurrentSound((sound: Track) => {
+          if (sound?.duration && sound.duration > 0) {
+            setDuration(sound.duration);
+            clearInterval(durationInterval);
+          }
+        });
+      }, 1000);
+    },
+    []
+  );
+
+  const initWidget = useCallback(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    function onMessage(event: MessageEvent) {
-      let data: WidgetEvent;
-      try {
-        data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      } catch {
-        return;
-      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SC = (window as any).SC as
+      | { Widget: { (el: HTMLIFrameElement): WidgetHandle; Events: Record<string, string> } }
+      | undefined;
 
-      if (data.event === "ready" && iframe) {
-        setReady(true);
-        const w = window.SC?.Widget?.(iframe);
-        if (w) {
-          widgetRef.current = w;
-          w.bind("play", () => setPlaying(true));
-          w.bind("pause", () => setPlaying(false));
-          w.bind("finish", () => setPlaying(false));
-          w.bind("play_progress", (e: unknown) => {
-            const ev = e as { currentPosition?: number; duration?: number };
-            if (ev.currentPosition !== undefined) setProgress(ev.currentPosition);
-            if (ev.duration !== undefined && ev.duration > 0) setDuration(ev.duration);
-          });
-          w.bind("time_update", (e: unknown) => {
-            const ev = e as { currentPosition?: number };
-            if (ev.currentPosition !== undefined) setProgress(ev.currentPosition);
-          });
-          w.getCurrentSound((sound: Track) => {
-            if (sound) setCurrentTrack(sound);
-          });
-          w.bind("audio_process", () => {
-            w.getPosition((pos: number) => setProgress(pos));
-          });
+    if (!SC?.Widget) {
+      const retry = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const SC2 = (window as any).SC as
+          | { Widget: { (el: HTMLIFrameElement): WidgetHandle; Events: Record<string, string> } }
+          | undefined;
+        if (SC2?.Widget) {
+          bindWidget(iframe, SC2.Widget);
+        } else {
+          setTimeout(retry, 300);
         }
-      }
-
-      if (data.event === "play_progress" && data.currentPosition !== undefined) {
-        setProgress(data.currentPosition);
-      }
-
-      if (data.event === "play") setPlaying(true);
-      if (data.event === "pause") setPlaying(false);
-      if (data.event === "finish") setPlaying(false);
+      };
+      setTimeout(retry, 200);
+      return;
     }
 
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
+    bindWidget(iframe, SC.Widget);
+  }, [bindWidget]);
 
   const togglePlay = useCallback(() => {
-    if (!ready) return;
-    sendCommand(playing ? "pause" : "play");
-  }, [ready, playing, sendCommand]);
+    if (!ready || !widgetRef.current) return;
+    if (playing) {
+      widgetRef.current.pause();
+    } else {
+      widgetRef.current.play();
+    }
+  }, [ready, playing]);
 
   const nextTrack = useCallback(() => {
-    if (!ready) return;
-    sendCommand("next");
-  }, [ready, sendCommand]);
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    iframe.contentWindow?.postMessage(JSON.stringify({ method: "next" }), "*");
+  }, []);
 
   const prevTrack = useCallback(() => {
-    if (!ready) return;
-    sendCommand("prev");
-  }, [ready, sendCommand]);
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    iframe.contentWindow?.postMessage(JSON.stringify({ method: "prev" }), "*");
+  }, []);
 
   const seek = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -154,10 +178,11 @@ export default function SoundCloudPlayer() {
 
   return (
     <>
-      {/* Hidden iframe */}
+      {/* Hidden iframe — 1x1px so the browser actually renders it */}
       <iframe
         ref={iframeRef}
         src={WIDGET_SRC}
+        onLoad={initWidget}
         className="soundcloud-iframe-hidden"
         allow="autoplay"
         title="SoundCloud Player"
@@ -260,7 +285,6 @@ export default function SoundCloudPlayer() {
             }`}
             aria-label={expanded ? "Згорнути плеєр" : "Відкрити плеєр"}
           >
-            {/* Waveform dots when playing */}
             {playing && (
               <div className="flex items-center gap-[2px]">
                 {[0, 1, 2].map((i) => (
@@ -276,7 +300,6 @@ export default function SoundCloudPlayer() {
               </div>
             )}
 
-            {/* Play icon when not playing */}
             {!playing && (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />

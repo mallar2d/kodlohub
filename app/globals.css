@@ -250,15 +250,16 @@ body {
   background: var(--color-canvas-night);
 }
 
-/* SoundCloud hidden iframe — must remain in DOM for widget API */
+/* SoundCloud hidden iframe — must remain in DOM & rendered for widget API */
 .soundcloud-iframe-hidden {
   position: absolute;
-  width: 0;
-  height: 0;
+  width: 1px;
+  height: 1px;
   border: 0;
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+  clip: rect(0 0 0 0);
 }
 
 @keyframes pulse {
