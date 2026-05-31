@@ -4,12 +4,18 @@ const tools = [
   {
     href: "/tools/audio-combiner",
     name: "PDRLIFY",
-    description: "Додай PDR звук до будь-якого аудіофайлу з налаштовуваною затримкою",
+    description:
+      "Додай PDR звук до будь-якого аудіофайлу з налаштовуваною затримкою",
   },
   {
     href: "/tools/magic-8ball",
-    name: "8-BALL",
+    name: "PODRO-BALL",
     description: "Магічна куля відповідей. Запитай щось і потряси.",
+  },
+  {
+    href: "/tools/spintrick",
+    name: "SPINTRICK",
+    description: "Оберти телефон — отримай 😎. Комбо за обертання в одному напрямку.",
   },
 ];
 
