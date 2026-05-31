@@ -11,24 +11,24 @@ export default function SpinTrickClient() {
   const [metricZ, setMetricZ] = useState(0);
   const [metricTotal, setMetricTotal] = useState(0);
   const [metricEvents, setMetricEvents] = useState(0);
-  const [metricTriggered, setMetricTriggered] = useState(false);
   const [metricPermission, setMetricPermission] = useState<"idle" | "requested" | "granted" | "denied" | "no-api">("idle");
 
   const totalRotationRef = useRef(0);
   const comboDirRef = useRef(0);
-  const lastTimeRef = useRef(0);
   const comboCountRef = useRef(0);
-  const triggeredRef = useRef(false);
   const eventCountRef = useRef(0);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const comboSoundRef = useRef<HTMLAudioElement | null>(null);
+  const silentRef = useRef<HTMLAudioElement | null>(null);
   const dragStartRef = useRef<{ x: number; time: number } | null>(null);
 
   useEffect(() => {
     soundRef.current = new Audio("/spintrick-sound.mp3");
     comboSoundRef.current = new Audio("/spintrick-combosound.mp3");
+    silentRef.current = new Audio("/spintrick-silent.mp3");
     soundRef.current.preload = "auto";
     comboSoundRef.current.preload = "auto";
+    silentRef.current.preload = "auto";
   }, []);
 
   const playTrickSound = useCallback((isCombo: boolean) => {
@@ -44,17 +44,7 @@ export default function SpinTrickClient() {
   }, []);
 
   const triggerTrick = useCallback(
-    (direction: number) => {
-      const isCombo = comboDirRef.current !== 0 && comboDirRef.current === direction;
-
-      if (isCombo) {
-        comboCountRef.current += 1;
-      } else {
-        comboCountRef.current = 1;
-      }
-      comboDirRef.current = direction;
-
-      setCombo(comboCountRef.current);
+    (isCombo: boolean) => {
       setEmoji("😎");
       setSpinning(true);
       playTrickSound(isCombo);
@@ -69,48 +59,53 @@ export default function SpinTrickClient() {
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
+      const DELTA = 0.1;
+      const RAD_TO_DEG = 57.29;
+      const VELOCITY_THRESHOLD = 45;
+      const ROTATION_THRESHOLD = 270;
+
       const raw = event.rotationRate as Record<string, number> | null;
       if (!raw) return;
+
       const z = raw.z ?? raw.alpha ?? null;
       if (z === null) return;
 
-      const now = performance.now();
-      if (lastTimeRef.current === 0) {
-        lastTimeRef.current = now;
-        return;
+      const nRateZ = z * DELTA * RAD_TO_DEG;
+      totalRotationRef.current += nRateZ;
+
+      if (Math.abs(nRateZ) < VELOCITY_THRESHOLD) {
+        if (comboDirRef.current === 0) {
+          comboDirRef.current = Math.sign(totalRotationRef.current);
+        }
+
+        if (Math.abs(totalRotationRef.current) > ROTATION_THRESHOLD) {
+          const currentDir = Math.sign(totalRotationRef.current);
+
+          if (currentDir === comboDirRef.current) {
+            comboCountRef.current += 1;
+            setCombo(comboCountRef.current);
+            triggerTrick(false);
+            comboDirRef.current = currentDir;
+          } else {
+            comboCountRef.current = 0;
+            setCombo(0);
+            triggerTrick(true);
+            comboDirRef.current = 0;
+          }
+        }
+
+        totalRotationRef.current = 0;
       }
-      const dt = (now - lastTimeRef.current) / 1000;
-      lastTimeRef.current = now;
 
-      if (dt <= 0 || dt > 0.5) return;
+      if (silentRef.current) {
+        silentRef.current.currentTime = 0;
+        silentRef.current.play().catch(() => {});
+      }
 
-      const angularVelDeg = z * (180 / Math.PI);
-      const degreesMoved = angularVelDeg * dt;
-      totalRotationRef.current += degreesMoved;
       eventCountRef.current += 1;
-
-      setMetricZ(angularVelDeg);
+      setMetricZ(nRateZ);
       setMetricTotal(totalRotationRef.current);
       setMetricEvents(eventCountRef.current);
-      setMetricTriggered(triggeredRef.current);
-
-      const absTotal = Math.abs(totalRotationRef.current);
-
-      if (absTotal > 270 && !triggeredRef.current) {
-        const dir = Math.sign(totalRotationRef.current);
-        triggerTrick(dir);
-        triggeredRef.current = true;
-      }
-
-      if (Math.abs(angularVelDeg) < 10) {
-        totalRotationRef.current = 0;
-        triggeredRef.current = false;
-        if (comboDirRef.current !== 0) {
-          comboDirRef.current = 0;
-          comboCountRef.current = 0;
-          setCombo(0);
-        }
-      }
     },
     [triggerTrick],
   );
@@ -169,7 +164,9 @@ export default function SpinTrickClient() {
       dragStartRef.current = null;
 
       if (dt < 600 && Math.abs(dx) > 80) {
-        triggerTrick(dx > 0 ? 1 : -1);
+        comboCountRef.current += 1;
+        setCombo(comboCountRef.current);
+        triggerTrick(false);
       }
     },
     [triggerTrick],
@@ -277,12 +274,6 @@ export default function SpinTrickClient() {
             <span className="text-ink-mute">Events</span>
             <span className="font-mono font-bold text-on-primary">
               {metricEvents}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-ink-mute">Triggered</span>
-            <span className={`font-mono font-bold ${metricTriggered ? "text-indigo-400" : "text-on-primary-mute"}`}>
-              {metricTriggered ? "YES" : "NO"}
             </span>
           </div>
         </div>
