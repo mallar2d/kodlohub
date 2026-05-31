@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const PLAYLIST_URL =
   "https://soundcloud.com/zt-barista/sets/podro-greatest-hit-moj";
@@ -30,7 +30,7 @@ function safeUsername(track: Track | null): string {
   return track.user?.username ?? "Unknown";
 }
 
-// Module-level singletons — survive remounts
+// ── Module-level singletons (survive React remounts) ──────────────
 let globalWidget: WidgetAPI = null;
 let globalIframe: HTMLIFrameElement | null = null;
 let globalReady = false;
@@ -40,10 +40,77 @@ let globalTrackIndex = 0;
 let globalProgress = 0;
 let globalDuration = 0;
 let globalPlaying = false;
-const listeners = new Set<() => void>();
+let globalShuffle = false;
+let globalRepeat: RepeatMode = "off";
+let shuffleOrder: number[] = [];
+let shufflePos = 0;
 
+const listeners = new Set<() => void>();
 function notify() {
   listeners.forEach((l) => l());
+}
+
+function generateShuffleOrder(count: number) {
+  const order = Array.from({ length: count }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  shuffleOrder = order;
+  shufflePos = 0;
+}
+
+// Called when a track finishes — implements shuffle/repeat auto-advance
+function handleFinish() {
+  const w = globalWidget;
+  if (!w) {
+    globalPlaying = false;
+    notify();
+    return;
+  }
+
+  // repeat one → restart same track
+  if (globalRepeat === "one") {
+    try {
+      w.seekTo(0);
+      w.play();
+    } catch {
+      globalPlaying = false;
+      notify();
+    }
+    return;
+  }
+
+  // shuffle → pick next from shuffled list
+  if (globalShuffle) {
+    shufflePos++;
+    if (shufflePos >= shuffleOrder.length) {
+      if (globalRepeat === "off") {
+        globalPlaying = false;
+        notify();
+        return;
+      }
+      generateShuffleOrder(globalTracks.length);
+    }
+    const nextIdx = shuffleOrder[shufflePos % shuffleOrder.length];
+    try {
+      w.skip(nextIdx);
+      w.play();
+    } catch {
+      globalPlaying = false;
+      notify();
+    }
+    return;
+  }
+
+  // linear: if last track and repeat off → stop
+  if (globalTrackIndex >= globalTracks.length - 1 && globalRepeat === "off") {
+    globalPlaying = false;
+    notify();
+    return;
+  }
+
+  // otherwise let widget auto-advance (it will fire PLAY with new index)
 }
 
 function usePlayerState() {
@@ -65,6 +132,8 @@ function usePlayerState() {
     progress: globalProgress,
     duration: globalDuration,
     ready: globalReady,
+    shuffle: globalShuffle,
+    repeat: globalRepeat,
   };
 }
 
@@ -95,6 +164,7 @@ function initGlobalIframe() {
           globalReady = true;
           w.getSounds((sounds: Track[]) => {
             globalTracks = sounds;
+            generateShuffleOrder(sounds.length);
             notify();
           });
           w.getCurrentSound((sound: Track) => {
@@ -119,9 +189,7 @@ function initGlobalIframe() {
         try {
           globalPlaying = true;
           w.getCurrentSound((sound: Track) => {
-            if (sound && sound.title) {
-              globalCurrentTrack = sound;
-            }
+            if (sound && sound.title) globalCurrentTrack = sound;
           });
           w.getCurrentSoundIndex((idx: number) => {
             if (typeof idx === "number") globalTrackIndex = idx;
@@ -138,8 +206,7 @@ function initGlobalIframe() {
       });
 
       w.bind(SC.Widget.Events.FINISH, () => {
-        globalPlaying = false;
-        notify();
+        handleFinish();
       });
 
       w.bind(SC.Widget.Events.PLAY_PROGRESS, (e: unknown) => {
@@ -195,10 +262,6 @@ function initGlobalIframe() {
 export default function SoundCloudPlayer() {
   const [mounted, setMounted] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState<RepeatMode>("off");
-  const shuffleOrder = useRef<number[]>([]);
-  const shufflePos = useRef(0);
 
   const state = usePlayerState();
 
@@ -208,72 +271,53 @@ export default function SoundCloudPlayer() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const generateShuffleOrder = useCallback((count: number) => {
-    const order = Array.from({ length: count }, (_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    shuffleOrder.current = order;
-    shufflePos.current = 0;
-  }, []);
-
   const togglePlay = useCallback(() => {
     if (!state.ready || !globalWidget) return;
     try {
-      if (state.playing) {
-        globalWidget.pause();
-      } else {
-        globalWidget.play();
-      }
+      if (state.playing) globalWidget.pause();
+      else globalWidget.play();
     } catch (err) {
       console.error("SC togglePlay error:", err);
     }
   }, [state.ready, state.playing]);
 
-  const skipToTrack = useCallback(
-    (index: number) => {
-      if (!globalWidget) return;
-      try {
-        if (shuffle) {
-          shufflePos.current = shuffleOrder.current.indexOf(index);
-          if (shufflePos.current === -1) shufflePos.current = 0;
-        }
-        globalWidget.skip(index);
-        globalWidget.play();
-      } catch (err) {
-        console.error("SC skipToTrack error:", err);
+  const skipToTrack = useCallback((index: number) => {
+    if (!globalWidget) return;
+    try {
+      if (globalShuffle) {
+        shufflePos = shuffleOrder.indexOf(index);
+        if (shufflePos === -1) shufflePos = 0;
       }
-    },
-    [shuffle]
-  );
+      globalWidget.skip(index);
+      globalWidget.play();
+    } catch (err) {
+      console.error("SC skipToTrack error:", err);
+    }
+  }, []);
 
   const nextTrack = useCallback(() => {
     if (!globalWidget) return;
     try {
-      if (repeat === "one") {
+      if (globalRepeat === "one") {
         globalWidget.seekTo(0);
         globalWidget.play();
         return;
       }
-
-      if (shuffle) {
-        shufflePos.current++;
-        if (shufflePos.current >= shuffleOrder.current.length) {
-          if (repeat === "off") {
+      if (globalShuffle) {
+        shufflePos++;
+        if (shufflePos >= shuffleOrder.length) {
+          if (globalRepeat === "off") {
             globalWidget.pause();
             return;
           }
-          generateShuffleOrder(state.tracks.length);
+          generateShuffleOrder(globalTracks.length);
         }
-        const nextIdx =
-          shuffleOrder.current[shufflePos.current % shuffleOrder.current.length];
+        const nextIdx = shuffleOrder[shufflePos % shuffleOrder.length];
         globalWidget.skip(nextIdx);
         globalWidget.play();
         return;
       }
-
-      if (state.trackIndex >= state.tracks.length - 1 && repeat === "off") {
+      if (globalTrackIndex >= globalTracks.length - 1 && globalRepeat === "off") {
         globalWidget.pause();
         return;
       }
@@ -281,7 +325,7 @@ export default function SoundCloudPlayer() {
     } catch (err) {
       console.error("SC nextTrack error:", err);
     }
-  }, [shuffle, repeat, state.trackIndex, state.tracks.length, generateShuffleOrder]);
+  }, []);
 
   const prevTrack = useCallback(() => {
     if (!globalWidget) return;
@@ -290,39 +334,33 @@ export default function SoundCloudPlayer() {
         globalWidget.seekTo(0);
         return;
       }
-
-      if (shuffle) {
-        shufflePos.current--;
-        if (shufflePos.current < 0) {
-          shufflePos.current = shuffleOrder.current.length - 1;
-        }
-        const prevIdx = shuffleOrder.current[shufflePos.current];
+      if (globalShuffle) {
+        shufflePos--;
+        if (shufflePos < 0) shufflePos = shuffleOrder.length - 1;
+        const prevIdx = shuffleOrder[shufflePos];
         globalWidget.skip(prevIdx);
         globalWidget.play();
         return;
       }
-
       globalWidget.prev();
     } catch (err) {
       console.error("SC prevTrack error:", err);
     }
-  }, [shuffle, state.progress]);
+  }, [state.progress]);
 
   const toggleShuffle = useCallback(() => {
-    setShuffle((prev) => {
-      if (!prev) {
-        generateShuffleOrder(state.tracks.length);
-      }
-      return !prev;
-    });
-  }, [state.tracks.length, generateShuffleOrder]);
+    globalShuffle = !globalShuffle;
+    if (globalShuffle) {
+      generateShuffleOrder(globalTracks.length);
+    }
+    notify();
+  }, []);
 
   const toggleRepeat = useCallback(() => {
-    setRepeat((prev) => {
-      if (prev === "off") return "all";
-      if (prev === "all") return "one";
-      return "off";
-    });
+    if (globalRepeat === "off") globalRepeat = "all";
+    else if (globalRepeat === "all") globalRepeat = "one";
+    else globalRepeat = "off";
+    notify();
   }, []);
 
   const seek = useCallback(
@@ -358,7 +396,6 @@ export default function SoundCloudPlayer() {
 
   return (
     <div className="fixed bottom-6 right-6 z-40">
-      {/* Expanded card */}
       {expanded && (
         <div className="mb-3 w-80 bg-canvas-night/95 backdrop-blur-sm border border-hairline-dark rounded-lg overflow-hidden animate-slide-up">
           <div className="flex gap-3 p-3">
@@ -371,15 +408,7 @@ export default function SoundCloudPlayer() {
               />
             ) : (
               <div className="w-16 h-16 rounded bg-canvas-night-soft flex items-center justify-center shrink-0">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="text-ink-mute"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-mute">
                   <path d="M9 18V5l12-2v13" />
                   <circle cx="6" cy="18" r="3" />
                   <circle cx="18" cy="16" r="3" />
@@ -405,6 +434,7 @@ export default function SoundCloudPlayer() {
             </div>
           </div>
 
+          {/* Progress */}
           <div
             className="h-[2px] w-full bg-hairline-dark cursor-pointer relative"
             onClick={seek}
@@ -415,49 +445,44 @@ export default function SoundCloudPlayer() {
             />
           </div>
 
+          {/* Controls */}
           <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-0.5">
+              {/* Shuffle */}
               <button
                 onClick={toggleShuffle}
-                className={`p-1.5 transition-colors cursor-pointer relative ${
-                  shuffle
-                    ? "text-on-primary"
+                className={`relative p-1.5 rounded transition-colors cursor-pointer ${
+                  state.shuffle
+                    ? "text-on-primary bg-on-primary/10"
                     : "text-on-primary-mute hover:text-on-primary"
                 }`}
-                aria-label="Перемішати"
+                aria-label={state.shuffle ? "Вимкнути перемішування" : "Увімкнути перемішування"}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="16 3 21 3 21 8" />
                   <line x1="4" y1="20" x2="21" y2="3" />
                   <polyline points="21 16 21 21 16 21" />
                   <line x1="15" y1="15" x2="21" y2="21" />
                   <line x1="4" y1="4" x2="9" y2="9" />
                 </svg>
+                {state.shuffle && (
+                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-on-primary" />
+                )}
               </button>
 
+              {/* Prev */}
               <button
                 onClick={prevTrack}
                 disabled={!state.ready}
                 className="p-1.5 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
                 aria-label="Попередній"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
                 </svg>
               </button>
 
+              {/* Play/Pause */}
               <button
                 onClick={togglePlay}
                 disabled={!state.ready}
@@ -465,68 +490,57 @@ export default function SoundCloudPlayer() {
                 aria-label={state.playing ? "Пауза" : "Грати"}
               >
                 {state.playing ? (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
                   </svg>
                 ) : (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 )}
               </button>
 
+              {/* Next */}
               <button
                 onClick={nextTrack}
                 disabled={!state.ready}
                 className="p-1.5 text-on-primary-mute hover:text-on-primary transition-colors disabled:opacity-30 cursor-pointer"
                 aria-label="Наступний"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
                 </svg>
               </button>
 
+              {/* Repeat */}
               <button
                 onClick={toggleRepeat}
-                className={`p-1.5 transition-colors cursor-pointer relative ${
-                  repeat !== "off"
-                    ? "text-on-primary"
+                className={`relative p-1.5 rounded transition-colors cursor-pointer ${
+                  state.repeat !== "off"
+                    ? "text-on-primary bg-on-primary/10"
                     : "text-on-primary-mute hover:text-on-primary"
                 }`}
-                aria-label={`Повтор: ${repeat}`}
+                aria-label={
+                  state.repeat === "off"
+                    ? "Повтор вимкнено"
+                    : state.repeat === "all"
+                      ? "Повтор всіх"
+                      : "Повтор одного"
+                }
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="17 1 21 5 17 9" />
                   <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                   <polyline points="7 23 3 19 7 15" />
                   <path d="M21 13v2a4 4 0 0 1-4 4H3" />
                 </svg>
-                {repeat === "one" && (
-                  <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold text-on-primary">
+                {state.repeat === "one" && (
+                  <span className="absolute -top-0.5 -right-0.5 text-[7px] font-bold text-on-primary leading-none">
                     1
                   </span>
+                )}
+                {state.repeat !== "off" && (
+                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-on-primary" />
                 )}
               </button>
             </div>
@@ -536,6 +550,7 @@ export default function SoundCloudPlayer() {
             </span>
           </div>
 
+          {/* Track list */}
           {state.tracks.length > 0 && (
             <div className="border-t border-hairline-dark max-h-48 overflow-y-auto">
               {state.tracks.map((track, idx) => (
@@ -560,9 +575,7 @@ export default function SoundCloudPlayer() {
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-medium truncate">
-                      {track.title}
-                    </p>
+                    <p className="text-[11px] font-medium truncate">{track.title}</p>
                     <p className="text-[10px] text-ink-mute truncate">
                       {safeUsername(track)}
                     </p>
@@ -600,12 +613,7 @@ export default function SoundCloudPlayer() {
             </div>
           )}
           {!state.playing && (
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
           )}
