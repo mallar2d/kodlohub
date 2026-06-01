@@ -11,9 +11,8 @@ function LoginContent() {
   const supabase = createClient();
 
   const authError = searchParams.get("error");
-  const displayError = authError === "auth_failed"
-    ? "Не вдалося увійти. Спробуй ще раз."
-    : error;
+  const displayError =
+    authError === "auth_failed" ? "Не вдалося увійти. Спробуй ще раз." : error;
 
   const handleGoogleLogin = async () => {
     setLoading(true);
