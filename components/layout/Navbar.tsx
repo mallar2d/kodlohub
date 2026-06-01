@@ -141,6 +141,13 @@ export default function Navbar() {
           ))}
 
           <SearchBar />
+          <Link
+            href="/tools/hammer"
+            className="text-lg leading-none hover:opacity-70 transition-opacity"
+            aria-label="Молоток"
+          >
+            🔨
+          </Link>
           {user && <NotificationsBell />}
 
           {user ? (
