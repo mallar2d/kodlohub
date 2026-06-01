@@ -14,11 +14,32 @@ const navLinks = [
   { href: "/lore", label: "АРТЕФАКТИ" },
   { href: "/users", label: "УЧАСНИКИ" },
   { href: "/tools", label: "TOOLS" },
-  { href: "https://kava.javajumper.ddns.net", label: "КАВА", external: true },
+];
+
+const externalMenuLinks = [
+  {
+    href: "https://kava.javajumper.ddns.net",
+    label: "КАВА",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
+        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
+        <line x1="6" y1="2" x2="6" y2="4" />
+        <line x1="10" y1="2" x2="10" y2="4" />
+        <line x1="14" y1="2" x2="14" y2="4" />
+      </svg>
+    ),
+  },
   {
     href: "https://soundcloud.com/zt-barista",
     label: "BARISTA",
-    external: true,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </svg>
+    ),
   },
 ];
 
@@ -99,32 +120,20 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) =>
-            "external" in link && link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="micro-cap text-on-primary-mute hover:opacity-70 transition-opacity"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`micro-cap transition-opacity hover:opacity-70 ${
-                  pathname === link.href
-                    ? "text-on-primary"
-                    : "text-on-primary-mute"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ),
-          )}
+        <div className="hidden md:flex items-center gap-4 lg:gap-6">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`micro-cap transition-opacity hover:opacity-70 ${
+                pathname === link.href
+                  ? "text-on-primary"
+                  : "text-on-primary-mute"
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
 
           <SearchBar />
           {user && <NotificationsBell />}
@@ -147,7 +156,16 @@ export default function Navbar() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 py-2">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 py-2">
+                  <div className="px-4 py-2 border-b border-hairline-dark">
+                    <p className="text-sm text-on-primary truncate">
+                      {user.user_metadata?.display_name ||
+                        user.email?.split("@")[0]}
+                    </p>
+                    <p className="text-xs text-ink-mute truncate">
+                      {user.email}
+                    </p>
+                  </div>
                   <Link
                     href={`/profile/${user.id}`}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary hover:bg-canvas-night transition-colors"
@@ -183,6 +201,21 @@ export default function Navbar() {
                       АДМІН
                     </Link>
                   ) : null}
+                  <div className="border-t border-hairline-dark my-1" />
+                  <p className="px-4 pt-2 pb-1 micro-cap text-ink-mute">Посилання</p>
+                  {externalMenuLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-on-primary-mute hover:bg-canvas-night hover:text-on-primary transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      {link.icon}
+                      {link.label}
+                    </a>
+                  ))}
                   <div className="border-t border-hairline-dark my-1" />
                   <button
                     onClick={async () => {
@@ -238,32 +271,19 @@ export default function Navbar() {
           <div className="mb-2">
             <SearchBar />
           </div>
-          {navLinks.map((link) =>
-            "external" in link && link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="micro-cap text-on-primary-mute hover:text-on-primary"
-                onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="micro-cap text-on-primary-mute hover:text-on-primary"
-                onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ),
-          )}
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="micro-cap text-on-primary-mute hover:text-on-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
           {user ? (
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <NotificationsBell />
                 <Link
                   href="/upload"
@@ -295,6 +315,22 @@ export default function Navbar() {
                   ) : null}
                   ПРОФІЛЬ
                 </Link>
+              </div>
+              <div className="border-t border-hairline-dark pt-3 flex flex-col gap-3">
+                <p className="micro-cap text-ink-mute">Посилання</p>
+                {externalMenuLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {link.icon}
+                    {link.label}
+                  </a>
+                ))}
               </div>
               <button
                 onClick={async () => {

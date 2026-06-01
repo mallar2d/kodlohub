@@ -17,6 +17,11 @@ const tools = [
     name: "SPINTRICK",
     description: "Оберти телефон — отримай 😎. Комбо за обертання в одному напрямку.",
   },
+  {
+    href: "/tools/hammer",
+    name: "МОЛОТОК",
+    description: "Раз на годину — БАБАХ! Глобальний лідерборд йобнутих.",
+  },
 ];
 
 export default function ToolsPage() {
