@@ -29,6 +29,8 @@ No `typecheck` or `tsc` script exists — `npm run build` covers type errors.
 
 Make commits from inside `kodlohost/`. Stage only intended files, never secrets.
 
+**NEVER commit or push in the parent repo (`lpds/`). Only `kodlohost/` is the working project.**
+
 ## Framework quirks
 
 - **Next.js 16** — has breaking changes from earlier versions. If unsure about an API, check `node_modules/next/dist/docs/` first.
