@@ -83,15 +83,12 @@ export default function HammerClient() {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
-      setUser(data.user);
-      setAuthLoaded(true);
-    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (_event: string, session: { user: User | null } | null) => {
         setUser(session?.user ?? null);
+        setAuthLoaded(true);
       },
     );
     return () => subscription.unsubscribe();

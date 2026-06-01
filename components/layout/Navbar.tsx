@@ -55,8 +55,9 @@ export default function Navbar() {
     const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     if (cachedRole) setUserRole(cachedRole);
 
-    // Instant local read — no network request
-    supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: { user: User | null } | null } }) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event: string, session: { user: User | null } | null) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
@@ -71,29 +72,6 @@ export default function Navbar() {
       } else {
         setUserRole(null);
         localStorage.removeItem("userRole");
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: string, session: { user: User | null } | null) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      // Only re-fetch profile on actual sign-in/out, not on every token refresh
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        if (currentUser) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", currentUser.id)
-            .single();
-          const role = profile?.role || null;
-          setUserRole(role);
-          if (role) localStorage.setItem("userRole", role);
-        } else {
-          setUserRole(null);
-          localStorage.removeItem("userRole");
-        }
       }
     });
     return () => subscription.unsubscribe();
