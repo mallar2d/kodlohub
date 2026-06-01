@@ -106,11 +106,21 @@ export default function GalleryClient({
                       />
                     </div>
                   ) : item.file_type === "video" ? (
-                    <video
-                      src={item.file_url}
-                      className="w-full h-auto"
-                      preload="none"
-                    />
+                    <div className="relative w-full">
+                      <video
+                        src={item.file_url}
+                        className="w-full h-auto"
+                        preload="metadata"
+                        muted
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-canvas-night/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-12 h-12 rounded-full bg-canvas-night/70 border border-hairline-dark flex items-center justify-center">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="text-on-primary" className="ml-1">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="p-6 text-center">
                       <p className="micro-cap text-ink-mute">ДОКУМЕНТ</p>
@@ -138,6 +148,19 @@ export default function GalleryClient({
                         <line x1="10" y1="14" x2="21" y2="3" />
                       </svg>
                     </Link>
+                    <a
+                      href={item.file_url}
+                      download
+                      className="text-ink-mute hover:text-on-primary transition-colors"
+                      title="Завантажити"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </a>
                   </div>
                 </div>
               ))}
@@ -212,6 +235,18 @@ export default function GalleryClient({
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
               </Link>
+              <a
+                href={selected.file_url}
+                download
+                className="text-ink-mute hover:text-on-primary transition-colors"
+                title="Завантажити"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </a>
             </div>
             <MediaComments mediaId={selected.id} />
           </div>
