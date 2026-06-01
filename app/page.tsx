@@ -2,6 +2,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { absolute: "KodloHUB" },
+  description:
+    "Все, що створило кодло, в одному місці. Галерея, блог та артефакт-бібліотека.",
+};
 
 interface Post {
   id: string;

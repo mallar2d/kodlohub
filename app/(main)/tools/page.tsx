@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Тулзи",
+  description:
+    "Інструменти для кодла — молоток, спінтрік, аудіо-комбайнер та магічна куля.",
+};
 
 const tools = [
   {

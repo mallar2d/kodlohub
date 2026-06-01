@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import LikeButton from "@/components/ui/LikeButton";
 import MediaComments from "@/components/ui/MediaComments";
 
@@ -108,8 +109,20 @@ export default function GalleryClient({
                     </p>
                   </div>
                 )}
-                <div className="bg-canvas-night/80 px-3 py-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-canvas-night/80 px-3 py-2 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                   <LikeButton itemType="media" itemId={item.id} initialCount={item.like_count || 0} compact />
+                  <Link
+                    href={`/gallery/${item.id}`}
+                    className="text-ink-mute hover:text-on-primary transition-colors"
+                    title="Відкрити на сторінці"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -172,8 +185,19 @@ export default function GalleryClient({
                 {selected.profiles.display_name}
               </p>
             )}
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center items-center gap-4 mt-4">
               <LikeButton itemType="media" itemId={selected.id} initialCount={selected.like_count || 0} />
+              <Link
+                href={`/gallery/${selected.id}`}
+                className="text-ink-mute hover:text-on-primary transition-colors"
+                title="Поділитися"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </Link>
             </div>
             <MediaComments mediaId={selected.id} />
           </div>

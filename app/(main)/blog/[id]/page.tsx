@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import BlogPostClient from "./BlogPostClient";
+import type { Metadata } from "next";
 
 interface Post {
   id: string;
@@ -40,6 +41,27 @@ const getPost = unstable_cache(
   ["blog-post"],
   { revalidate: 30 }
 );
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { post } = await getPost(id);
+
+  if (!post) {
+    return { title: "Пост не знайдено" };
+  }
+
+  return {
+    title: post.title,
+    description:
+      post.content.length > 150
+        ? post.content.slice(0, 150) + "..."
+        : post.content,
+  };
+}
 
 export default async function BlogPostPage({
   params,

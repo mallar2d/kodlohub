@@ -1,6 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import GalleryClient from "./GalleryClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Галерея",
+  description: "Фото та відео кодла в одному місці.",
+};
 
 interface Media {
   id: string;

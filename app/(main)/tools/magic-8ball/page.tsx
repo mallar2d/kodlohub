@@ -1,4 +1,11 @@
 import Magic8BallClient from "./Magic8BallClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "PODRO-BALL",
+  description:
+    "Магічна куля відповідей. Запитай щось і потряси.",
+};
 
 export default function Magic8BallPage() {
   return (

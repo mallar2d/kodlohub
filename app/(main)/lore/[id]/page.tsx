@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import LoreItemClient from "./LoreItemClient";
+import type { Metadata } from "next";
 
 interface LoreItem {
   id: string;
@@ -27,6 +28,24 @@ const getLoreItem = unstable_cache(
   ["lore-item"],
   { revalidate: 60 }
 );
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const item = await getLoreItem(id);
+
+  if (!item) {
+    return { title: "Артефакт не знайдено" };
+  }
+
+  return {
+    title: item.title,
+    description: item.description || "Артефакт кодла",
+  };
+}
 
 export default async function LoreItemPage({
   params,

@@ -15,7 +15,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "KodloHUB — Хостинг для кодла",
+  title: {
+    default: "KodloHUB — Хостинг для кодла",
+    template: "%s | KodloHUB",
+  },
   description:
     "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
   icons: {

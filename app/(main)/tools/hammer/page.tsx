@@ -1,4 +1,11 @@
 import HammerClient from "./HammerClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "МОЛОТОК",
+  description:
+    "Раз на годину — БАБАХ! Глобальний лідерборд йобнутих ударів.",
+};
 
 export default function HammerPage() {
   return (

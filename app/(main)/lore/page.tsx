@@ -1,6 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import LoreClient from "./LoreClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Артефакти",
+  description: "Архів артефактів та мемів кодла.",
+};
 
 interface LoreItem {
   id: string;

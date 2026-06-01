@@ -1,4 +1,11 @@
 import AudioCombinerClient from "./AudioCombinerClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "PDRLIFY",
+  description:
+    "Додай PDR звук до будь-якого аудіофайлу з налаштовуваною затримкою.",
+};
 
 export default function AudioCombinerPage() {
   return (
