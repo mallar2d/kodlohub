@@ -143,10 +143,13 @@ export default function Navbar() {
           <SearchBar />
           <Link
             href="/tools/hammer"
-            className="text-lg leading-none hover:opacity-70 transition-opacity"
+            className="text-on-primary-mute hover:text-on-primary transition-colors"
             aria-label="Молоток"
           >
-            🔨
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 22 12 12" />
+              <path d="M8 2h12a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H8V2z" />
+            </svg>
           </Link>
           {user && <NotificationsBell />}
 
