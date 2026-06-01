@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const authError = searchParams.get("error");
+  const displayError = authError === "auth_failed"
+    ? "Не вдалося увійти. Спробуй ще раз."
+    : error;
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -74,9 +81,9 @@ export default function LoginPage() {
             </>
           )}
 
-          {error && (
+          {displayError && (
             <div className="mt-6 p-4 border border-red-500/50 rounded-lg bg-red-500/10">
-              <p className="text-red-400 text-sm text-center">{error}</p>
+              <p className="text-red-400 text-sm text-center">{displayError}</p>
             </div>
           )}
         </div>
@@ -86,5 +93,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

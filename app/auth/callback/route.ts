@@ -16,37 +16,56 @@ export async function GET(request: Request) {
       const u = data.user;
       const meta = u.user_metadata || {};
 
-      // Check if profile already exists
       const { data: existing } = await admin
         .from("profiles")
         .select("id, role")
         .eq("id", u.id)
         .single();
 
-      // Determine role
       let role = "shemetovany";
       if (existing) {
-        // Keep existing role on re-login
         role = existing.role;
       } else {
-        // First user becomes owner
         const { count } = await admin
           .from("profiles")
           .select("id", { count: "exact", head: true });
         if (count === 0) role = "owner";
       }
 
-      await admin.from("profiles").upsert(
-        {
-          id: u.id,
-          username: meta.email?.split("@")[0] || u.email?.split("@")[0] || `user_${u.id.slice(0, 8)}`,
-          display_name: meta.full_name || meta.name || u.email?.split("@")[0] || "Учасник кодла",
-          avatar_url: meta.avatar_url || meta.picture || null,
-          bio: "",
-          role,
-        },
-        { onConflict: "id" }
-      );
+      const baseUsername =
+        meta.email?.split("@")[0] ||
+        u.email?.split("@")[0] ||
+        `user_${u.id.slice(0, 8)}`;
+
+      // Try upsert, handle username conflict with suffix
+      let username = baseUsername;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const { error: upsertErr } = await admin.from("profiles").upsert(
+          {
+            id: u.id,
+            username,
+            display_name:
+              meta.full_name || meta.name || u.email?.split("@")[0] || "Учасник кодла",
+            avatar_url: meta.avatar_url || meta.picture || null,
+            bio: "",
+            role,
+          },
+          { onConflict: "id" },
+        );
+
+        if (!upsertErr) break;
+
+        if (
+          upsertErr.code === "23505" &&
+          upsertErr.message?.includes("username")
+        ) {
+          username = `${baseUsername}_${Math.floor(Math.random() * 9000 + 1000)}`;
+          continue;
+        }
+
+        console.error("[auth/callback] profile upsert failed:", upsertErr);
+        break;
+      }
 
       return NextResponse.redirect(`${origin}${next}`);
     }

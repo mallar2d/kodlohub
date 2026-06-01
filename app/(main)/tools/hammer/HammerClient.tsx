@@ -78,6 +78,7 @@ export default function HammerClient() {
   const [animHit, setAnimHit] = useState(false);
   const floaterIdRef = useRef(0);
   const lastHammerHitAtRef = useRef<string | null>(null);
+  const hittingRef = useRef(false);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -134,8 +135,9 @@ export default function HammerClient() {
       toast("Увійди, щоб йобнути молотком", "error");
       return;
     }
-    if (hitting || cooldownLeft > 0) return;
+    if (hittingRef.current || cooldownLeft > 0) return;
 
+    hittingRef.current = true;
     setHitting(true);
     setAnimHit(true);
     setShakeKey((k) => k + 1);
@@ -171,9 +173,10 @@ export default function HammerClient() {
     } catch {
       toast("Помилка мережі", "error");
     } finally {
+      hittingRef.current = false;
       setHitting(false);
     }
-  }, [user, hitting, cooldownLeft, toast, state, fetchState]);
+  }, [user, cooldownLeft, toast, state, fetchState]);
 
   const me = state?.me ?? null;
   const isAuthed = !!user;

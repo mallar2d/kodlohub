@@ -24,30 +24,23 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    const { count: totalHits } = await admin
-      .from("hammer_hits")
-      .select("id", { count: "exact", head: true });
+    const [{ count: totalHits }, { data: uniqueHitters }, { data: topRows }] =
+      await Promise.all([
+        admin
+          .from("hammer_hits")
+          .select("id", { count: "exact", head: true }),
 
-    const { count: totalHitters } = await admin
-      .from("hammer_hits")
-      .select("user_id", { count: "exact", head: true })
-      .not("user_id", "is", null);
+        admin.rpc("hammer_unique_hitters"),
 
-    const { data: agg } = await admin
-      .from("hammer_hits")
-      .select("user_id")
-      .not("user_id", "is", null);
+        admin
+          .from("hammer_leaderboard")
+          .select("user_id, count")
+          .limit(LEADERBOARD_LIMIT),
+      ]);
 
-    const counts = new Map<string, number>();
-    for (const row of agg ?? []) {
-      if (!row.user_id) continue;
-      counts.set(row.user_id, (counts.get(row.user_id) ?? 0) + 1);
-    }
-
-    const topIds = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, LEADERBOARD_LIMIT)
-      .map(([id]) => id);
+    const topIds = (topRows ?? []).map(
+      (r: { user_id: string }) => r.user_id,
+    );
 
     const profilesById = new Map<
       string,
@@ -63,40 +56,50 @@ export async function GET() {
       }
     }
 
-    const leaderboard: LeaderboardRow[] = topIds.map((id) => {
-      const p = profilesById.get(id);
-      return {
-        user_id: id,
-        count: counts.get(id) ?? 0,
-        username: p?.username ?? null,
-        display_name: p?.display_name ?? null,
-        avatar_url: p?.avatar_url ?? null,
-      };
-    });
+    const leaderboard: LeaderboardRow[] = (topRows ?? []).map(
+      (row: { user_id: string; count: number }) => {
+        const p = profilesById.get(row.user_id);
+        return {
+          user_id: row.user_id,
+          count: row.count,
+          username: p?.username ?? null,
+          display_name: p?.display_name ?? null,
+          avatar_url: p?.avatar_url ?? null,
+        };
+      },
+    );
 
     let myCount = 0;
     let myLastHit: string | null = null;
     let myRank: number | null = null;
+
     if (user) {
-      myCount = counts.get(user.id) ?? 0;
+      const [{ count: myHits }, { data: lastHit }, { data: rankVal }] =
+        await Promise.all([
+          admin
+            .from("hammer_hits")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id),
 
-      const { data: last } = await admin
-        .from("hammer_hits")
-        .select("hit_at")
-        .eq("user_id", user.id)
-        .order("hit_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      myLastHit = last?.hit_at ?? null;
+          admin
+            .from("hammer_hits")
+            .select("hit_at")
+            .eq("user_id", user.id)
+            .order("hit_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
 
-      const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-      const idx = sorted.findIndex(([id]) => id === user.id);
-      if (idx >= 0) myRank = idx + 1;
+          admin.rpc("hammer_user_rank", { p_user_id: user.id }),
+        ]);
+
+      myCount = myHits ?? 0;
+      myLastHit = lastHit?.hit_at ?? null;
+      myRank = rankVal ?? null;
     }
 
     return NextResponse.json({
       totalHits: totalHits ?? 0,
-      totalHitters: totalHitters ?? 0,
+      totalHitters: uniqueHitters ?? 0,
       leaderboard,
       me: user
         ? {
@@ -130,40 +133,36 @@ export async function POST() {
 
     const admin = createAdminClient();
 
-    const { data: last } = await admin
-      .from("hammer_hits")
-      .select("hit_at")
-      .eq("user_id", user.id)
-      .order("hit_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await admin.rpc("hammer_hit", {
+      p_user_id: user.id,
+    });
 
-    const now = Date.now();
-    if (last?.hit_at) {
-      const lastMs = new Date(last.hit_at).getTime();
-      const elapsed = now - lastMs;
-      if (elapsed < COOLDOWN_MS) {
-        const remainingMs = COOLDOWN_MS - elapsed;
+    if (error) {
+      if (error.message?.includes("cooldown") || error.code === "P0001") {
+        const { data: last } = await admin
+          .from("hammer_hits")
+          .select("hit_at")
+          .eq("user_id", user.id)
+          .order("hit_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const remainingMs = last?.hit_at
+          ? COOLDOWN_MS - (Date.now() - new Date(last.hit_at).getTime())
+          : COOLDOWN_MS;
+
         return NextResponse.json(
           {
             error: "Кулдаун. Зачекай трохи, кодило.",
-            remainingMs,
+            remainingMs: Math.max(remainingMs, 0),
           },
           { status: 429 },
         );
       }
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const { error: insertErr } = await admin.from("hammer_hits").insert({
-      user_id: user.id,
-      hit_at: new Date(now).toISOString(),
-    });
-
-    if (insertErr) {
-      return NextResponse.json({ error: insertErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, hitAt: new Date(now).toISOString() });
+    return NextResponse.json({ success: true, hitAt: data });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

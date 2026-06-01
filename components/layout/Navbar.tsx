@@ -49,21 +49,21 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [authLoaded, setAuthLoaded] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
-    // Load from cache first
     const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     if (cachedRole) setUserRole(cachedRole);
 
-    supabase.auth.getUser().then(async ({ data }: { data: { user: any } }) => {
-      setUser(data.user);
-      if (data.user) {
+    // Instant local read — no network request
+    supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: { user: User | null } | null } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", data.user.id)
+          .eq("id", currentUser.id)
           .single();
         const role = profile?.role || null;
         setUserRole(role);
@@ -72,24 +72,28 @@ export default function Navbar() {
         setUserRole(null);
         localStorage.removeItem("userRole");
       }
-      setAuthLoaded(true);
     });
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event: string, session: { user: any } | null) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        const role = profile?.role || null;
-        setUserRole(role);
-        if (role) localStorage.setItem("userRole", role);
-      } else {
-        setUserRole(null);
-        localStorage.removeItem("userRole");
+    } = supabase.auth.onAuthStateChange(async (event: string, session: { user: User | null } | null) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      // Only re-fetch profile on actual sign-in/out, not on every token refresh
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        if (currentUser) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", currentUser.id)
+            .single();
+          const role = profile?.role || null;
+          setUserRole(role);
+          if (role) localStorage.setItem("userRole", role);
+        } else {
+          setUserRole(null);
+          localStorage.removeItem("userRole");
+        }
       }
     });
     return () => subscription.unsubscribe();

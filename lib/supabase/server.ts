@@ -15,13 +15,16 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             );
-          } catch {
-            // Called from a Server Component — ignore
+          } catch (error) {
+            // Server Components can't set cookies — middleware handles refresh
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[supabase] cookie set skipped in Server Component:", error);
+            }
           }
         },
       },
-    }
+    },
   );
 }
