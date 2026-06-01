@@ -87,6 +87,8 @@ export default function HammerClient() {
     supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       setUser(data.user);
       setAuthLoaded(true);
+    }).catch(() => {
+      setAuthLoaded(true);
     });
 
     const {
@@ -94,6 +96,7 @@ export default function HammerClient() {
     } = supabase.auth.onAuthStateChange(
       (_event: string, session: { user: User | null } | null) => {
         setUser(session?.user ?? null);
+        setAuthLoaded(true);
       },
     );
     return () => subscription.unsubscribe();
@@ -121,8 +124,12 @@ export default function HammerClient() {
   }, [toast]);
 
   useEffect(() => {
+    fetchState();
+  }, []);
+
+  useEffect(() => {
     if (authLoaded) fetchState();
-  }, [authLoaded, fetchState]);
+  }, [authLoaded]);
 
   useEffect(() => {
     if (cooldownLeft <= 0) return;
