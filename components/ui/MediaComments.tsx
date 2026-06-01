@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import Avatar from "@/components/ui/Avatar";
 
 interface Comment {
   id: string;
@@ -111,13 +112,11 @@ export default function MediaComments({ mediaId }: { mediaId: string }) {
           <div className="space-y-3 max-h-60 overflow-auto">
             {comments.map((comment) => (
               <div key={comment.id} className="flex items-start gap-2">
-                <div className="w-6 h-6 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-[10px] font-bold shrink-0 overflow-hidden">
-                  {comment.profiles?.avatar_url ? (
-                    <img src={comment.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    comment.profiles?.display_name?.charAt(0) || "?"
-                  )}
-                </div>
+                <Avatar
+                  src={comment.profiles?.avatar_url}
+                  displayName={comment.profiles?.display_name || "Учасник"}
+                  size={24}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-on-primary">

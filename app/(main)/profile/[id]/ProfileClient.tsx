@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import Avatar from "@/components/ui/Avatar";
 
 interface Profile {
   id: string;
@@ -136,13 +137,7 @@ export default function ProfileClient({
       <div className="max-w-[1200px] mx-auto">
         {/* Profile header */}
         <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
-          <div className="w-24 h-24 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-3xl font-bold shrink-0 overflow-hidden relative">
-            {profile.avatar_url ? (
-              <Image src={profile.avatar_url} alt={profile.display_name} fill className="object-cover rounded-full" sizes="96px" />
-            ) : (
-              profile.display_name?.charAt(0) || "?"
-            )}
-          </div>
+          <Avatar src={profile.avatar_url} displayName={profile.display_name} size={96} />
 
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2 flex-wrap">

@@ -6,6 +6,8 @@ export const revalidate = 0;
 
 const COOLDOWN_MS = 60 * 60 * 1000;
 const LEADERBOARD_LIMIT = 10;
+const SPECIAL_HOUR = 22;
+const SPECIAL_MULTIPLIER = 22;
 
 type LeaderboardRow = {
   user_id: string;
@@ -24,11 +26,11 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    const [{ count: totalHits }, { data: uniqueHitters }, { data: topRows }] =
+    const [{ data: totalData }, { data: uniqueHitters }, { data: topRows }] =
       await Promise.all([
         admin
           .from("hammer_hits")
-          .select("id", { count: "exact", head: true }),
+          .select("multiplier", { count: "exact" }),
 
         admin.rpc("hammer_unique_hitters"),
 
@@ -37,6 +39,11 @@ export async function GET() {
           .select("user_id, count")
           .limit(LEADERBOARD_LIMIT),
       ]);
+
+    const totalHits = (totalData ?? []).reduce(
+      (sum: number, row: { multiplier: number }) => sum + (row.multiplier ?? 1),
+      0,
+    );
 
     const topIds = (topRows ?? []).map(
       (r: { user_id: string }) => r.user_id,
@@ -74,11 +81,11 @@ export async function GET() {
     let myRank: number | null = null;
 
     if (user) {
-      const [{ count: myHits }, { data: lastHit }, { data: rankVal }] =
+      const [{ data: myHitsData }, { data: lastHit }, { data: rankVal }] =
         await Promise.all([
           admin
             .from("hammer_hits")
-            .select("id", { count: "exact", head: true })
+            .select("multiplier")
             .eq("user_id", user.id),
 
           admin
@@ -92,7 +99,10 @@ export async function GET() {
           admin.rpc("hammer_user_rank", { p_user_id: user.id }),
         ]);
 
-      myCount = myHits ?? 0;
+      myCount = (myHitsData ?? []).reduce(
+        (sum: number, row: { multiplier: number }) => sum + (row.multiplier ?? 1),
+        0,
+      );
       myLastHit = lastHit?.hit_at ?? null;
       myRank = rankVal ?? null;
     }
@@ -133,8 +143,15 @@ export async function POST() {
 
     const admin = createAdminClient();
 
+    const now = new Date();
+    const serverHour = now.getHours();
+    const serverMinute = now.getMinutes();
+    const isSpecialHour = serverHour === SPECIAL_HOUR && serverMinute === 0;
+    const multiplier = isSpecialHour ? SPECIAL_MULTIPLIER : 1;
+
     const { data, error } = await admin.rpc("hammer_hit", {
       p_user_id: user.id,
+      p_multiplier: multiplier,
     });
 
     if (error) {
@@ -162,7 +179,14 @@ export async function POST() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, hitAt: data });
+    const hitResult = Array.isArray(data) ? data[0] : data;
+
+    return NextResponse.json({
+      success: true,
+      hitAt: hitResult?.hit_at ?? hitResult,
+      multiplier: hitResult?.multiplier ?? multiplier,
+      isSpecial: isSpecialHour,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

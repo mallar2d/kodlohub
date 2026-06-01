@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import NotificationsBell from "@/components/ui/NotificationsBell";
 import SearchBar from "@/components/ui/SearchBar";
+import Avatar from "@/components/ui/Avatar";
 
 const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
@@ -158,17 +159,13 @@ export default function Navbar() {
             <div className="relative" data-user-menu>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-8 h-8 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-sm font-bold overflow-hidden cursor-pointer"
+                className="cursor-pointer focus:outline-none"
               >
-                {user.user_metadata?.avatar_url ? (
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt="Аватар"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  user.email?.charAt(0).toUpperCase()
-                )}
+                <Avatar
+                  src={user.user_metadata?.avatar_url}
+                  displayName={user.user_metadata?.display_name || user.email?.split("@")[0]}
+                  size={32}
+                />
               </button>
 
               {userMenuOpen && (
@@ -322,13 +319,11 @@ export default function Navbar() {
                   className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
                   onClick={() => setMenuOpen(false)}
                 >
-                  {user.user_metadata?.avatar_url ? (
-                    <img
-                      src={user.user_metadata.avatar_url}
-                      alt="Аватар"
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  ) : null}
+                  <Avatar
+                    src={user.user_metadata?.avatar_url}
+                    displayName={user.user_metadata?.display_name || user.email?.split("@")[0]}
+                    size={24}
+                  />
                   ПРОФІЛЬ
                 </Link>
               </div>

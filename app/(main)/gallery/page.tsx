@@ -26,7 +26,7 @@ const getMedia = unstable_cache(
       .select("id, file_url, file_type, caption, created_at, author_id, profiles(display_name, username, avatar_url)")
       .in("file_type", ["image", "video"])
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(200);
 
     if (filter === "image") {
       query = query.eq("file_type", "image");

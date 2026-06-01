@@ -263,16 +263,27 @@ export default function SoundCloudPlayer() {
 
   const state = usePlayerState();
 
+  const ensureIframe = useCallback(() => {
+    if (typeof window !== "undefined" && !globalIframe) {
+      initGlobalIframe();
+    }
+  }, []);
+
   useEffect(() => {
-    initGlobalIframe();
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
   const togglePlay = useCallback(() => {
+    ensureIframe();
     if (!state.ready) return;
     scPostMessage(state.playing ? "pause" : "play");
-  }, [state.ready, state.playing]);
+  }, [state.ready, state.playing, ensureIframe]);
+
+  const handleToggleExpanded = useCallback(() => {
+    ensureIframe();
+    setExpanded((prev) => !prev);
+  }, [ensureIframe]);
 
   const skipToTrack = useCallback((index: number) => {
     if (globalShuffle) {
@@ -561,7 +572,7 @@ export default function SoundCloudPlayer() {
 
       <div className="flex justify-end">
         <button
-          onClick={() => setExpanded(!expanded)}
+          onClick={handleToggleExpanded}
           className={`flex items-center gap-2 h-10 pl-3 pr-4 rounded-full border transition-all duration-200 cursor-pointer ${
             state.playing
               ? "bg-canvas-night/95 border-on-primary text-on-primary"

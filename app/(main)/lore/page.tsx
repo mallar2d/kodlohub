@@ -25,15 +25,24 @@ const getLoreItems = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("lore_items")
-      .select("*")
+      .select("*, profiles(display_name, avatar_url)")
       .order("created_at", { ascending: false });
-    return (data || []) as LoreItem[];
+    return (data || []).map((item: any) => ({
+      ...item,
+      profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles || null
+    })) as LoreItem[];
   },
   ["lore-items"],
   { revalidate: 60 }
 );
 
-export default async function LorePage() {
+export default async function LorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const params = await searchParams;
+  const initialCategory = params.category || "all";
   const items = await getLoreItems();
-  return <LoreClient initialItems={items} />;
+  return <LoreClient initialItems={items} initialCategory={initialCategory} />;
 }

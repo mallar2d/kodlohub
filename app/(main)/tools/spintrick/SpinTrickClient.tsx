@@ -264,9 +264,14 @@ export default function SpinTrickClient() {
         </a>
       </p>
 
-      <div className="w-full max-w-md card-dark p-4 mt-4">
-        <p className="micro-cap text-ink-mute mb-3">DEBUG METRICS</p>
-        <div className="grid grid-cols-2 gap-3 text-xs">
+      <details className="w-full max-w-md card-dark p-4 mt-4 text-center cursor-pointer group">
+        <summary className="micro-cap text-ink-mute select-none list-none flex items-center justify-center gap-1 group-open:mb-3 font-bold">
+          DEBUG METRICS
+          <svg className="w-3 h-3 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </summary>
+        <div className="grid grid-cols-2 gap-3 text-xs text-left cursor-default">
           <div className="flex flex-col gap-1">
             <span className="text-ink-mute">Gyroscope</span>
             <span
@@ -312,7 +317,7 @@ export default function SpinTrickClient() {
             </span>
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-hairline-dark">
+        <div className="mt-3 pt-3 border-t border-hairline-dark text-left cursor-default">
           <div className="relative h-2 w-full rounded-full bg-canvas-night-soft overflow-hidden">
             <div
               className="absolute top-0 left-1/2 h-full rounded-full transition-all duration-75"
@@ -329,8 +334,7 @@ export default function SpinTrickClient() {
             {Math.abs(metricTotal).toFixed(0)}° / 270° to trick
           </p>
         </div>
-      </div>
-
+      </details>
       <style jsx global>{`
         @keyframes emojiPop {
           0% {

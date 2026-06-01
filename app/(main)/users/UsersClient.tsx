@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Avatar from "@/components/ui/Avatar";
 
 interface Profile {
   id: string;
@@ -33,12 +33,15 @@ export default function UsersClient({
   initialProfiles: Profile[];
 }) {
   const [search, setSearch] = useState("");
+  const [limit, setLimit] = useState(24);
 
   const filtered = initialProfiles.filter(
     (p) =>
       p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.username?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginated = filtered.slice(0, limit);
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -54,32 +57,27 @@ export default function UsersClient({
             type="text"
             placeholder="ШУКАТИ..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setLimit(24); // reset limit on search
+            }}
             className="w-full max-w-md px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {filtered.map((profile) => (
+          {paginated.map((profile) => (
             <Link
               key={profile.id}
               href={`/profile/${profile.id}`}
               className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
             >
               <div className="flex items-center gap-4 mb-3">
-                <div className="w-14 h-14 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xl font-bold overflow-hidden shrink-0 relative">
-                  {profile.avatar_url ? (
-                    <Image
-                      src={profile.avatar_url}
-                      alt=""
-                      fill
-                      className="object-cover rounded-full"
-                      sizes="56px"
-                    />
-                  ) : (
-                    profile.display_name?.charAt(0) || "?"
-                  )}
-                </div>
+                <Avatar
+                  src={profile.avatar_url}
+                  displayName={profile.display_name}
+                  size={56}
+                />
                 <div className="min-w-0">
                   <p className="font-bold text-on-primary group-hover:text-on-primary-mute transition-colors truncate">
                     {profile.display_name}
@@ -97,6 +95,18 @@ export default function UsersClient({
             </Link>
           ))}
         </div>
+
+        {/* Load more button */}
+        {filtered.length > limit && (
+          <div className="flex justify-center mt-12">
+            <button
+              onClick={() => setLimit((prev) => prev + 24)}
+              className="btn-ghost text-on-primary"
+            >
+              ПОКАЗАТИ ЩЕ
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

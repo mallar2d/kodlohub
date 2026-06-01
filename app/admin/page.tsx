@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import Avatar from "@/components/ui/Avatar";
 import type { User } from "@supabase/supabase-js";
 
 interface Profile {
@@ -206,8 +207,21 @@ export default function AdminPage() {
   async function deleteUser(userId: string) {
     if (!confirm("Видалити користувача? Це незворотньо.")) return;
     setUpdating(userId);
-    await supabase.auth.admin.deleteUser(userId);
-    await supabase.from("profiles").delete().eq("id", userId);
+    try {
+      const res = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Не вдалося видалити користувача", "error");
+      } else {
+        toast("Користувача видалено", "success");
+      }
+    } catch {
+      toast("Помилка з'єднання з сервером", "error");
+    }
     await fetchData();
     setUpdating(null);
   }
@@ -456,13 +470,7 @@ export default function AdminPage() {
                     return (
                       <div key={userId} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xs font-bold overflow-hidden">
-                            {profile?.avatar_url ? (
-                              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              profile?.display_name?.charAt(0) || "?"
-                            )}
-                          </div>
+                          <Avatar src={profile?.avatar_url} displayName={profile?.display_name} size={24} />
                           <span className="text-on-primary text-sm">
                             {profile?.display_name || userId.slice(0, 8)}
                           </span>
@@ -605,13 +613,7 @@ export default function AdminPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xs font-bold overflow-hidden">
-                          {req.profiles?.avatar_url ? (
-                            <img src={req.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            req.profiles?.display_name?.charAt(0) || "?"
-                          )}
-                        </div>
+                        <Avatar src={req.profiles?.avatar_url} displayName={req.profiles?.display_name} size={24} />
                         <p className="font-bold text-on-primary">{req.profiles?.display_name || "?"}</p>
                       </div>
                       {req.message && (
@@ -654,13 +656,7 @@ export default function AdminPage() {
                   className="card-dark p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-yellow-500/30"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden">
-                      {profile.avatar_url ? (
-                        <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        profile.display_name?.charAt(0) || "?"
-                      )}
-                    </div>
+                    <Avatar src={profile.avatar_url} displayName={profile.display_name} size={40} />
                     <div>
                       <p className="font-bold text-on-primary">{profile.display_name}</p>
                       <p className="caption text-ink-mute">
@@ -745,13 +741,7 @@ export default function AdminPage() {
                     className="card-dark p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden">
-                        {profile.avatar_url ? (
-                          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          profile.display_name?.charAt(0) || "?"
-                        )}
-                      </div>
+                      <Avatar src={profile.avatar_url} displayName={profile.display_name} size={40} />
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-on-primary">{profile.display_name}</p>

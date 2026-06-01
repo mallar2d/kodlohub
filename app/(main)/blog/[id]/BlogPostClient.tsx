@@ -10,6 +10,7 @@ import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
 import { useToast } from "@/components/ui/Toast";
 import MarkdownEditor from "@/components/ui/MarkdownEditor";
+import Avatar from "@/components/ui/Avatar";
 import type { User } from "@supabase/supabase-js";
 
 interface Post {
@@ -176,13 +177,11 @@ export default function BlogPostClient({
           <div className="flex items-center justify-between">
             {initialPost.profiles && (
               <Link href={`/profile/${initialPost.author_id}`} className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden relative">
-                  {initialPost.profiles.avatar_url ? (
-                    <Image src={initialPost.profiles.avatar_url} alt="" fill className="object-cover rounded-full" sizes="40px" />
-                  ) : (
-                    initialPost.profiles.display_name?.charAt(0) || "?"
-                  )}
-                </div>
+                <Avatar
+                  src={initialPost.profiles.avatar_url}
+                  displayName={initialPost.profiles.display_name}
+                  size={40}
+                />
                 <div>
                   <p className="font-bold text-on-primary group-hover:text-on-primary-mute transition-colors">
                     {initialPost.profiles.display_name}
@@ -268,13 +267,11 @@ export default function BlogPostClient({
               <div key={comment.id} className="card-dark p-4">
                 <div className="flex items-start justify-between">
                   <Link href={`/profile/${comment.author_id}`} className="flex items-center gap-3 group">
-                    <div className="w-8 h-8 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-sm font-bold overflow-hidden">
-                      {comment.profiles?.avatar_url ? (
-                        <img src={comment.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        comment.profiles?.display_name?.charAt(0) || "?"
-                      )}
-                    </div>
+                    <Avatar
+                      src={comment.profiles?.avatar_url}
+                      displayName={comment.profiles?.display_name}
+                      size={32}
+                    />
                     <div>
                       <p className="font-bold text-on-primary text-sm group-hover:text-on-primary-mute transition-colors">
                         {comment.profiles?.display_name}

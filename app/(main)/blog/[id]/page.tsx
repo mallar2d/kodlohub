@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import BlogPostClient from "./BlogPostClient";
 import type { Metadata } from "next";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface Post {
   id: string;
@@ -29,13 +30,25 @@ const getPost = unstable_cache(
     const supabase = createAdminClient();
 
     const [postRes, commentsRes] = await Promise.all([
-      supabase.from("posts").select("*").eq("id", id).single(),
-      supabase.from("comments").select("*").eq("post_id", id).order("created_at", { ascending: true }),
+      supabase.from("posts").select("*, profiles(display_name, username, avatar_url)").eq("id", id).single(),
+      supabase.from("comments").select("*, profiles(display_name, username, avatar_url)").eq("post_id", id).order("created_at", { ascending: true }),
     ]);
 
+    const post = postRes.data ? {
+      ...postRes.data,
+      profiles: Array.isArray((postRes.data as any).profiles)
+        ? (postRes.data as any).profiles[0]
+        : (postRes.data as any).profiles || null
+    } : null;
+
+    const comments = (commentsRes.data || []).map((c: any) => ({
+      ...c,
+      profiles: Array.isArray(c.profiles) ? c.profiles[0] : c.profiles || null
+    }));
+
     return {
-      post: postRes.data as Post | null,
-      comments: (commentsRes.data || []) as Comment[],
+      post: post as Post | null,
+      comments: comments as Comment[],
     };
   },
   ["blog-post"],
@@ -74,10 +87,7 @@ export default async function BlogPostPage({
   if (!post) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="heading-sub text-hairline-dark mb-4">:(</p>
-          <p className="text-on-primary-mute">брєдік в чат нє пішем — пост не знайдено</p>
-        </div>
+        <EmptyState message="пост не знайдено" />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
-import Link from "next/link";
+import BlogClient from "./BlogClient";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -28,7 +28,10 @@ const getPosts = unstable_cache(
       .select("*, profiles(display_name, username)")
       .eq("status", "approved")
       .order("created_at", { ascending: false });
-    return (data || []).map((p: any) => ({ ...p, profiles: p.profiles?.[0] || null }));
+    return (data || []).map((p: any) => ({
+      ...p,
+      profiles: Array.isArray(p.profiles) ? p.profiles[0] : p.profiles || null
+    }));
   },
   ["blog-posts"],
   { revalidate: 30 }
@@ -46,62 +49,7 @@ export default async function BlogPage() {
           <h1 className="heading-section mb-4">БЛОГ</h1>
         </div>
 
-        {/* Posts */}
-        {posts.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="heading-sub text-hairline-dark mb-4">:(</p>
-            <p className="text-on-primary-mute">
-              брєдік в чат нє пішем — постів поки немає
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/${post.id}`}
-                className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-on-primary-mute">
-                    {post.type === "blog"
-                      ? "БЛОГ"
-                      : post.type === "lore"
-                        ? "АРТЕФАКТИ"
-                        : "ПОДІЯ"}
-                  </span>
-                  <span className="caption text-ink-mute">
-                    {new Date(post.created_at).toLocaleDateString("uk-UA")}
-                  </span>
-                </div>
-                <h3 className="heading-sub text-on-primary mb-3 group-hover:text-on-primary-mute transition-colors line-clamp-2">
-                  {post.title}
-                </h3>
-                <p className="text-on-primary-mute text-sm line-clamp-3 mb-4">
-                  {post.content.slice(0, 200)}
-                  {post.content.length > 200 ? "..." : ""}
-                </p>
-                {post.tags && post.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {post.tags.slice(0, 5).map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="micro-cap px-2 py-0.5 rounded bg-canvas-cool text-ink-mute"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {post.profiles && (
-                  <p className="caption text-ink-mute">
-                    {post.profiles.display_name}
-                  </p>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
+        <BlogClient initialPosts={posts} />
       </div>
     </div>
   );

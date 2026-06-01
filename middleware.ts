@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,7 +25,34 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+
+  // Protect /admin routes
+  if (path.startsWith("/admin")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profile?.role || "shemetovany";
+    if (role !== "owner" && role !== "podrofikovany") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // Protect /upload route
+  if (path.startsWith("/upload")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
 
   return supabaseResponse;
 }

@@ -20,10 +20,15 @@ const getLoreItem = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("lore_items")
-      .select("*, media(*)")
+      .select("*, media(*), profiles(display_name, username, avatar_url)")
       .eq("id", id)
       .single();
-    return (data as LoreItem) || null;
+    if (!data) return null;
+    return {
+      ...data,
+      profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles || null,
+      media: Array.isArray(data.media) ? data.media[0] : data.media || null,
+    } as unknown as LoreItem;
   },
   ["lore-item"],
   { revalidate: 60 }

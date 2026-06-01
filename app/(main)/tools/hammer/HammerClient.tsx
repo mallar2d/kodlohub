@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
+import Avatar from "@/components/ui/Avatar";
 import type { User } from "@supabase/supabase-js";
 
 type LeaderboardRow = {
@@ -44,6 +45,14 @@ const HIT_MESSAGES = [
   "БЕЗ ПОЩАДИ!",
 ];
 
+const SPECIAL_MESSAGES = [
+  "КРОВАВА НІЧ!",
+  "22:00 — ЧАС КРОВІ!",
+  "МНОЖНИК 22x!",
+  "ПОЛУНOК КРОВІ!",
+  "САТАНИНСЬКИЙ УДАР!",
+];
+
 function formatCooldown(ms: number) {
   if (ms <= 0) return "00:00:00";
   const total = Math.floor(ms / 1000);
@@ -76,6 +85,8 @@ export default function HammerClient() {
   >([]);
   const [shakeKey, setShakeKey] = useState(0);
   const [animHit, setAnimHit] = useState(false);
+  const [specialHit, setSpecialHit] = useState(false);
+  const [lastMultiplier, setLastMultiplier] = useState(1);
   const floaterIdRef = useRef(0);
   const lastHammerHitAtRef = useRef<string | null>(null);
   const hittingRef = useRef(false);
@@ -151,8 +162,10 @@ export default function HammerClient() {
     setAnimHit(true);
     setShakeKey((k) => k + 1);
 
+    const isSpecialTime = new Date().getHours() === 22 && new Date().getMinutes() === 0;
+    const msgPool = isSpecialTime ? SPECIAL_MESSAGES : HIT_MESSAGES;
     const label =
-      HIT_MESSAGES[Math.floor(Math.random() * HIT_MESSAGES.length)] ?? "БАБАХ!";
+      msgPool[Math.floor(Math.random() * msgPool.length)] ?? "БАБАХ!";
     const id = ++floaterIdRef.current;
     setFloaters((arr) => [
       ...arr,
@@ -173,11 +186,22 @@ export default function HammerClient() {
         toast(data.error ?? "Не вдалося вдарити", "error");
         return;
       }
+
+      const mult = data.multiplier ?? 1;
+      setLastMultiplier(mult);
+
+      if (data.isSpecial || mult > 1) {
+        setSpecialHit(true);
+        setTimeout(() => setSpecialHit(false), 3000);
+        toast(`КРОВАВА НІЧ! x${mult} МНОЖНИК!`, "success");
+      } else {
+        toast("ЗАРЯДЖАЄМО... раз на годину!", "success");
+      }
+
       lastHammerHitAtRef.current = data.hitAt;
       const remaining =
         state?.me?.cooldownMs ?? 60 * 60 * 1000;
       setCooldownLeft(remaining);
-      toast("ЗАРЯДЖАЄМО... раз на годину!", "success");
       await fetchState();
     } catch {
       toast("Помилка мережі", "error");
@@ -192,7 +216,26 @@ export default function HammerClient() {
   const canHit = isAuthed && cooldownLeft <= 0 && !hitting;
 
   return (
-    <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8">
+    <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 relative">
+      {/* Кровавий оверлей при 22:00 ударі */}
+      {specialHit && (
+        <div
+          className="fixed inset-0 z-50 pointer-events-none"
+          style={{ animation: "bloodFlash 3s ease-out forwards" }}
+        >
+          <div className="absolute inset-0 bg-red-600/30" />
+          <div className="absolute inset-0" style={{
+            background: "radial-gradient(circle at 50% 50%, transparent 20%, rgba(139,0,0,0.4) 60%, rgba(80,0,0,0.7) 100%)",
+          }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-[var(--font-display)] text-6xl sm:text-8xl font-black text-red-500 tracking-widest uppercase drop-shadow-[0_0_30px_rgba(220,38,38,0.9)]"
+              style={{ animation: "specialPulse 0.6s ease-in-out infinite alternate" }}
+            >
+              x{lastMultiplier}
+            </span>
+          </div>
+        </div>
+      )}
       {/* Ліва колонка: молоток */}
       <div className="card-dark p-6 sm:p-10 flex flex-col items-center text-center relative overflow-hidden">
         <p className="micro-cap text-ink-mute mb-6">ГОЛОВНИЙ МОЛОТОК</p>
@@ -281,6 +324,9 @@ export default function HammerClient() {
               Ти можеш вдарити. Не зловживай.
             </p>
           )}
+          <p className="text-red-500/50 text-[10px] mt-2 text-center">
+            🔥 Удар рівно о 22:00 = x22 множник + кровавий ефект
+          </p>
         </div>
       </div>
 
@@ -372,19 +418,7 @@ export default function HammerClient() {
                     >
                       {medal}
                     </span>
-                    {row.avatar_url ? (
-                      <img
-                        src={row.avatar_url}
-                        alt=""
-                        className="w-7 h-7 rounded-full object-cover bg-canvas-cool"
-                      />
-                    ) : (
-                      <span className="w-7 h-7 rounded-full bg-canvas-cool flex items-center justify-center text-ink text-xs font-bold">
-                        {(row.username || row.display_name || "?")
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
-                    )}
+                    <Avatar src={row.avatar_url} displayName={row.display_name || row.username} size={28} />
                     <Link
                       href={`/profile/${row.user_id}`}
                       className={`flex-1 truncate text-sm hover:underline ${
@@ -448,6 +482,15 @@ export default function HammerClient() {
             opacity: 0;
             transform: translateY(-160px) scale(0.9);
           }
+        }
+        @keyframes bloodFlash {
+          0% { opacity: 1; }
+          70% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes specialPulse {
+          0% { transform: scale(1); text-shadow: 0 0 20px rgba(220,38,38,0.8); }
+          100% { transform: scale(1.15); text-shadow: 0 0 60px rgba(220,38,38,1), 0 0 120px rgba(139,0,0,0.6); }
         }
       `}</style>
     </div>

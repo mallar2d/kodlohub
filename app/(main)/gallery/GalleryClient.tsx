@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import LikeButton from "@/components/ui/LikeButton";
 import MediaComments from "@/components/ui/MediaComments";
+import Avatar from "@/components/ui/Avatar";
+import EmptyState from "@/components/ui/EmptyState";
+import Modal from "@/components/ui/Modal";
 
 interface Media {
   id: string;
@@ -24,9 +28,17 @@ export default function GalleryClient({
   initialMedia: Media[];
   initialFilter: string;
 }) {
-  const [media] = useState<Media[]>(initialMedia);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [filter, setFilter] = useState<string>(initialFilter);
+  const [limit, setLimit] = useState(24);
   const [selected, setSelected] = useState<Media | null>(null);
+
+  useEffect(() => {
+    setFilter(initialFilter);
+    setLimit(24);
+  }, [initialFilter]);
 
   const filters = [
     { key: "all", label: "ВСЕ" },
@@ -34,7 +46,14 @@ export default function GalleryClient({
     { key: "video", label: "ВІДЕО" },
   ];
 
-  const filteredMedia = filter === "all" ? media : media.filter(m => m.file_type === filter);
+  const handleFilterChange = (key: string) => {
+    setFilter(key);
+    setLimit(24);
+    router.push(`/gallery?filter=${key}`, { scroll: false });
+  };
+
+  const filteredMedia = filter === "all" ? initialMedia : initialMedia.filter(m => m.file_type === filter);
+  const paginatedMedia = filteredMedia.slice(0, limit);
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -49,7 +68,7 @@ export default function GalleryClient({
             {filters.map((f) => (
               <button
                 key={f.key}
-                onClick={() => setFilter(f.key)}
+                onClick={() => handleFilterChange(f.key)}
                 className={`button-cap px-4 py-2 rounded-full border transition-opacity ${
                   filter === f.key
                     ? "border-on-primary text-on-primary"
@@ -64,105 +83,97 @@ export default function GalleryClient({
 
         {/* Gallery grid */}
         {filteredMedia.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="heading-sub text-hairline-dark mb-4">:(</p>
-            <p className="text-on-primary-mute">
-              брєдік в чат нє пішем — тут поки нічого
-            </p>
-          </div>
+          <EmptyState message="тут поки нічого" />
         ) : (
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-            {filteredMedia.map((item) => (
-              <div
-                key={item.id}
-                className="break-inside-avoid group cursor-pointer rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors relative"
-                onClick={() => setSelected(item)}
-              >
-                {item.file_type === "image" ? (
-                  <div className="relative w-full">
-                    <Image
+          <>
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+              {paginatedMedia.map((item) => (
+                <div
+                  key={item.id}
+                  className="break-inside-avoid group cursor-pointer rounded-lg overflow-hidden bg-canvas-night-soft border border-hairline-dark hover:border-on-primary-mute transition-colors relative"
+                  onClick={() => setSelected(item)}
+                >
+                  {item.file_type === "image" ? (
+                    <div className="relative w-full">
+                      <Image
+                        src={item.file_url}
+                        alt={item.caption || "Медіа"}
+                        width={400}
+                        height={300}
+                        className="w-full h-auto transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : item.file_type === "video" ? (
+                    <video
                       src={item.file_url}
-                      alt={item.caption || "Медіа"}
-                      width={400}
-                      height={300}
-                      className="w-full h-auto transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      loading="lazy"
+                      className="w-full h-auto"
+                      preload="none"
                     />
-                  </div>
-                ) : item.file_type === "video" ? (
-                  <video
-                    src={item.file_url}
-                    className="w-full h-auto"
-                    preload="none"
-                  />
-                ) : (
-                  <div className="p-6 text-center">
-                    <p className="micro-cap text-ink-mute">ДОКУМЕНТ</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="micro-cap text-ink-mute">ДОКУМЕНТ</p>
+                    </div>
+                  )}
 
-                {item.caption && (
-                  <div className="bg-canvas-night/80 p-3">
-                    <p className="caption text-on-primary-mute">
-                      {item.caption}
-                    </p>
+                  {item.caption && (
+                    <div className="bg-canvas-night/80 p-3">
+                      <p className="caption text-on-primary-mute">
+                        {item.caption}
+                      </p>
+                    </div>
+                  )}
+                  <div className="bg-canvas-night/80 px-3 py-2 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                    <LikeButton itemType="media" itemId={item.id} initialCount={item.like_count || 0} compact />
+                    <Link
+                      href={`/gallery/${item.id}`}
+                      className="text-ink-mute hover:text-on-primary transition-colors"
+                      title="Відкрити на сторінці"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </Link>
                   </div>
-                )}
-                <div className="bg-canvas-night/80 px-3 py-2 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-                  <LikeButton itemType="media" itemId={item.id} initialCount={item.like_count || 0} compact />
-                  <Link
-                    href={`/gallery/${item.id}`}
-                    className="text-ink-mute hover:text-on-primary transition-colors"
-                    title="Відкрити на сторінці"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                  </Link>
                 </div>
+              ))}
+            </div>
+
+            {/* Load more button */}
+            {filteredMedia.length > limit && (
+              <div className="flex justify-center mt-12">
+                <button
+                  onClick={() => setLimit((prev) => prev + 24)}
+                  className="btn-ghost text-on-primary"
+                >
+                  ПОКАЗАТИ ЩЕ
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Lightbox modal */}
-      {selected && (
-        <div
-          className="fixed inset-0 z-[100] bg-canvas-night/95 flex items-center justify-center p-4"
-          onClick={() => setSelected(null)}
-        >
-          <button
-            className="absolute top-6 right-6 text-on-primary hover:opacity-70"
-            onClick={() => setSelected(null)}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 6l12 12M6 18L18 6" />
-            </svg>
-          </button>
-
-          <div
-            className="max-w-4xl max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* Lightbox Modal */}
+      <Modal
+        isOpen={!!selected}
+        onClose={() => setSelected(null)}
+        overlayClassName="bg-canvas-night/95"
+        className="max-w-4xl max-h-[90vh] overflow-auto border-none shadow-none bg-transparent p-0"
+      >
+        {selected && (
+          <div onClick={(e) => e.stopPropagation()}>
             {selected.file_type === "image" ? (
               <Image
                 src={selected.file_url}
                 alt={selected.caption || "Медіа"}
                 width={1200}
                 height={900}
-                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg mx-auto"
                 sizes="100vw"
                 priority
               />
@@ -171,7 +182,7 @@ export default function GalleryClient({
                 src={selected.file_url}
                 controls
                 autoPlay
-                className="max-w-full max-h-[85vh] rounded-lg"
+                className="max-w-full max-h-[85vh] rounded-lg mx-auto"
               />
             ) : null}
 
@@ -181,9 +192,12 @@ export default function GalleryClient({
               </p>
             )}
             {selected.profiles && (
-              <p className="text-ink-mute text-center mt-2 micro-cap">
-                {selected.profiles.display_name}
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Avatar src={selected.profiles.avatar_url} displayName={selected.profiles.display_name} size={20} />
+                <span className="text-ink-mute micro-cap">
+                  {selected.profiles.display_name}
+                </span>
+              </div>
             )}
             <div className="flex justify-center items-center gap-4 mt-4">
               <LikeButton itemType="media" itemId={selected.id} initialCount={selected.like_count || 0} />
@@ -201,8 +215,8 @@ export default function GalleryClient({
             </div>
             <MediaComments mediaId={selected.id} />
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import EmptyState from "@/components/ui/EmptyState";
 
 export const metadata: Metadata = {
   title: { absolute: "KodloHUB" },
@@ -129,10 +130,8 @@ export default async function HomePage() {
           </div>
 
           {recentMedia.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-on-primary-mute mb-4">
-                брєдік в чат нє пішем — тут поки нічого
-              </p>
+            <div className="text-center">
+              <EmptyState message="тут поки нічого" className="py-12" />
               <Link href="/upload" className="btn-ghost text-on-primary">
                 ЗАВАНТАЖИТИ
               </Link>
@@ -190,8 +189,8 @@ export default async function HomePage() {
           </div>
 
           {recentPosts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-on-primary-mute mb-4">поки писати нічого — напиши перший пост</p>
+            <div className="text-center">
+              <EmptyState message="поки писати нічого — напиши перший пост" className="py-12" />
               <Link href="/upload" className="btn-ghost text-on-primary mt-6 inline-block">
                 НАПИСАТИ
               </Link>

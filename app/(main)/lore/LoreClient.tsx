@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Avatar from "@/components/ui/Avatar";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface LoreItem {
   id: string;
@@ -35,11 +38,23 @@ const categoryColors: Record<string, string> = {
 
 export default function LoreClient({
   initialItems,
+  initialCategory = "all",
 }: {
   initialItems: LoreItem[];
+  initialCategory?: string;
 }) {
-  const [filter, setFilter] = useState("all");
+  const router = useRouter();
+  const [filter, setFilter] = useState(initialCategory);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    setFilter(initialCategory);
+  }, [initialCategory]);
+
+  const handleFilterChange = (key: string) => {
+    setFilter(key);
+    router.push(`/lore?category=${key}`, { scroll: false });
+  };
 
   const filtered = initialItems.filter((item) => {
     const matchesCategory = filter === "all" || item.category === filter;
@@ -76,7 +91,7 @@ export default function LoreClient({
             {categories.map((cat) => (
               <button
                 key={cat.key}
-                onClick={() => setFilter(cat.key)}
+                onClick={() => handleFilterChange(cat.key)}
                 className={`button-cap px-3 py-1.5 rounded-full border transition-opacity ${
                   filter === cat.key
                     ? "border-on-primary text-on-primary"
@@ -91,53 +106,57 @@ export default function LoreClient({
 
         {/* Content */}
         {filtered.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="heading-sub text-hairline-dark mb-4">:(</p>
-            <p className="text-on-primary-mute">
-              брєдік в чат нє пішем — тут поки нічого
-            </p>
-          </div>
+          <EmptyState message="тут поки нічого" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((item) => (
               <Link
                 key={item.id}
                 href={`/lore/${item.id}`}
-                className="card-dark p-6 hover:border-on-primary-mute transition-colors group"
+                className="card-dark p-6 hover:border-on-primary-mute transition-colors group flex flex-col justify-between"
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className={`button-cap px-2 py-0.5 rounded border text-[10px] ${categoryColors[item.category] || "border-hairline-dark text-ink-mute"}`}
-                  >
-                    {categories.find((c) => c.key === item.category)?.label ||
-                      item.category.toUpperCase()}
-                  </span>
-                  <span className="caption text-ink-mute">
-                    {new Date(item.created_at).toLocaleDateString("uk-UA")}
-                  </span>
-                </div>
-                <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors line-clamp-2">
-                  {item.title}
-                </h3>
-                {item.description && (
-                  <p className="text-on-primary-mute text-sm line-clamp-3 mb-3">
-                    {item.description.slice(0, 150)}
-                    {item.description.length > 150 ? "..." : ""}
-                  </p>
-                )}
-                {item.profiles && (
-                  <p className="caption text-ink-mute">
-                    {item.profiles.display_name}
-                  </p>
-                )}
-                {(item.like_count || 0) > 0 && (
-                  <div className="flex items-center gap-1 mt-2 text-xs text-ink-mute">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                    <span>{item.like_count}</span>
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className={`button-cap px-2 py-0.5 rounded border text-[10px] ${categoryColors[item.category] || "border-hairline-dark text-ink-mute"}`}
+                    >
+                      {categories.find((c) => c.key === item.category)?.label ||
+                        item.category.toUpperCase()}
+                    </span>
+                    <span className="caption text-ink-mute">
+                      {new Date(item.created_at).toLocaleDateString("uk-UA")}
+                    </span>
                   </div>
-                )}
+                  <h3 className="font-bold text-on-primary mb-2 group-hover:text-on-primary-mute transition-colors line-clamp-2">
+                    {item.title}
+                  </h3>
+                  {item.description && (
+                    <p className="text-on-primary-mute text-sm line-clamp-3 mb-3">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-hairline-dark/30 flex items-center justify-between">
+                  {item.profiles ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar src={item.profiles.avatar_url} displayName={item.profiles.display_name} size={20} />
+                      <span className="caption text-ink-mute truncate max-w-[120px]">
+                        {item.profiles.display_name}
+                      </span>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  {(item.like_count || 0) > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-ink-mute">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                      <span>{item.like_count}</span>
+                    </div>
+                  )}
+                </div>
               </Link>
             ))}
           </div>

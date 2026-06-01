@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Modal from "@/components/ui/Modal";
 
 export default function CoffeeReminder() {
   const [show, setShow] = useState(false);
@@ -25,45 +26,32 @@ export default function CoffeeReminder() {
     return () => clearInterval(interval);
   }, [dismissed]);
 
-  if (!show) return null;
-
   return (
-    <div className="fixed inset-0 z-[200] bg-canvas-night/90 flex items-center justify-center p-4">
-      <div className="card-dark p-8 max-w-md w-full text-center relative">
-        <button
-          onClick={() => setDismissed(true)}
-          className="absolute top-4 right-4 text-ink-mute hover:text-on-primary transition-colors"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 6l12 12M6 18L18 6" />
-          </svg>
-        </button>
+    <Modal isOpen={show} onClose={() => setDismissed(true)} className="p-8 max-w-md text-center">
+      <img
+        src="/kava.png"
+        alt="Kava"
+        className="w-32 h-32 mx-auto mb-6 object-contain"
+      />
 
-        <img
-          src="/kava.png"
-          alt="Kava"
-          className="w-32 h-32 mx-auto mb-6 object-contain"
-        />
+      <h2 className="heading-sub mb-4">22:00</h2>
 
-        <h2 className="heading-sub mb-4">22:00</h2>
+      <p className="text-on-primary text-lg mb-2">
+        Зараз 22:00. Час їбанути кави.
+      </p>
 
-        <p className="text-on-primary text-lg mb-2">
-          Зараз 22:00. Час їбанути кави.
-        </p>
+      <p className="text-on-primary-mute mb-8">
+        Кодло не спить. Кодло п'є каву.
+      </p>
 
-        <p className="text-on-primary-mute mb-8">
-          Кодло не спить. Кодло п\'є каву.
-        </p>
-
-        <a
-          href="https://kava.javajumper.ddns.net"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-ghost text-on-primary inline-block"
-        >
-          ПІТИ НА КАВУ
-        </a>
-      </div>
-    </div>
+      <a
+        href="https://kava.javajumper.ddns.net"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-ghost text-on-primary inline-block"
+      >
+        ПІТИ НА КАВУ
+      </a>
+    </Modal>
   );
 }

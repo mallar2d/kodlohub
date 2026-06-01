@@ -24,6 +24,21 @@ export const metadata: Metadata = {
   icons: {
     icon: "/kodlohub-icon.png",
   },
+  openGraph: {
+    title: "KodloHUB — Хостинг для кодла",
+    description:
+      "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
+    url: "https://kodlo.host",
+    siteName: "KodloHUB",
+    locale: "uk-UA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KodloHUB — Хостинг для кодла",
+    description:
+      "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
+  },
 };
 
 export default function RootLayout({

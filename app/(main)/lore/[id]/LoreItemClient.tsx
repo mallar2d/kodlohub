@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm";
 import Image from "next/image";
 import LikeButton from "@/components/ui/LikeButton";
 import { useToast } from "@/components/ui/Toast";
+import Avatar from "@/components/ui/Avatar";
 
 interface LoreItem {
   id: string;
@@ -147,14 +148,8 @@ export default function LoreItemClient({ item }: { item: LoreItem }) {
 
           <div className="flex items-center justify-between">
             {item.profiles && (
-              <Link href={`/profile/${item.author_id}`} className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-full bg-canvas-cool flex items-center justify-center text-ink font-bold overflow-hidden relative">
-                  {item.profiles.avatar_url ? (
-                    <Image src={item.profiles.avatar_url} alt="" fill className="object-cover rounded-full" sizes="40px" />
-                  ) : (
-                    item.profiles.display_name?.charAt(0) || "?"
-                  )}
-                </div>
+              <Link href={`/profile/${item.author_id}`} className="flex items-center gap-3 group mb-6">
+                <Avatar src={item.profiles.avatar_url} displayName={item.profiles.display_name} size={40} />
                 <div>
                   <p className="font-bold text-on-primary group-hover:text-on-primary-mute transition-colors">{item.profiles.display_name}</p>
                   <p className="caption text-ink-mute">@{item.profiles.username}</p>

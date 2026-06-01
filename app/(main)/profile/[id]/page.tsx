@@ -1,6 +1,26 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import ProfileClient from "./ProfileClient";
+import type { Metadata } from "next";
+import EmptyState from "@/components/ui/EmptyState";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { profile } = await getProfileData(id);
+
+  if (!profile) {
+    return { title: "Профіль не знайдено" };
+  }
+
+  return {
+    title: `${profile.display_name} (@${profile.username})`,
+    description: profile.bio || `Профіль користувача ${profile.display_name} на KodloHUB.`,
+  };
+}
 
 interface Profile {
   id: string;
@@ -85,10 +105,7 @@ export default async function ProfilePage({
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="heading-sub text-hairline-dark mb-4">:(</p>
-          <p className="text-on-primary-mute">брєдік в чат нє пішем — профіль не знайдено</p>
-        </div>
+        <EmptyState message="профіль не знайдено" />
       </div>
     );
   }
