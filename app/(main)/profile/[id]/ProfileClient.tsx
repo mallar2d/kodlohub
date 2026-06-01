@@ -120,7 +120,7 @@ export default function ProfileClient({
 
         setLikedPosts(postsRes.data || []);
         setLikedMedia(mediaRes.data || []);
-        setLikedLore(loreRes.data || []);
+        setLikedLore((loreRes.data || []) as LoreItem[]);
         setLikedLoading(false);
       });
   }, [activeTab, profile.id, likedPosts.length, likedMedia.length, likedLore.length, supabase]);
