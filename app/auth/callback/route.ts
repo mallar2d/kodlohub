@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -8,7 +9,27 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") ?? "/";
 
   if (code) {
-    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const response = NextResponse.redirect(`${origin}${next}`);
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      },
+    );
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
@@ -37,7 +58,6 @@ export async function GET(request: Request) {
         u.email?.split("@")[0] ||
         `user_${u.id.slice(0, 8)}`;
 
-      // Try upsert, handle username conflict with suffix
       let username = baseUsername;
       for (let attempt = 0; attempt < 5; attempt++) {
         const { error: upsertErr } = await admin.from("profiles").upsert(
@@ -67,7 +87,7 @@ export async function GET(request: Request) {
         break;
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      return response;
     }
   }
 
