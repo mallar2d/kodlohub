@@ -79,20 +79,25 @@ export default function HammerClient() {
   const floaterIdRef = useRef(0);
   const lastHammerHitAtRef = useRef<string | null>(null);
   const hittingRef = useRef(false);
-  const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
+      setUser(data.user);
+      setAuthLoaded(true);
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (_event: string, session: { user: User | null } | null) => {
         setUser(session?.user ?? null);
-        setAuthLoaded(true);
       },
     );
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   const fetchState = useCallback(async () => {
     try {

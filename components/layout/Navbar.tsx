@@ -49,11 +49,27 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
+
     const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     if (cachedRole) setUserRole(cachedRole);
+
+    supabase.auth.getUser().then(async ({ data }: { data: { user: User | null } }) => {
+      const currentUser = data.user;
+      setUser(currentUser);
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", currentUser.id)
+          .single();
+        const role = profile?.role || null;
+        setUserRole(role);
+        if (role) localStorage.setItem("userRole", role);
+      }
+    });
 
     const {
       data: { subscription },
@@ -75,7 +91,7 @@ export default function Navbar() {
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   // Close user menu on outside click
   useEffect(() => {
