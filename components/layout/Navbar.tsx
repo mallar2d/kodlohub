@@ -79,6 +79,11 @@ export default function Navbar() {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
+        if (event === "SIGNED_IN") {
+          try {
+            await fetch("/api/sync-profile", { method: "POST" });
+          } catch {}
+        }
         const { data: profile } = await client
           .from("profiles")
           .select("role")
