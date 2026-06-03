@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import MarkdownEditor from "@/components/ui/MarkdownEditor";
+import { detectFileType } from "@/lib/fileType";
 import type { User } from "@supabase/supabase-js";
 
 const MAX_FILES_PER_UPLOAD = 10;
@@ -222,12 +223,7 @@ export default function UploadClient({ initialUser, initialUserRole }: { initial
       return;
     }
 
-    const determineType = (f: File) => {
-        if (f.type.startsWith("image/")) return "image";
-        if (f.type.startsWith("video/")) return "video";
-        if (f.type.startsWith("audio/")) return "audio";
-        return "document";
-    };
+    const determineType = (f: File) => detectFileType(f.name, f.type);
 
     setProgress(85);
 

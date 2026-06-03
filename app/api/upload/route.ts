@@ -1,5 +1,6 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { detectFileType } from "@/lib/fileType";
 import { NextResponse } from "next/server";
 import { S3Client } from "@aws-sdk/client-s3";
 
@@ -77,13 +78,7 @@ export async function POST(request: Request) {
 
     const fileUrl = `${publicUrl}/${filePath}`;
 
-    const fileType = file.type.startsWith("image/")
-      ? "image"
-      : file.type.startsWith("video/")
-      ? "video"
-      : file.type.startsWith("audio/")
-      ? "audio"
-      : "document";
+    const fileType = detectFileType(file.name, file.type);
 
     // Save to Supabase
     const { data, error: dbError } = await admin
