@@ -99,8 +99,19 @@ function parseMediaWikiMarkup(content: string): string {
   });
 
   result = result.replace(/\[\[Файл:([^\]|]+)\]\]/g, (_match, urlOrName: string) => {
-    const imgUrl = urlOrName.startsWith("http") ? urlOrName : urlOrName;
-    return `![зображення](${imgUrl})`;
+    return `![зображення](${urlOrName})`;
+  });
+
+  result = result.replace(/\[\[(https?:\/\/[^\]|]+)\|([^\]]*)\]\]/g, (_match, url: string, params: string) => {
+    const parts = params.split("|");
+    let caption = "";
+    for (const p of parts) {
+      const trimmed = p.trim();
+      if (trimmed && !trimmed.match(/^\d+px$/) && trimmed !== "thumb" && trimmed !== "right" && trimmed !== "left" && trimmed !== "center" && trimmed !== "frameless" && trimmed !== "frame") {
+        caption = trimmed.replace(/^"(.*)"$/, "$1");
+      }
+    }
+    return `![${caption || "зображення"}](${url})`;
   });
 
   result = result.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, (_match, page: string, text: string) => {
