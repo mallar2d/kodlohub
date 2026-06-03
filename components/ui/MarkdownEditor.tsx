@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ImagePicker from "@/components/wiki/ImagePicker";
 
 interface MarkdownEditorProps {
   value: string;
@@ -21,6 +22,7 @@ export default function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const insertMarkdown = (prefix: string, suffix: string = "") => {
@@ -103,6 +105,20 @@ export default function MarkdownEditor({
         className="hidden"
       />
 
+      <ImagePicker
+        open={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        onSelect={(url, caption) => {
+          const textarea = document.querySelector<HTMLTextAreaElement>("[data-md-editor]");
+          const cursorPos = textarea?.selectionStart || value.length;
+          const imageMarkdown = `![${caption || "зображення"}](${url})`;
+          const before = value.substring(0, cursorPos);
+          const after = value.substring(cursorPos);
+          const needsNewline = before.length > 0 && !before.endsWith("\n");
+          onChange(before + (needsNewline ? "\n" : "") + imageMarkdown + "\n" + after);
+        }}
+      />
+
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-2 py-1.5 bg-canvas-night-soft border-b border-hairline-dark">
         <button
@@ -159,6 +175,16 @@ export default function MarkdownEditor({
               <polyline points="21 15 16 10 5 21" />
             </svg>
           )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowImagePicker(true)}
+          className="p-1.5 text-ink-mute hover:text-on-primary hover:bg-canvas-night rounded transition-colors text-xs"
+          title="Обрати з галереї"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
         </button>
         <div className="w-px h-4 bg-hairline-dark mx-1" />
         <button
