@@ -45,29 +45,35 @@ export default function MarkdownEditor({
 
     setUploading(true);
     try {
-      const infoRes = await fetch("/api/wiki/upload", {
+      const presignRes = await fetch("/api/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
+          authorId: "wiki",
+          files: [{
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          }],
         }),
       });
 
-      if (!infoRes.ok) {
-        const data = await infoRes.json();
+      if (!presignRes.ok) {
+        const data = await presignRes.json();
         throw new Error(data.error || "Upload failed");
       }
 
-      const { presignedUrl, publicUrl } = await infoRes.json();
+      const { uploads } = await presignRes.json();
+      const upload = uploads[0];
+      if (!upload) throw new Error("No upload URL returned");
 
-      await fetch(presignedUrl, {
+      await fetch(upload.presignedUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
       });
 
+      const publicUrl = upload.publicUrl;
       const textarea = document.querySelector<HTMLTextAreaElement>("[data-md-editor]");
       const cursorPos = textarea?.selectionStart || value.length;
       const imageMarkdown = `![${file.name}](${publicUrl})`;
