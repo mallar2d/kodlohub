@@ -98,6 +98,15 @@ function parseMediaWikiMarkup(content: string): string {
     return `[${page}](/wiki/general/${page})`;
   });
 
+  result = result.replace(/([^\!]|^)\[(https?:\/\/[^\]]+)\]\(([^)]+)\)/g, (_match, prefix: string, alt: string, url: string) => {
+    if (prefix === "!") return _match;
+    return `${prefix}![${alt}](${url})`;
+  });
+
+  result = result.replace(/\n\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (_match, alt: string, url: string) => {
+    return `\n![${alt}](${url})`;
+  });
+
   const dlLines = result.split("\n");
   const dlProcessed: string[] = [];
   let i = 0;
