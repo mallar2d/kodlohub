@@ -9,16 +9,24 @@ export async function GET(
   try {
     const { slug } = await params;
     const supabase = createAdminClient();
+    const cleanSlug = decodeURIComponent(slug).trim().toLowerCase();
 
     const { data: article, error } = await supabase
       .from("wiki_articles")
       .select("*, wiki_categories(name, slug, icon), profiles(display_name, username, avatar_url)")
-      .eq("slug", slug)
+      .eq("slug", cleanSlug)
       .eq("is_published", true)
       .single();
 
     if (error || !article) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+      const { data: allSlugs } = await supabase
+        .from("wiki_articles")
+        .select("slug, is_published, title");
+      return NextResponse.json({
+        error: "Article not found",
+        searchedSlug: cleanSlug,
+        existingArticles: allSlugs || [],
+      }, { status: 404 });
     }
 
     await supabase

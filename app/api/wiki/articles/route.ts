@@ -68,9 +68,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { title, slug, content, category_id, edit_comment } = body;
 
-    if (!title || !slug || !content) {
-      return NextResponse.json({ error: "Title, slug and content are required" }, { status: 400 });
+    if (!title || !content) {
+      return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
     }
+
+    const articleSlug = slug || title.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 
     const adminSupabase = createAdminClient();
 
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
       .from("wiki_articles")
       .insert({
         title,
-        slug,
+        slug: articleSlug,
         content,
         category_id: category_id || null,
         author_id: user.id,
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
       .single();
 
     if (articleError) {
-      return NextResponse.json({ error: articleError.message }, { status: 500 });
+      return NextResponse.json({ error: articleError.message, details: articleError }, { status: 500 });
     }
 
     await adminSupabase.from("wiki_revisions").insert({

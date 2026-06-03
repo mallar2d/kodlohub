@@ -17,27 +17,50 @@ interface WikiArticle {
   profiles?: { display_name: string; username: string; avatar_url: string | null } | null;
 }
 
-async function getArticle(slug: string): Promise<WikiArticle | null> {
+async function getArticle(slugOrId: string): Promise<WikiArticle | null> {
   const supabase = createAdminClient();
+  const clean = decodeURIComponent(slugOrId).trim();
+
   const { data } = await supabase
     .from("wiki_articles")
     .select("*, wiki_categories(name, slug, icon), profiles(display_name, username, avatar_url)")
-    .eq("slug", slug)
+    .eq("slug", clean)
     .eq("is_published", true)
     .single();
 
-  if (!data) return null;
+  if (data) {
+    await supabase
+      .from("wiki_articles")
+      .update({ view_count: (data.view_count || 0) + 1 })
+      .eq("id", data.id);
 
-  await supabase
+    return {
+      ...data,
+      wiki_categories: Array.isArray(data.wiki_categories) ? data.wiki_categories[0] : data.wiki_categories || null,
+      profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles || null,
+    } as WikiArticle;
+  }
+
+  const { data: byId } = await supabase
     .from("wiki_articles")
-    .update({ view_count: (data.view_count || 0) + 1 })
-    .eq("id", data.id);
+    .select("*, wiki_categories(name, slug, icon), profiles(display_name, username, avatar_url)")
+    .eq("id", clean)
+    .single();
 
-  return {
-    ...data,
-    wiki_categories: Array.isArray(data.wiki_categories) ? data.wiki_categories[0] : data.wiki_categories || null,
-    profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles || null,
-  } as WikiArticle;
+  if (byId) {
+    await supabase
+      .from("wiki_articles")
+      .update({ view_count: (byId.view_count || 0) + 1 })
+      .eq("id", byId.id);
+
+    return {
+      ...byId,
+      wiki_categories: Array.isArray(byId.wiki_categories) ? byId.wiki_categories[0] : byId.wiki_categories || null,
+      profiles: Array.isArray(byId.profiles) ? byId.profiles[0] : byId.profiles || null,
+    } as WikiArticle;
+  }
+
+  return null;
 }
 
 export async function generateMetadata({
