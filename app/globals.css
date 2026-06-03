@@ -234,7 +234,7 @@ body {
 }
 
 .prose th {
-  background: var(--color-canvas-cool);
+  background: var(--color-canvas-night-soft);
   color: var(--color-on-primary);
   font-weight: 700;
   font-size: 0.75rem;
