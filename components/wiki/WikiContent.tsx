@@ -247,15 +247,15 @@ function WikiImage({ alt, src }: { alt: string; src?: string }) {
   let thumb = false;
   let width = "";
 
-  if (alt.includes("|")) {
-    const pipeIndex = alt.indexOf("|");
-    const meta = alt.substring(0, pipeIndex);
-    caption = alt.substring(pipeIndex + 1) || "зображення";
-    const metaParts = meta.split("|");
-    for (const part of metaParts) {
-      if (["right", "left", "center", "none"].includes(part)) align = part;
-      if (part === "thumb") thumb = true;
-      if (part.match(/^\d+$/)) width = part;
+  const parts = alt.split("|");
+  if (parts.length > 1) {
+    caption = parts[parts.length - 1] || "зображення";
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i].trim();
+      if (p.match(/^\d+px$/)) { width = p.replace("px", ""); }
+      else if (p.match(/^\d+$/)) { width = p; }
+      else if (p === "thumb" || p === "thumbnail") { thumb = true; }
+      else if (["right", "left", "center", "none"].includes(p)) { align = p; }
     }
   }
 
