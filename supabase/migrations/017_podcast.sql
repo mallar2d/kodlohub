@@ -22,7 +22,11 @@ CREATE TABLE IF NOT EXISTS podcast_settings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-INSERT INTO podcast_settings (id, background_track_url) VALUES (1, '/background.mp3') ON CONFLICT (id) DO NOTHING;
+INSERT INTO podcast_settings (id, background_track_url, background_volume)
+VALUES (1, '/background.mp3', 0.3)
+ON CONFLICT (id) DO UPDATE
+SET background_track_url = COALESCE(NULLIF(podcast_settings.background_track_url, ''), EXCLUDED.background_track_url),
+    background_volume = EXCLUDED.background_volume;
 
 -- RLS
 ALTER TABLE podcast_episodes ENABLE ROW LEVEL SECURITY;
