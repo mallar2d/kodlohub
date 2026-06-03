@@ -53,7 +53,7 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
 }
 
 function parseMediaWikiMarkup(content: string): string {
-  let result = content;
+  let result = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
   result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}$/gm, "#### $1");
   result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}$/gm, "### $1");
@@ -83,11 +83,14 @@ function parseMediaWikiMarkup(content: string): string {
     const line = lines[i];
     if (line.startsWith("; ")) {
       while (i < lines.length && lines[i].startsWith("; ")) {
-        const term = lines[i].substring(2);
+        const term = lines[i].substring(2).replace(/\*\*(.+?)\*\*/g, "$1");
         processed.push(`**${term}**`);
         i++;
         if (i < lines.length && lines[i].startsWith(": ")) {
           processed.push(`> ${lines[i].substring(2)}`);
+          i++;
+        } else if (i < lines.length && !lines[i].startsWith("; ") && !lines[i].startsWith("=") && lines[i].trim() !== "") {
+          processed.push(`> ${lines[i]}`);
           i++;
         }
         processed.push("");
