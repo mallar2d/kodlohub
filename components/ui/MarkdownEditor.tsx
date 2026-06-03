@@ -64,7 +64,7 @@ export default function MarkdownEditor({
 
       if (!presignRes.ok) {
         const data = await presignRes.json();
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || "Presign failed");
       }
 
       const { uploads } = await presignRes.json();
@@ -78,11 +78,17 @@ export default function MarkdownEditor({
       });
 
       if (!uploadRes.ok) {
-        const errText = await uploadRes.text().catch(() => "Unknown error");
-        throw new Error(`R2 upload failed (${uploadRes.status}): ${errText}`);
+        const errText = await uploadRes.text().catch(() => "");
+        throw new Error(`Помилка завантаження (${uploadRes.status}): ${errText || uploadRes.statusText}`);
       }
 
       const publicUrl = upload.publicUrl;
+
+      const testRes = await fetch(publicUrl, { method: "HEAD" });
+      if (!testRes.ok) {
+        throw new Error(`Зображення завантажено, але не доступне за URL (${testRes.status}). Перевір R2 public access.`);
+      }
+
       const textarea = document.querySelector<HTMLTextAreaElement>("[data-md-editor]");
       const cursorPos = textarea?.selectionStart || value.length;
       const imageMarkdown = `![${file.name}](${publicUrl})`;
