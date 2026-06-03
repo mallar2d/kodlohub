@@ -82,17 +82,16 @@ function parseMediaWikiMarkup(content: string): string {
   while (i < lines.length) {
     const line = lines[i];
     if (line.startsWith("; ")) {
-      let dl = "<dl>";
       while (i < lines.length && lines[i].startsWith("; ")) {
-        dl += `<dt>${lines[i].substring(2)}</dt>`;
+        const term = lines[i].substring(2);
+        processed.push(`**${term}**`);
         i++;
         if (i < lines.length && lines[i].startsWith(": ")) {
-          dl += `<dd>${lines[i].substring(2)}</dd>`;
+          processed.push(`> ${lines[i].substring(2)}`);
           i++;
         }
+        processed.push("");
       }
-      dl += "</dl>";
-      processed.push(dl);
     } else {
       processed.push(line);
       i++;
