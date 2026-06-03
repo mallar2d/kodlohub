@@ -171,6 +171,38 @@ function parseMediaWikiMarkup(content: string): string {
   }
   result = dlProcessed.join("\n");
 
+  const tableLines = result.split("\n");
+  const tableProcessed: string[] = [];
+  let inTable = false;
+  let headerDone = false;
+  for (const line of tableLines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("{|")) {
+      inTable = true;
+      headerDone = false;
+      continue;
+    }
+    if (trimmed === "|}") {
+      inTable = false;
+      continue;
+    }
+    if (inTable) {
+      if (trimmed === "|-") continue;
+      if (trimmed.startsWith("! ")) {
+        const cells = trimmed.split(" !! ").map((c: string) => c.replace(/^!\s*/, "").trim());
+        tableProcessed.push("| " + cells.join(" | ") + " |");
+        tableProcessed.push("| " + cells.map(() => "---").join(" | ") + " |");
+        headerDone = true;
+      } else if (trimmed.startsWith("| ")) {
+        const cells = trimmed.split(" || ").map((c: string) => c.replace(/^\|\s*/, "").trim());
+        tableProcessed.push("| " + cells.join(" | ") + " |");
+      }
+    } else {
+      tableProcessed.push(line);
+    }
+  }
+  result = tableProcessed.join("\n");
+
   result = result.replace(/^\* (.+)$/gm, "- $1");
   result = result.replace(/\n{3,}/g, "\n\n");
 
