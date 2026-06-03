@@ -262,6 +262,41 @@ body {
   opacity: 0.9;
 }
 
+.prose h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-on-primary);
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid var(--color-hairline-dark);
+}
+
+.prose h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-on-primary);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h4 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-on-primary);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
 /* SoundCloud hidden iframe — must remain in DOM & rendered for widget API */
 .soundcloud-iframe-hidden {
   position: absolute;
