@@ -63,6 +63,11 @@ function parseMediaWikiMarkup(content: string): string {
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
 
+  result = result.replace(/\[\[Файл:([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_match, filename: string, url: string) => {
+    const imgUrl = url && url.startsWith("http") ? url : filename;
+    return `![${filename}](${imgUrl})`;
+  });
+
   result = result.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, (_match, page: string, text: string) => {
     return `[${text}](/wiki/general/${page})`;
   });
