@@ -53,12 +53,34 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
 }
 
 function parseMediaWikiMarkup(content: string): string {
-  let result = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  let result = content
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[\u200B\u200C\u200D\uFEFF\u00A0]/g, " ")
+    .replace(/\t/g, "  ");
 
-  result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}\$/gm, "#### $1\n");
-  result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}\$/gm, "### $1\n");
-  result = result.replace(/^={2,}\s*([\s\S]*?)\s*={2,}\$/gm, "## $1\n");
-  result = result.replace(/^=\s+([\s\S]*?)\s+=\s*\$/gm, "## $1\n");
+  const lines = result.split("\n");
+  const processed: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    const h4 = trimmed.match(/^={4,}\s*(.+?)\s*={4,}$/);
+    if (h4) { processed.push(`#### ${h4[1]}\n`); continue; }
+
+    const h3 = trimmed.match(/^={3,}\s*(.+?)\s*={3,}$/);
+    if (h3) { processed.push(`### ${h3[1]}\n`); continue; }
+
+    const h2 = trimmed.match(/^={2,}\s*(.+?)\s*={2,}$/);
+    if (h2) { processed.push(`## ${h2[1]}\n`); continue; }
+
+    const h1 = trimmed.match(/^=\s+(.+?)\s+=\s*$/);
+    if (h1) { processed.push(`## ${h1[1]}\n`); continue; }
+
+    processed.push(line);
+  }
+
+  result = processed.join("\n");
 
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
@@ -76,31 +98,31 @@ function parseMediaWikiMarkup(content: string): string {
     return `[${page}](/wiki/general/${page})`;
   });
 
-  const lines = result.split("\n");
-  const processed: string[] = [];
+  const dlLines = result.split("\n");
+  const dlProcessed: string[] = [];
   let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line.startsWith("; ")) {
-      while (i < lines.length && lines[i].startsWith("; ")) {
-        const term = lines[i].substring(2).replace(/\*\*(.+?)\*\*/g, "$1");
-        processed.push(`**${term}**`);
+  while (i < dlLines.length) {
+    const line = dlLines[i];
+    if (line.trimStart().startsWith("; ")) {
+      while (i < dlLines.length && dlLines[i].trimStart().startsWith("; ")) {
+        const term = dlLines[i].trimStart().substring(2).replace(/\*\*(.+?)\*\*/g, "$1");
+        dlProcessed.push(`**${term}**`);
         i++;
-        if (i < lines.length && lines[i].startsWith(": ")) {
-          processed.push(`> ${lines[i].substring(2)}`);
+        if (i < dlLines.length && dlLines[i].trimStart().startsWith(": ")) {
+          dlProcessed.push(`> ${dlLines[i].trimStart().substring(2)}`);
           i++;
-        } else if (i < lines.length && !lines[i].startsWith("; ") && !lines[i].startsWith("=") && lines[i].trim() !== "") {
-          processed.push(`> ${lines[i]}`);
+        } else if (i < dlLines.length && !dlLines[i].trimStart().startsWith("; ") && !dlLines[i].trimStart().startsWith("=") && dlLines[i].trim() !== "") {
+          dlProcessed.push(`> ${dlLines[i]}`);
           i++;
         }
-        processed.push("");
+        dlProcessed.push("");
       }
     } else {
-      processed.push(line);
+      dlProcessed.push(line);
       i++;
     }
   }
-  result = processed.join("\n");
+  result = dlProcessed.join("\n");
 
   result = result.replace(/^\* (.+)$/gm, "- $1");
   result = result.replace(/\n{3,}/g, "\n\n");
