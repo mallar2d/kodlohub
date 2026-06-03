@@ -287,11 +287,15 @@ export default function HammerClient() {
             />
 
             <span
-              className={`text-7xl sm:text-8xl select-none transition-transform duration-300 ${
+              className={`select-none transition-transform duration-300 ${
                 canHit ? "group-hover:-rotate-12" : ""
               } ${animHit ? "rotate-[25deg] scale-90" : "rotate-0"}`}
             >
-              🔨
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16 sm:w-20 sm:h-20">
+                <path d="m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" />
+                <path d="m18 15 4-4" />
+                <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
+              </svg>
             </span>
 
             {!canHit && cooldownLeft > 0 && (
@@ -324,8 +328,9 @@ export default function HammerClient() {
               Ти можеш вдарити. Не зловживай.
             </p>
           )}
-          <p className="text-red-500/50 text-[10px] mt-2 text-center">
-            🔥 Удар рівно о 22:00 = x22 множник + кровавий ефект
+          <p className="text-red-500/50 text-[10px] mt-2 text-center flex items-center justify-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            Удар рівно о 22:00 = x22 множник + кровавий ефект
           </p>
         </div>
       </div>

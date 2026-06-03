@@ -449,8 +449,9 @@ export default function UploadClient({ initialUser, initialUserRole }: { initial
         {/* Mobile warning */}
         {isMobile && (
           <div className="mb-6 p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
-            <p className="text-yellow-400 text-sm font-bold mb-1">
-              ⚠️ МОБІЛЬНИЙ ПРИСТРІЙ
+            <p className="text-yellow-400 text-sm font-bold mb-1 flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              МОБІЛЬНИЙ ПРИСТРІЙ
             </p>
             <p className="text-yellow-400/80 text-xs">
               Завантаження файлів на телефоні працює нестабільно. Краще
@@ -609,7 +610,17 @@ export default function UploadClient({ initialUser, initialUserRole }: { initial
                     {files.map((f, i) => (
                       <div key={i} className="flex items-center justify-between px-3 py-2 bg-canvas-night rounded-lg">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs text-ink-mute">{f.type.startsWith("image/") ? "📷" : f.type.startsWith("video/") ? "🎬" : f.type.startsWith("audio/") ? "🎵" : "📄"}</span>
+                          <span className="text-ink-mute shrink-0">
+                            {f.type.startsWith("image/") ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            ) : f.type.startsWith("video/") ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                            ) : f.type.startsWith("audio/") ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            )}
+                          </span>
                           <span className="text-sm text-on-primary truncate">{f.name}</span>
                           <span className="text-xs text-ink-mute shrink-0">{(f.size / 1024 / 1024).toFixed(1)} МБ</span>
                         </div>

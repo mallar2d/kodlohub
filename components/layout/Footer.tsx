@@ -34,7 +34,9 @@ export default function Footer() {
 
         <div className="mt-8 pt-6 border-t border-hairline-dark flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="text-on-primary font-bold tracking-[1.6px]">
-            ⚡⚡ Powered by PODROID
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            {" "}Powered by PODROID
           </span>
           <span className="caption text-ink-mute">
             © 22:00 КОДЛО. Всі права захищені.

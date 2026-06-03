@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -14,14 +14,53 @@ interface Notification {
   created_at: string;
 }
 
-const typeIcons: Record<string, string> = {
-  comment: "💬",
-  post_approved: "✅",
-  post_rejected: "❌",
-  role_changed: "🏷️",
-  post_deleted: "🗑️",
-  system: "⚡",
+const svgProps = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+const typeIcons: Record<string, ReactNode> = {
+  comment: (
+    <svg {...svgProps}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  post_approved: (
+    <svg {...svgProps}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  post_rejected: (
+    <svg {...svgProps}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="15" y1="9" x2="9" y2="15" />
+      <line x1="9" y1="9" x2="15" y2="15" />
+    </svg>
+  ),
+  role_changed: (
+    <svg {...svgProps}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  post_deleted: (
+    <svg {...svgProps}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
+  system: (
+    <svg {...svgProps}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
 };
+
+const defaultIcon = (
+  <svg {...svgProps}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
 
 export default function NotificationsBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -166,7 +205,7 @@ export default function NotificationsBell() {
                   }}
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-lg mt-0.5">{typeIcons[notif.type] || "📌"}</span>
+                    <span className="text-ink-mute mt-0.5 shrink-0">{typeIcons[notif.type] || defaultIcon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-on-primary">{notif.title}</p>
                       <p className="text-xs text-on-primary-mute line-clamp-2">{notif.message}</p>
