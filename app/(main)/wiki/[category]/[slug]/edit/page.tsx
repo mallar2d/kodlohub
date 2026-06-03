@@ -28,14 +28,25 @@ async function getCategories(): Promise<WikiCategory[]> {
   return (data || []) as WikiCategory[];
 }
 
-async function getArticle(slug: string): Promise<WikiArticle | null> {
+async function getArticle(slugOrId: string): Promise<WikiArticle | null> {
   const supabase = createAdminClient();
+  const clean = decodeURIComponent(slugOrId).trim();
+
   const { data } = await supabase
     .from("wiki_articles")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", clean)
     .single();
-  return data as WikiArticle | null;
+
+  if (data) return data as WikiArticle;
+
+  const { data: byId } = await supabase
+    .from("wiki_articles")
+    .select("*")
+    .eq("id", clean)
+    .single();
+
+  return (byId as WikiArticle) || null;
 }
 
 export async function generateMetadata({

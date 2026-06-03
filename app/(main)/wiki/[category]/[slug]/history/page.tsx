@@ -20,19 +20,34 @@ interface WikiArticle {
   wiki_categories?: { name: string; slug: string; icon: string } | null;
 }
 
-async function getArticle(slug: string): Promise<WikiArticle | null> {
+async function getArticle(slugOrId: string): Promise<WikiArticle | null> {
   const supabase = createAdminClient();
+  const clean = decodeURIComponent(slugOrId).trim();
+
   const { data } = await supabase
     .from("wiki_articles")
     .select("id, slug, title, category_id, wiki_categories(name, slug, icon)")
-    .eq("slug", slug)
+    .eq("slug", clean)
     .single();
 
-  if (!data) return null;
+  if (data) {
+    return {
+      ...data,
+      wiki_categories: Array.isArray(data.wiki_categories) ? data.wiki_categories[0] : data.wiki_categories || null,
+    } as WikiArticle;
+  }
+
+  const { data: byId } = await supabase
+    .from("wiki_articles")
+    .select("id, slug, title, category_id, wiki_categories(name, slug, icon)")
+    .eq("id", clean)
+    .single();
+
+  if (!byId) return null;
 
   return {
-    ...data,
-    wiki_categories: Array.isArray(data.wiki_categories) ? data.wiki_categories[0] : data.wiki_categories || null,
+    ...byId,
+    wiki_categories: Array.isArray(byId.wiki_categories) ? byId.wiki_categories[0] : byId.wiki_categories || null,
   } as WikiArticle;
 }
 
