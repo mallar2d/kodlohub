@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 import { wikiCategoryIcons } from "@/lib/wiki-icons";
+import WikiContent from "@/components/wiki/WikiContent";
 
 interface WikiArticle {
   id: string;
@@ -154,11 +153,7 @@ export default function WikiArticleClient({ article }: { article: WikiArticle })
         <div className="border-t border-hairline-dark mb-8" />
 
         {/* Article content */}
-        <article className="prose max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {article.content}
-          </ReactMarkdown>
-        </article>
+        <WikiContent content={article.content} />
 
         {/* Footer */}
         <div className="border-t border-hairline-dark mt-12 pt-6">
