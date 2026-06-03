@@ -250,6 +250,18 @@ body {
   background: var(--color-canvas-night);
 }
 
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--color-hairline-dark);
+  margin: 1em 0;
+}
+
+.prose img:hover {
+  opacity: 0.9;
+}
+
 /* SoundCloud hidden iframe — must remain in DOM & rendered for widget API */
 .soundcloud-iframe-hidden {
   position: absolute;
