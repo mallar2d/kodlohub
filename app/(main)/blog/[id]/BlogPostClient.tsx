@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,7 +11,6 @@ import LikeButton from "@/components/ui/LikeButton";
 import { useToast } from "@/components/ui/Toast";
 import MarkdownEditor from "@/components/ui/MarkdownEditor";
 import Avatar from "@/components/ui/Avatar";
-import type { User } from "@supabase/supabase-js";
 
 interface Post {
   id: string;
@@ -41,27 +40,23 @@ export default function BlogPostClient({
   initialComments: Comment[];
 }) {
   const router = useRouter();
+  const { user, supabase } = useAuth();
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [isAuthor, setIsAuthor] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(initialPost.title);
   const [editContent, setEditContent] = useState(initialPost.content);
   const [editTags, setEditTags] = useState(initialPost.tags?.join(", ") || "");
-  const [user, setUser] = useState<User | null>(null);
   const [commentText, setCommentText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      setUser(data.user);
-      if (data.user && data.user.id === initialPost.author_id) setIsAuthor(true);
-    });
-  }, [initialPost.author_id, supabase]);
+    if (user && user.id === initialPost.author_id) setIsAuthor(true);
+  }, [user, initialPost.author_id]);
 
   const handleSave = async () => {
     const { error } = await supabase

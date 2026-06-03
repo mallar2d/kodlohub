@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, type ReactNode } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import Link from "next/link";
 
 interface Notification {
@@ -66,18 +66,26 @@ export default function NotificationsBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
+  const { user, supabase } = useAuth();
+
+  async function fetchNotifications(userId: string) {
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    setNotifications(data || []);
+    setUnreadCount((data || []).filter((n: { read: boolean }) => !n.read).length);
+  }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (data.user) {
-        setUser(data.user);
-        fetchNotifications(data.user.id);
-      }
-    });
-  }, []);
+    if (user) {
+      fetchNotifications(user.id);
+    }
+  }, [user]);
 
   // Close on outside click
   useEffect(() => {
@@ -116,18 +124,6 @@ export default function NotificationsBell() {
       supabase.removeChannel(channel);
     };
   }, [user, supabase]);
-
-  async function fetchNotifications(userId: string) {
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    setNotifications(data || []);
-    setUnreadCount((data || []).filter((n: { read: boolean }) => !n.read).length);
-  }
 
   async function markAsRead(id: string) {
     await supabase

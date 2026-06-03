@@ -7,6 +7,7 @@ import CoffeeReminder from "@/components/ui/CoffeeReminder";
 import SoundCloudPlayer from "@/components/ui/SoundCloudPlayer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/Toast";
+import AuthProvider from "@/components/providers/AuthProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -50,13 +51,15 @@ export default function RootLayout({
     <html lang="uk" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas-night text-on-primary">
         <ErrorBoundary>
-          <ToastProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <SoundCloudPlayer />
-            <CoffeeReminder />
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <SoundCloudPlayer />
+              <CoffeeReminder />
+            </ToastProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

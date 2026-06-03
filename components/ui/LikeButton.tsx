@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface LikeButtonProps {
   itemType: "post" | "media" | "lore";
@@ -21,26 +21,21 @@ export default function LikeButton({
   const [count, setCount] = useState(initialCount);
   const [liked, setLiked] = useState(initialLiked);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
-  const supabase = createClient();
+  const { user, supabase } = useAuth();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (data.user) {
-        setUser(data.user);
-        supabase
-          .from("likes")
-          .select("id")
-          .eq("user_id", data.user.id)
-          .eq("item_type", itemType)
-          .eq("item_id", itemId)
-          .single()
-          .then(({ data: existing }: { data: { id: string } | null }) => {
-            setLiked(!!existing);
-          });
-      }
-    });
-  }, [itemType, itemId, supabase]);
+    if (!user) return;
+    supabase
+      .from("likes")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("item_type", itemType)
+      .eq("item_id", itemId)
+      .single()
+      .then(({ data: existing }: { data: { id: string } | null }) => {
+        setLiked(!!existing);
+      });
+  }, [user, itemType, itemId, supabase]);
 
   const toggleLike = async () => {
     if (!user || loading) return;

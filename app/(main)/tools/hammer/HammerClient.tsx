@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 import Avatar from "@/components/ui/Avatar";
-import type { User } from "@supabase/supabase-js";
 
 type LeaderboardRow = {
   user_id: string;
@@ -74,8 +73,7 @@ function timeAgo(iso: string | null | undefined): string {
 }
 
 export default function HammerClient() {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoaded, setAuthLoaded] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<HammerState | null>(null);
   const [loading, setLoading] = useState(true);
   const [hitting, setHitting] = useState(false);
@@ -91,27 +89,6 @@ export default function HammerClient() {
   const lastHammerHitAtRef = useRef<string | null>(null);
   const hittingRef = useRef(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
-      setUser(data.user);
-      setAuthLoaded(true);
-    }).catch(() => {
-      setAuthLoaded(true);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event: string, session: { user: User | null } | null) => {
-        setUser(session?.user ?? null);
-        setAuthLoaded(true);
-      },
-    );
-    return () => subscription.unsubscribe();
-  }, []);
 
   const fetchState = useCallback(async () => {
     try {
@@ -135,12 +112,8 @@ export default function HammerClient() {
   }, [toast]);
 
   useEffect(() => {
-    fetchState();
-  }, []);
-
-  useEffect(() => {
-    if (authLoaded) fetchState();
-  }, [authLoaded]);
+    if (!authLoading) fetchState();
+  }, [authLoading, fetchState]);
 
   useEffect(() => {
     if (cooldownLeft <= 0) return;

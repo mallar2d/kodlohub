@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 
@@ -17,15 +17,10 @@ export default function MediaComments({ mediaId }: { mediaId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (data.user) setUser(data.user);
-    });
-
     fetch(`/api/media_comments?mediaId=${mediaId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -33,7 +28,7 @@ export default function MediaComments({ mediaId }: { mediaId: string }) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [mediaId, supabase]);
+  }, [mediaId]);
 
   const handleSubmit = async () => {
     if (!text.trim() || !user || submitting) return;
@@ -80,7 +75,7 @@ export default function MediaComments({ mediaId }: { mediaId: string }) {
     <div className="mt-4 pt-4 border-t border-hairline-dark">
       <p className="micro-cap text-ink-mute mb-3">КОМЕНТАРІ ({comments.length})</p>
 
-      {loading ? (
+      {loading || authLoading ? (
         <div className="text-center py-4">
           <div className="animate-spin w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full mx-auto" />
         </div>

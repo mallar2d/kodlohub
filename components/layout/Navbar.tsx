@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useAuth } from "@/components/providers/AuthProvider";
 import NotificationsBell from "@/components/ui/NotificationsBell";
 import SearchBar from "@/components/ui/SearchBar";
 import Avatar from "@/components/ui/Avatar";
@@ -47,60 +46,33 @@ const externalMenuLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, supabase } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null);
 
   useEffect(() => {
-    const client = createClient();
-    setSupabase(client);
-
     const cachedRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     if (cachedRole) setUserRole(cachedRole);
-
-    client.auth.getUser().then(async ({ data }: { data: { user: User | null } }) => {
-      const currentUser = data.user;
-      setUser(currentUser);
-      if (currentUser) {
-        const { data: profile } = await client
-          .from("profiles")
-          .select("role")
-          .eq("id", currentUser.id)
-          .single();
-        const role = profile?.role || null;
-        setUserRole(role);
-        if (role) localStorage.setItem("userRole", role);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange(async (event: string, session: { user: User | null } | null) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        if (event === "SIGNED_IN") {
-          try {
-            await fetch("/api/sync-profile", { method: "POST" });
-          } catch {}
-        }
-        const { data: profile } = await client
-          .from("profiles")
-          .select("role")
-          .eq("id", currentUser.id)
-          .single();
-        const role = profile?.role || null;
-        setUserRole(role);
-        if (role) localStorage.setItem("userRole", role);
-      } else {
-        setUserRole(null);
-        localStorage.removeItem("userRole");
-      }
-    });
-    return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setUserRole(null);
+      return;
+    }
+    const fetchRole = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = profile?.role || null;
+      setUserRole(role);
+      if (role) localStorage.setItem("userRole", role);
+    };
+    fetchRole();
+  }, [user, supabase]);
 
   // Close user menu on outside click
   useEffect(() => {
@@ -233,7 +205,7 @@ export default function Navbar() {
                   <div className="border-t border-hairline-dark my-1" />
                   <button
                     onClick={async () => {
-                      await supabase?.auth.signOut();
+                      await supabase.auth.signOut();
                       setUserMenuOpen(false);
                       window.location.href = "/";
                     }}
@@ -346,7 +318,7 @@ export default function Navbar() {
               </div>
               <button
                 onClick={async () => {
-                  await supabase?.auth.signOut();
+                  await supabase.auth.signOut();
                   setMenuOpen(false);
                   window.location.href = "/";
                 }}
