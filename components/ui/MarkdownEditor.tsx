@@ -11,6 +11,7 @@ interface MarkdownEditorProps {
   placeholder?: string;
   rows?: number;
   onImageUpload?: (url: string) => void;
+  onUploadError?: (message: string) => void;
 }
 
 export default function MarkdownEditor({
@@ -19,6 +20,7 @@ export default function MarkdownEditor({
   placeholder = "Пиши тут. Підтримується Markdown.",
   rows = 12,
   onImageUpload,
+  onUploadError,
 }: MarkdownEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -69,11 +71,16 @@ export default function MarkdownEditor({
       const upload = uploads[0];
       if (!upload) throw new Error("No upload URL returned");
 
-      await fetch(upload.presignedUrl, {
+      const uploadRes = await fetch(upload.presignedUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
       });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => "Unknown error");
+        throw new Error(`R2 upload failed (${uploadRes.status}): ${errText}`);
+      }
 
       const publicUrl = upload.publicUrl;
       const textarea = document.querySelector<HTMLTextAreaElement>("[data-md-editor]");
@@ -88,7 +95,9 @@ export default function MarkdownEditor({
 
       if (onImageUpload) onImageUpload(publicUrl);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Помилка завантаження";
       console.error("Image upload error:", err);
+      onUploadError?.(msg);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

@@ -172,6 +172,7 @@ export default function WikiEditorClient({
                 onChange={setContent}
                 placeholder="Пиши статтю тут. Підтримується Markdown."
                 rows={20}
+                onUploadError={(msg) => toast(msg, "error")}
               />
             </div>
           </div>
