@@ -75,6 +75,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect /cast/new route (admins only)
+  if (path === "/cast/new") {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profile?.role || "shemetovany";
+    if (role !== "owner" && role !== "podrofikovany") {
+      return NextResponse.redirect(new URL("/cast", request.url));
+    }
+  }
+
   // Protect /upload route
   if (path.startsWith("/upload")) {
     if (!user) {
