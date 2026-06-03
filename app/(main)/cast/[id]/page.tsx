@@ -59,9 +59,24 @@ export async function generateMetadata({
     return { title: "Випуск не знайдено" };
   }
 
+  const title = `Випуск #${episode.episode_number}: ${episode.title}`;
+  const description = episode.description || `Випуск #${episode.episode_number} подкасту КодлоCAST. Слухай на KodloHUB.`;
+
   return {
-    title: `Випуск #${episode.episode_number}: ${episode.title} — КодлоCAST`,
-    description: episode.description || `Випуск #${episode.episode_number} подкасту КодлоCAST`,
+    title: `${title} — КодлоCAST`,
+    description,
+    openGraph: {
+      title: `${title} — КодлоCAST`,
+      description,
+      type: "music.song",
+      audio: episode.audio_url,
+      siteName: "KodloHUB",
+    },
+    twitter: {
+      card: "player",
+      title: `${title} — КодлоCAST`,
+      description,
+    },
   };
 }
 

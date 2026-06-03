@@ -5,7 +5,13 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "КодлоCAST",
-  description: "Подкаст кодла. Слухай випуски, де тільки хочеш.",
+  description: "Подкаст кодла. Голоси, історії та балачки без зайвого.",
+  openGraph: {
+    title: "КодлоCAST — KodloHUB",
+    description: "Подкаст кодла. Голоси, історії та балачки без зайвого.",
+    type: "website",
+    siteName: "KodloHUB",
+  },
 };
 
 interface PodcastEpisode {
