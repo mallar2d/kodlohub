@@ -25,6 +25,19 @@ interface WikiArticle {
   profiles?: { display_name: string; username: string } | null;
 }
 
+function stripWikiMarkup(text: string): string {
+  let result = text;
+  result = result.replace(/\{\{[\s\S]*?\}\}/g, "");
+  result = result.replace(/^=+\s*[\s\S]*?\s*=+$/gm, "");
+  result = result.replace(/'''([\s\S]*?)'''/g, "$1");
+  result = result.replace(/''([\s\S]*?)''/g, "$1");
+  result = result.replace(/\[\[([^\]|]*\|)?([^\]]+)\]\]/g, "$2");
+  result = result.replace(/^; .+$/gm, "");
+  result = result.replace(/^: .+$/gm, "");
+  result = result.replace(/^\* .+$/gm, "");
+  return result.replace(/\n{2,}/g, "\n").trim();
+}
+
 export default function WikiCategoryClient({
   category,
   articles,
@@ -108,8 +121,8 @@ export default function WikiCategoryClient({
                   {article.title}
                 </h3>
                 <p className="text-on-primary-mute text-sm line-clamp-3 mb-4">
-                  {article.content.slice(0, 200)}
-                  {article.content.length > 200 ? "..." : ""}
+                  {stripWikiMarkup(article.content).slice(0, 200)}
+                  {stripWikiMarkup(article.content).length > 200 ? "..." : ""}
                 </p>
                 <div className="flex items-center justify-between">
                   {article.profiles && (

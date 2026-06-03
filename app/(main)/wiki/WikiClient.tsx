@@ -5,6 +5,19 @@ import Link from "next/link";
 import EmptyState from "@/components/ui/EmptyState";
 import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
+function stripWikiMarkup(text: string): string {
+  let result = text;
+  result = result.replace(/\{\{[\s\S]*?\}\}/g, "");
+  result = result.replace(/^=+\s*[\s\S]*?\s*=+$/gm, "");
+  result = result.replace(/'''([\s\S]*?)'''/g, "$1");
+  result = result.replace(/''([\s\S]*?)''/g, "$1");
+  result = result.replace(/\[\[([^\]|]*\|)?([^\]]+)\]\]/g, "$2");
+  result = result.replace(/^; .+$/gm, "");
+  result = result.replace(/^: .+$/gm, "");
+  result = result.replace(/^\* .+$/gm, "");
+  return result.replace(/\n{2,}/g, "\n").trim();
+}
+
 interface WikiCategory {
   id: string;
   name: string;
@@ -116,8 +129,8 @@ export default function WikiClient({
                     {article.title}
                   </h3>
                   <p className="text-on-primary-mute text-sm line-clamp-3 mb-4">
-                    {article.content.slice(0, 200)}
-                    {article.content.length > 200 ? "..." : ""}
+                    {stripWikiMarkup(article.content).slice(0, 200)}
+                    {stripWikiMarkup(article.content).length > 200 ? "..." : ""}
                   </p>
                   <div className="flex items-center justify-between">
                     {article.profiles && (
@@ -163,8 +176,8 @@ export default function WikiClient({
                         {article.title}
                       </h3>
                       <p className="caption text-ink-mute truncate">
-                        {article.content.slice(0, 100)}
-                        {article.content.length > 100 ? "..." : ""}
+                        {stripWikiMarkup(article.content).slice(0, 100)}
+                        {stripWikiMarkup(article.content).length > 100 ? "..." : ""}
                       </p>
                     </div>
                   </div>
