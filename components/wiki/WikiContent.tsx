@@ -55,10 +55,10 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
 function parseMediaWikiMarkup(content: string): string {
   let result = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-  result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}$/gm, "#### $1");
-  result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}$/gm, "### $1");
-  result = result.replace(/^={2,}\s*([\s\S]*?)\s*={2,}$/gm, "## $1");
-  result = result.replace(/^=\s+([\s\S]*?)\s+=\s*$/gm, "## $1");
+  result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}\$/gm, "#### $1\n");
+  result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}\$/gm, "### $1\n");
+  result = result.replace(/^={2,}\s*([\s\S]*?)\s*={2,}\$/gm, "## $1\n");
+  result = result.replace(/^=\s+([\s\S]*?)\s+=\s*\$/gm, "## $1\n");
 
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
@@ -103,6 +103,7 @@ function parseMediaWikiMarkup(content: string): string {
   result = processed.join("\n");
 
   result = result.replace(/^\* (.+)$/gm, "- $1");
+  result = result.replace(/\n{3,}/g, "\n\n");
 
   return result;
 }
