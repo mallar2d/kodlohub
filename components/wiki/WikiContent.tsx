@@ -12,7 +12,7 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
   const templates: { name: string; fields: TemplateField[] }[] = [];
   let cleaned = content;
 
-  const templateRegex = /\{\{([\p{L}]+)\s*\|([\s\S]*?)\}\}/gu;
+  const templateRegex = /\{\{([\p{L}\s]+)\s*\|([\s\S]*?)\}\}/gu;
   let match;
   while ((match = templateRegex.exec(content)) !== null) {
     const name = match[1];
@@ -191,6 +191,17 @@ const templateLabels: Record<string, Record<string, string>> = {
     зброя: "Зброя",
     світогляд: "Світогляд",
     IQ: "IQ",
+  },
+  "Музичний колектив": {
+    назва: "Назва",
+    зображення: "Зображення",
+    підпис: "Підпис",
+    походження: "Походження",
+    жанри: "Жанри",
+    роки_діяльності: "Роки діяльності",
+    лейбл: "Лейбл",
+    учасники: "Учасники",
+    вебсайт: "Вебсайт",
   },
 };
 
