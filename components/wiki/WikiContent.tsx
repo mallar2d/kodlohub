@@ -18,7 +18,16 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
     const name = match[1];
     const rawBody = match[2];
 
-    if (name === "Cquote" || name === "cquote") {
+    if (name.toLowerCase() === "cquote") {
+      const textMatch = rawBody.match(/text\s*=\s*([\s\S]*)/);
+      if (textMatch) {
+        const text = textMatch[1].trim();
+        const lines = text.split(/<br\s*\/?>/gi).filter(Boolean);
+        const blockquote = lines.map((l: string) => `> ${l.trim()}`).join("\n>\n");
+        cleaned = cleaned.replace(match[0], "\n\n" + blockquote + "\n\n");
+      } else {
+        cleaned = cleaned.replace(match[0], "");
+      }
       continue;
     }
 
@@ -46,21 +55,13 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
 function parseMediaWikiMarkup(content: string): string {
   let result = content;
 
-  result = result.replace(/^==\s*(.+?)\s*==$/gm, "## $1");
-  result = result.replace(/^===\s*(.+?)\s*===$/gm, "### $1");
-  result = result.replace(/^====\s*(.+?)\s*====$/gm, "#### $1");
+  result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}$/gm, "#### $1");
+  result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}$/gm, "### $1");
+  result = result.replace(/^={2,}\s*([\s\S]*?)\s*={2,}$/gm, "## $1");
+  result = result.replace(/^=\s*([\s\S]*?)\s*=\s*$/gm, "## $1");
 
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
-
-  result = result.replace(/\{\{Cquote\|text=([\s\S]*?)\}\}/g, (_match, text: string) => {
-    const lines = text.split(/<br\s*\/?>/gi).filter(Boolean);
-    return lines.map((l: string) => `> ${l.trim()}`).join("\n>\n");
-  });
-
-  result = result.replace(/\[\[Файл:([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_match, filename: string) => {
-    return `![${filename}](${filename})`;
-  });
 
   result = result.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, (_match, page: string, text: string) => {
     return `[${text}](/wiki/general/${page})`;
@@ -72,7 +73,6 @@ function parseMediaWikiMarkup(content: string): string {
 
   result = result.replace(/^; (.+)$/gm, "**$1**");
   result = result.replace(/^:\s*(.+)$/gm, "> $1");
-
   result = result.replace(/^\* (.+)$/gm, "- $1");
 
   return result;
