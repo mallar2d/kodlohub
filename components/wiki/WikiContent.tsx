@@ -85,9 +85,22 @@ function parseMediaWikiMarkup(content: string): string {
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
 
-  result = result.replace(/\[\[Файл:([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_match, filename: string, url: string) => {
-    const imgUrl = url && url.startsWith("http") ? url : filename;
-    return `![${filename}](${imgUrl})`;
+  result = result.replace(/\[\[Файл:([^\]|]+)\|([^\]]*)\]\]/g, (_match, urlOrName: string, params: string) => {
+    const parts = params.split("|");
+    const imgUrl = urlOrName.startsWith("http") ? urlOrName : urlOrName;
+    let caption = "";
+    for (const p of parts) {
+      const trimmed = p.trim();
+      if (trimmed && !trimmed.match(/^\d+px$/) && trimmed !== "thumb" && trimmed !== "right" && trimmed !== "left" && trimmed !== "center" && trimmed !== "frameless" && trimmed !== "frame") {
+        caption = trimmed.replace(/^"(.*)"$/, "$1");
+      }
+    }
+    return `![${caption || "зображення"}](${imgUrl})`;
+  });
+
+  result = result.replace(/\[\[Файл:([^\]|]+)\]\]/g, (_match, urlOrName: string) => {
+    const imgUrl = urlOrName.startsWith("http") ? urlOrName : urlOrName;
+    return `![зображення](${imgUrl})`;
   });
 
   result = result.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, (_match, page: string, text: string) => {
