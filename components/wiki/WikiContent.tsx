@@ -12,7 +12,7 @@ function parseTemplates(content: string): { templates: { name: string; fields: T
   const templates: { name: string; fields: TemplateField[] }[] = [];
   let cleaned = content;
 
-  const templateRegex = /\{\{([\p{L}]+)\|([\s\S]*?)\}\}/gu;
+  const templateRegex = /\{\{([\p{L}]+)\s*\|([\s\S]*?)\}\}/gu;
   let match;
   while ((match = templateRegex.exec(content)) !== null) {
     const name = match[1];
