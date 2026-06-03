@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import EmptyState from "@/components/ui/EmptyState";
+import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 interface WikiCategory {
   id: string;
@@ -56,8 +57,8 @@ export default function WikiCategoryClient({
 
         {/* Header */}
         <div className="mb-12">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl">{category.icon}</span>
+          <div className="flex items-center gap-3 mb-2 text-on-primary-mute">
+            {wikiCategoryIcons[category.slug] || wikiCategoryIcons.general}
           </div>
           <h1 className="heading-section mb-4">{category.name.toUpperCase()}</h1>
           <p className="text-on-primary-mute text-lg max-w-2xl">

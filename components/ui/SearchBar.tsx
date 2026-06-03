@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 interface SearchResult {
   posts: { id: string; title: string }[];
@@ -148,7 +149,8 @@ export default function SearchBar() {
                   className="block px-3 py-2 text-sm text-on-primary hover:bg-canvas-night rounded transition-colors truncate"
                   onClick={() => { setOpen(false); setQuery(""); }}
                 >
-                  {item.wiki_categories?.icon} {item.title}
+                  <span className="inline-flex align-middle mr-1">{wikiCategoryIcons[item.wiki_categories?.slug || "general"] || wikiCategoryIcons.general}</span>
+                  {item.title}
                 </Link>
               ))}
             </div>

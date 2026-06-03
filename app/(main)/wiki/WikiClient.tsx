@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import EmptyState from "@/components/ui/EmptyState";
+import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 interface WikiCategory {
   id: string;
@@ -77,7 +78,7 @@ export default function WikiClient({
                 href={`/wiki/${cat.slug}`}
                 className="card-dark p-4 hover:border-on-primary-mute transition-colors text-center group"
               >
-                <div className="text-3xl mb-2">{cat.icon}</div>
+                <div className="text-on-primary-mute mb-2 flex justify-center">{wikiCategoryIcons[cat.slug] || wikiCategoryIcons.general}</div>
                 <h3 className="button-cap text-on-primary group-hover:text-on-primary-mute transition-colors">
                   {cat.name}
                 </h3>
@@ -105,8 +106,9 @@ export default function WikiClient({
                       ★ ОБРАНА
                     </span>
                     {article.wiki_categories && (
-                      <span className="button-cap px-2 py-0.5 rounded border border-hairline-dark text-ink-mute text-[10px]">
-                        {article.wiki_categories.icon} {article.wiki_categories.name}
+                      <span className="button-cap px-2 py-0.5 rounded border border-hairline-dark text-ink-mute text-[10px] flex items-center gap-1">
+                        <span className="inline-flex">{wikiCategoryIcons[article.wiki_categories.slug] || wikiCategoryIcons.general}</span>
+                        {article.wiki_categories.name}
                       </span>
                     )}
                   </div>
@@ -152,8 +154,8 @@ export default function WikiClient({
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     {article.wiki_categories && (
-                      <span className="button-cap px-2 py-0.5 rounded border border-hairline-dark text-ink-mute text-[10px] shrink-0">
-                        {article.wiki_categories.icon}
+                      <span className="button-cap px-2 py-0.5 rounded border border-hairline-dark text-ink-mute text-[10px] shrink-0 inline-flex">
+                        {wikiCategoryIcons[article.wiki_categories.slug] || wikiCategoryIcons.general}
                       </span>
                     )}
                     <div className="min-w-0">

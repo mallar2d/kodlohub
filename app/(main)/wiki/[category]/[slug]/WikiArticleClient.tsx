@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
+import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 interface WikiArticle {
   id: string;
@@ -98,9 +99,10 @@ export default function WikiArticleClient({ article }: { article: WikiArticle })
                 {article.wiki_categories && (
                   <Link
                     href={`/wiki/${categorySlug}`}
-                    className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-ink-mute text-[10px] hover:text-on-primary transition-colors"
+                    className="button-cap px-3 py-1 rounded-full border border-hairline-dark text-ink-mute text-[10px] hover:text-on-primary transition-colors inline-flex items-center gap-1"
                   >
-                    {article.wiki_categories.icon} {article.wiki_categories.name}
+                    <span className="inline-flex">{wikiCategoryIcons[categorySlug] || wikiCategoryIcons.general}</span>
+                    {article.wiki_categories.name}
                   </Link>
                 )}
                 {article.profiles && (

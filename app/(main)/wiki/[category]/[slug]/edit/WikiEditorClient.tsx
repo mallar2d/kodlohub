@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import MarkdownEditor from "@/components/ui/MarkdownEditor";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
+import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 interface WikiCategory {
   id: string;
@@ -180,18 +181,23 @@ export default function WikiEditorClient({
             {/* Category */}
             <div className="card-dark p-4">
               <label className="micro-cap text-ink-mute mb-3 block">КАТЕГОРІЯ</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 bg-canvas-night border border-hairline-dark rounded text-on-primary focus:outline-none focus:border-on-primary-mute"
-              >
-                <option value="">Без категорії</option>
+              <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </option>
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategoryId(categoryId === cat.id ? "" : cat.id)}
+                    className={`button-cap px-3 py-1.5 rounded-full border transition-opacity inline-flex items-center gap-1.5 text-[11px] ${
+                      categoryId === cat.id
+                        ? "border-on-primary text-on-primary"
+                        : "border-hairline-dark text-ink-mute hover:text-on-primary"
+                    }`}
+                  >
+                    <span className="inline-flex">{wikiCategoryIcons[cat.slug] || wikiCategoryIcons.general}</span>
+                    {cat.name}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             {/* Edit comment */}
