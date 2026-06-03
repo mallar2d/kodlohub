@@ -13,6 +13,7 @@ const navLinks = [
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "АРТЕФАКТИ" },
+  { href: "/wiki", label: "КОДЛОПЕДІЯ" },
   { href: "/users", label: "УЧАСНИКИ" },
   { href: "/tools", label: "TOOLS" },
 ];

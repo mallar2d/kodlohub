@@ -47,6 +47,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect /wiki edit routes (admins only)
+  if (path.match(/^\/wiki\/[^/]+\/[^/]+\/edit/)) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profile?.role || "shemetovany";
+    if (role !== "owner" && role !== "podrofikovany") {
+      return NextResponse.redirect(new URL("/wiki", request.url));
+    }
+  }
+
   // Protect /upload route
   if (path.startsWith("/upload")) {
     if (!user) {

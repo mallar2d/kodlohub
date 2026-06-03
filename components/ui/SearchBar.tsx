@@ -7,6 +7,7 @@ interface SearchResult {
   posts: { id: string; title: string }[];
   media: { id: string; caption: string | null; file_type: string }[];
   lore: { id: string; title: string; category: string }[];
+  wiki: { id: string; slug: string; title: string; wiki_categories?: { name: string; slug: string; icon: string } | null }[];
 }
 
 export default function SearchBar() {
@@ -56,7 +57,8 @@ export default function SearchBar() {
   const totalResults =
     (results?.posts.length || 0) +
     (results?.media.length || 0) +
-    (results?.lore.length || 0);
+    (results?.lore.length || 0) +
+    (results?.wiki.length || 0);
 
   return (
     <div ref={ref} className="relative">
@@ -132,6 +134,21 @@ export default function SearchBar() {
                   onClick={() => { setOpen(false); setQuery(""); }}
                 >
                   {item.title}
+                </Link>
+              ))}
+            </div>
+          )}
+          {results.wiki && results.wiki.length > 0 && (
+            <div className="p-2 border-t border-hairline-dark">
+              <p className="micro-cap text-ink-mute px-2 py-1">КОДЛОПЕДІЯ</p>
+              {results.wiki.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/wiki/${item.wiki_categories?.slug || "general"}/${item.slug}`}
+                  className="block px-3 py-2 text-sm text-on-primary hover:bg-canvas-night rounded transition-colors truncate"
+                  onClick={() => { setOpen(false); setQuery(""); }}
+                >
+                  {item.wiki_categories?.icon} {item.title}
                 </Link>
               ))}
             </div>
