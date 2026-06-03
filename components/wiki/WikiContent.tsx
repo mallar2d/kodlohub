@@ -89,29 +89,43 @@ function parseMediaWikiMarkup(content: string): string {
     const parts = params.split("|");
     const imgUrl = urlOrName.startsWith("http") ? urlOrName : urlOrName;
     let caption = "";
+    let align = "";
+    let thumb = false;
+    let width = "";
     for (const p of parts) {
       const trimmed = p.trim();
-      if (trimmed && !trimmed.match(/^\d+px$/) && trimmed !== "thumb" && trimmed !== "right" && trimmed !== "left" && trimmed !== "center" && trimmed !== "frameless" && trimmed !== "frame") {
-        caption = trimmed.replace(/^"(.*)"$/, "$1");
-      }
+      if (!trimmed) continue;
+      if (trimmed.match(/^\d+px$/)) { width = trimmed.replace("px", ""); continue; }
+      if (trimmed === "thumb" || trimmed === "thumbnail") { thumb = true; continue; }
+      if (["right", "left", "center", "none"].includes(trimmed)) { align = trimmed; continue; }
+      if (["frameless", "frame", "border"].includes(trimmed)) continue;
+      caption = trimmed.replace(/^"(.*)"$/, "$1");
     }
-    return `![${caption || "зображення"}](${imgUrl})`;
+    const meta = [align, thumb ? "thumb" : "", width].filter(Boolean).join("|");
+    return `![${meta}|${caption || "зображення"}](${imgUrl})`;
   });
 
   result = result.replace(/\[\[Файл:([^\]|]+)\]\]/g, (_match, urlOrName: string) => {
-    return `![зображення](${urlOrName})`;
+    return `![|зображення](${urlOrName})`;
   });
 
   result = result.replace(/\[\[(https?:\/\/[^\]|]+)\|([^\]]*)\]\]/g, (_match, url: string, params: string) => {
     const parts = params.split("|");
     let caption = "";
+    let align = "";
+    let thumb = false;
+    let width = "";
     for (const p of parts) {
       const trimmed = p.trim();
-      if (trimmed && !trimmed.match(/^\d+px$/) && trimmed !== "thumb" && trimmed !== "right" && trimmed !== "left" && trimmed !== "center" && trimmed !== "frameless" && trimmed !== "frame") {
-        caption = trimmed.replace(/^"(.*)"$/, "$1");
-      }
+      if (!trimmed) continue;
+      if (trimmed.match(/^\d+px$/)) { width = trimmed.replace("px", ""); continue; }
+      if (trimmed === "thumb" || trimmed === "thumbnail") { thumb = true; continue; }
+      if (["right", "left", "center", "none"].includes(trimmed)) { align = trimmed; continue; }
+      if (["frameless", "frame", "border"].includes(trimmed)) continue;
+      caption = trimmed.replace(/^"(.*)"$/, "$1");
     }
-    return `![${caption || "зображення"}](${url})`;
+    const meta = [align, thumb ? "thumb" : "", width].filter(Boolean).join("|");
+    return `![${meta}|${caption || "зображення"}](${url})`;
   });
 
   result = result.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, (_match, page: string, text: string) => {
@@ -225,6 +239,43 @@ function Infobox({ template }: { template: { name: string; fields: TemplateField
   );
 }
 
+function WikiImage({ alt, src }: { alt: string; src?: string }) {
+  if (!src) return null;
+
+  let caption = alt;
+  let align = "";
+  let thumb = false;
+  let width = "";
+
+  if (alt.includes("|")) {
+    const pipeIndex = alt.indexOf("|");
+    const meta = alt.substring(0, pipeIndex);
+    caption = alt.substring(pipeIndex + 1) || "зображення";
+    const metaParts = meta.split("|");
+    for (const part of metaParts) {
+      if (["right", "left", "center", "none"].includes(part)) align = part;
+      if (part === "thumb") thumb = true;
+      if (part.match(/^\d+$/)) width = part;
+    }
+  }
+
+  const containerClass = [
+    "wiki-img-container",
+    align ? `wiki-img-${align}` : "",
+    thumb ? "wiki-img-thumb" : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <figure className={containerClass} style={width ? { maxWidth: `${width}px` } : undefined}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={caption} className="wiki-img" loading="lazy" />
+      {caption && caption !== "зображення" && (
+        <figcaption className="wiki-img-caption">{caption}</figcaption>
+      )}
+    </figure>
+  );
+}
+
 export default function WikiContent({ content }: { content: string }) {
   const { templates, cleaned } = parseTemplates(content);
   const withMarkup = parseMediaWikiMarkup(cleaned);
@@ -239,7 +290,12 @@ export default function WikiContent({ content }: { content: string }) {
         </div>
       )}
       <div className="prose max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            img: ({ alt, src }) => <WikiImage alt={alt || ""} src={typeof src === "string" ? src : ""} />,
+          }}
+        >
           {withMarkup}
         </ReactMarkdown>
       </div>
