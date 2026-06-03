@@ -27,6 +27,16 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // After getUser(), any token refresh has written new cookies to request.cookies
+  // via setAll. The supabaseResponse may be stale if setAll was called async.
+  // Re-create the response to ensure all refreshed cookies are included.
+  supabaseResponse = NextResponse.next({ request });
+  request.cookies.getAll().forEach(({ name, value }) => {
+    supabaseResponse.cookies.set(name, value, {
+      secure: process.env.NODE_ENV === "production",
+    });
+  });
+
   const path = request.nextUrl.pathname;
 
   // Protect /admin routes

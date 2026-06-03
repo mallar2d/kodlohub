@@ -29,6 +29,19 @@ export async function GET(request: NextRequest) {
       },
     );
 
+    // Clear any stale session cookies before exchanging
+    const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] || "";
+    const staleCookiePrefix = `sb-${supabaseHost}-auth-token`;
+    request.cookies.getAll().forEach(({ name }) => {
+      if (name.startsWith(staleCookiePrefix) || name.includes("auth-code-verifier")) {
+        supabaseResponse.cookies.set(name, "", {
+          maxAge: 0,
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+        });
+      }
+    });
+
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
