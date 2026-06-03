@@ -297,6 +297,22 @@ body {
   margin-bottom: 0.5em;
 }
 
+.prose dl {
+  margin: 1em 0;
+}
+
+.prose dt {
+  font-weight: 700;
+  color: var(--color-on-primary);
+  margin-top: 0.75em;
+}
+
+.prose dd {
+  color: var(--color-on-primary-mute);
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+
 /* SoundCloud hidden iframe — must remain in DOM & rendered for widget API */
 .soundcloud-iframe-hidden {
   position: absolute;

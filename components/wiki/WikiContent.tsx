@@ -58,7 +58,7 @@ function parseMediaWikiMarkup(content: string): string {
   result = result.replace(/^={4,}\s*([\s\S]*?)\s*={4,}$/gm, "#### $1");
   result = result.replace(/^={3,}\s*([\s\S]*?)\s*={3,}$/gm, "### $1");
   result = result.replace(/^={2,}\s*([\s\S]*?)\s*={2,}$/gm, "## $1");
-  result = result.replace(/^=\s*([\s\S]*?)\s*=\s*$/gm, "## $1");
+  result = result.replace(/^=\s+([\s\S]*?)\s+=\s*$/gm, "## $1");
 
   result = result.replace(/'''([\s\S]*?)'''/g, "**$1**");
   result = result.replace(/''([\s\S]*?)''/g, "*$1*");
@@ -71,8 +71,30 @@ function parseMediaWikiMarkup(content: string): string {
     return `[${page}](/wiki/general/${page})`;
   });
 
-  result = result.replace(/^; (.+)$/gm, "**$1**");
-  result = result.replace(/^:\s*(.+)$/gm, "> $1");
+  const lines = result.split("\n");
+  const processed: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith("; ")) {
+      let dl = "<dl>";
+      while (i < lines.length && lines[i].startsWith("; ")) {
+        dl += `<dt>${lines[i].substring(2)}</dt>`;
+        i++;
+        if (i < lines.length && lines[i].startsWith(": ")) {
+          dl += `<dd>${lines[i].substring(2)}</dd>`;
+          i++;
+        }
+      }
+      dl += "</dl>";
+      processed.push(dl);
+    } else {
+      processed.push(line);
+      i++;
+    }
+  }
+  result = processed.join("\n");
+
   result = result.replace(/^\* (.+)$/gm, "- $1");
 
   return result;
