@@ -252,20 +252,20 @@ function Infobox({ template }: { template: { name: string; fields: TemplateField
       <div className="bg-canvas-night-soft px-4 py-3 border-b border-hairline-dark">
         <h3 className="button-cap text-on-primary text-sm">{template.name}</h3>
       </div>
-      {imageField && (
+      {imageField && imageField.value && (
         <div className="border-b border-hairline-dark">
-          <div className="aspect-square bg-canvas-night flex items-center justify-center overflow-hidden">
+          <div className="bg-canvas-night flex items-center justify-center overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageField.value}
               alt={nameField?.value || template.name}
-              className="w-full h-full object-cover"
+              className="w-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
                 (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
               }}
             />
-            <span className="text-ink-mute text-xs hidden">📷 {imageField.value}</span>
+            <span className="text-ink-mute text-xs p-4 text-center hidden">Зображення недоступне</span>
           </div>
           {captionField && (
             <p className="caption text-ink-mute text-center px-3 py-2">{captionField.value}</p>
