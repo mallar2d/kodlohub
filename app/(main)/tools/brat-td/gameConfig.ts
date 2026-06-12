@@ -271,7 +271,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     cost: 385,
     range: 90,
     damage: 12,
-    fireRate: 0.2,
+    fireRate: 0.4,
     color: "#22c55e", // Green
     emoji: "💨",
     upgrades: {
