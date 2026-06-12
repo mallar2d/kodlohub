@@ -199,8 +199,40 @@ const checkUpgradeAllowed = (path1: number, path2: number, path3: number, pathIn
   return activePaths <= 2 && highTiers <= 1;
 };
 
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+  wave: number;
+  date: string;
+}
 
+const LEADERBOARD_KEY = "brat_td_leaderboard";
 
+function getLeaderboard(): LeaderboardEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_KEY);
+    if (!raw) {
+      const defaults: LeaderboardEntry[] = [
+        { name: "Петро Хоменко", score: 22000, wave: 46, date: "2026-06-12" }
+      ];
+      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+    return JSON.parse(raw) as LeaderboardEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function addToLeaderboard(name: string, score: number, wave: number): LeaderboardEntry[] {
+  const entries = getLeaderboard();
+  entries.push({ name, score, wave, date: new Date().toISOString().split("T")[0] });
+  entries.sort((a, b) => b.score - a.score);
+  const top10 = entries.slice(0, 10);
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(top10));
+  return top10;
+}
 
 export default function BratTDClient() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -227,6 +259,9 @@ export default function BratTDClient() {
   const [isMouseOnCanvas, setIsMouseOnCanvas] = useState(false);
   const [draggedTowerType, setDraggedTowerType] = useState<string | null>(null);
   const [draggedTowerPos, setDraggedTowerPos] = useState<{ x: number; y: number } | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [playerName, setPlayerName] = useState("");
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
 
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
@@ -266,6 +301,11 @@ export default function BratTDClient() {
   useEffect(() => { gameSpeedRef.current = gameSpeed; }, [gameSpeed]);
   useEffect(() => { isAutoStartRef.current = isAutoStart; }, [isAutoStart]);
   useEffect(() => { scoreRef.current = score; }, [score]);
+
+  // Load leaderboard on mount
+  useEffect(() => {
+    setLeaderboard(getLeaderboard());
+  }, []);
 
   // Audio helper
   const playPdrSound = () => {
@@ -1588,7 +1628,8 @@ export default function BratTDClient() {
 
       // Screen shake
       const shake = screenShakeRef.current;
-      if (shake.duration > 0) {
+      const isShaking = shake.duration > 0;
+      if (isShaking) {
         shake.x = (Math.random() - 0.5) * shake.intensity;
         shake.y = (Math.random() - 0.5) * shake.intensity;
         shake.intensity *= 0.9;
@@ -2095,7 +2136,7 @@ export default function BratTDClient() {
       }
 
       // Restore screen shake
-      if (screenShakeRef.current.duration > 0) {
+      if (isShaking) {
         ctx.restore();
       }
 
@@ -2156,6 +2197,8 @@ export default function BratTDClient() {
 
   // Reset helper
   const handleRestart = () => {
+    setScoreSubmitted(false);
+    setPlayerName("");
     startGame();
   };
 
@@ -2164,6 +2207,13 @@ export default function BratTDClient() {
     setGameStatus("playing");
     setWave(47);
     pushLog("Почалася нескінченна гра! Вороги стають сильнішими з кожною хвилею.");
+  };
+
+  const handleSubmitScore = () => {
+    const name = playerName.trim() || "Анонім";
+    const updated = addToLeaderboard(name, score, wave - 1);
+    setLeaderboard(updated);
+    setScoreSubmitted(true);
   };
 
   const selectedPlacedTower = selectedTower;
@@ -2319,18 +2369,49 @@ export default function BratTDClient() {
 
           {/* Game Over Screen */}
           {gameStatus === "gameover" && (
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-slide-up">
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-slide-up overflow-y-auto">
               <h2 className="heading-hero text-red-500 mb-2">Кодло не вивезло</h2>
-              <p className="text-on-primary-mute mb-8 max-w-md text-sm">
+              <p className="text-on-primary-mute mb-4 max-w-md text-sm">
                 Братва прорвала оборону Кодлохабу. Подро мовчав занадто довго. Спробуйте іншу тактику!
               </p>
               <p className="text-yellow-400 font-bold text-lg mb-4">
-                Score: {score} | Хвиль пройдено: {wave - 1} | Вбивств: {score}
+                Score: {score} | Хвиль: {wave - 1}
               </p>
-              <button
-                onClick={handleRestart}
-                className="btn-ghost text-red-400 hover:text-white"
-              >
+              {!scoreSubmitted ? (
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Ваше ім'я"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    maxLength={20}
+                    className="px-3 py-2 bg-zinc-900 border border-hairline-dark rounded text-on-primary text-sm w-40"
+                    onKeyDown={(e) => e.key === "Enter" && handleSubmitScore()}
+                  />
+                  <button onClick={handleSubmitScore} className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500 text-sm font-bold button-cap">
+                    В лідерборд
+                  </button>
+                </div>
+              ) : (
+                <p className="text-green-400 text-sm mb-4">Збережено!</p>
+              )}
+              {leaderboard.length > 0 && (
+                <div className="w-full max-w-xs mb-4 text-left">
+                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
+                  <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
+                    {leaderboard.map((e, i) => (
+                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-5 text-right font-bold">{i + 1}.</span>
+                          <span className="truncate max-w-[120px]">{e.name}</span>
+                        </span>
+                        <span className="font-bold">{e.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button onClick={handleRestart} className="btn-ghost text-red-400 hover:text-white">
                 Зіграти ще раз
               </button>
             </div>
@@ -2338,25 +2419,53 @@ export default function BratTDClient() {
 
           {/* Victory Screen */}
           {gameStatus === "victory" && (
-            <div className="absolute inset-0 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-slide-up">
+            <div className="absolute inset-0 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-slide-up overflow-y-auto">
               <h2 className="heading-hero text-yellow-500 mb-2">ПОДРО ПОЧУВ</h2>
-              <p className="text-on-primary-mute mb-8 max-w-md text-sm">
+              <p className="text-on-primary-mute mb-4 max-w-md text-sm">
                 Братва відбита! CodloHub survived another cringe incident. Ви можете грати нескінченно!
               </p>
               <p className="text-yellow-400 font-bold text-lg mb-4">
                 Фінальний Score: {score}
               </p>
+              {!scoreSubmitted ? (
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Ваше ім'я"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    maxLength={20}
+                    className="px-3 py-2 bg-zinc-900 border border-hairline-dark rounded text-on-primary text-sm w-40"
+                    onKeyDown={(e) => e.key === "Enter" && handleSubmitScore()}
+                  />
+                  <button onClick={handleSubmitScore} className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500 text-sm font-bold button-cap">
+                    В лідерборд
+                  </button>
+                </div>
+              ) : (
+                <p className="text-green-400 text-sm mb-4">Збережено!</p>
+              )}
+              {leaderboard.length > 0 && (
+                <div className="w-full max-w-xs mb-4 text-left">
+                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
+                  <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
+                    {leaderboard.map((e, i) => (
+                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-5 text-right font-bold">{i + 1}.</span>
+                          <span className="truncate max-w-[120px]">{e.name}</span>
+                        </span>
+                        <span className="font-bold">{e.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-4">
-                <button
-                  onClick={handleEndless}
-                  className="px-6 py-3 bg-yellow-600 text-white rounded hover:bg-yellow-500 button-cap"
-                >
+                <button onClick={handleEndless} className="px-6 py-3 bg-yellow-600 text-white rounded hover:bg-yellow-500 button-cap">
                   Нескінченна гра
                 </button>
-                <button
-                  onClick={handleRestart}
-                  className="px-6 py-3 border border-hairline-dark rounded hover:bg-canvas-night-soft text-on-primary button-cap"
-                >
+                <button onClick={handleRestart} className="px-6 py-3 border border-hairline-dark rounded hover:bg-canvas-night-soft text-on-primary button-cap">
                   Почати знову
                 </button>
               </div>
@@ -2367,16 +2476,32 @@ export default function BratTDClient() {
           {gameStatus === "idle" && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
               <h2 className="heading-section text-on-primary mb-4">BRAT TD</h2>
-              <p className="text-on-primary-mute mb-8 max-w-md text-sm">
+              <p className="text-on-primary-mute mb-6 max-w-md text-sm">
                 Захистіть Кодлохаб від хвиль Братви. Ставте Подро-юнітів, які кидатимуть молотки,
                 каву та святих рачків.
               </p>
               <button
                 onClick={startGame}
-                className="btn-ghost text-cyan-400 hover:text-white"
+                className="btn-ghost text-cyan-400 hover:text-white mb-6"
               >
                 ПРИЙНЯТИ НАКАТ
               </button>
+              {leaderboard.length > 0 && (
+                <div className="w-full max-w-xs text-left">
+                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
+                  <div className="bg-zinc-900/60 border border-hairline-dark rounded p-2 max-h-36 overflow-y-auto">
+                    {leaderboard.map((e, i) => (
+                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-5 text-right font-bold">{i + 1}.</span>
+                          <span className="truncate max-w-[120px]">{e.name}</span>
+                        </span>
+                        <span className="font-bold">{e.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
