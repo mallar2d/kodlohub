@@ -142,7 +142,7 @@ export const TIER_SCALING = [
   // tier 4: champion (waves 31-40)
   { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 2.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
   // tier 5: legend (waves 41-46+)
-  { hpMult: 6.0, speedMult: 1.20, damageReduce: 0.40, rewardMult: 3.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: true },
+  { hpMult: 5.5, speedMult: 1.18, damageReduce: 0.35, rewardMult: 3.4, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
 ];
 
 export function getTierForWave(waveNumber: number): number {
@@ -301,11 +301,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "💨",
     upgrades: {
       path1: [
-        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +8.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
-        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +14, швидкість тиків +20%.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 14, fireRate: s.fireRate * 0.80 }) },
-        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +22. Вороги в аурі не регенерують.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 22, antiArmor: true }) },
-        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +40, швидкість тиків +30%. Вбивство в аурі вибухає (50 шкоди, 60px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 40, fireRate: s.fireRate * 0.70, explodeDmg: 50 }) },
-        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +100, ігнорує броню, 15% шанс на додаткові 80 шкоди при тику.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 100, ignoresArmor: true, gachaChance: 0.15, gachaDamageOverride: 80 }) }
+        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +6.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 6 }) },
+        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +10, швидкість тиків +10%.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, fireRate: s.fireRate * 0.90 }) },
+        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +16. Вороги в аурі не регенерують.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 16, antiArmor: true }) },
+        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +25, швидкість тиків +15%. Вбивство в аурі вибухає (50 шкоди, 60px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 25, fireRate: s.fireRate * 0.85, explodeDmg: 50 }) },
+        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +55, ігнорує броню, 10% шанс на додаткові 60 шкоди при тику.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 55, ignoresArmor: true, gachaChance: 0.10, gachaDamageOverride: 60 }) }
       ],
       path2: [
         { id: "gas_odor", name: "Різкий запах", description: "Збільшує шкоду аури на 3.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
@@ -343,11 +343,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "sniper_tactical_nuke", name: "Тактичний ядерний", description: "Шкода +400, вибух 120px, пробиває 3 цілі.", cost: 6270, effect: (s) => ({ ...s, damage: s.damage + 400, explodeDmg: 200, pierce: (s.pierce || 1) + 2 }) }
       ],
       path2: [
-        { id: "sniper_fast_reload", name: "Швидка перезарядка", description: "Швидкість атаки +20%.", cost: 265, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
-        { id: "sniper_semi_auto", name: "Напівавтомат", description: "Швидкість атаки +35%.", cost: 660, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
+        { id: "sniper_fast_reload", name: "Швидка перезарядка", description: "Швидкість атаки +15%.", cost: 265, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "sniper_semi_auto", name: "Напівавтомат", description: "Швидкість атаки +25%.", cost: 660, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
         { id: "sniper_double_tap", name: "Подвійний постріл", description: "Кожен 3-й постріл стріляє двічі.", cost: 1350, effect: (s) => ({ ...s, twoHits: true }) },
-        { id: "sniper_full_auto", name: "Повний автомат", description: "Швидкість атаки +60%.", cost: 2770, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.40 }) },
-        { id: "sniper_minigun", name: "Снайперський мініган", description: "Шалена швидкість стрільби, +2 пробиття.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.25, pierce: (s.pierce || 1) + 2 }) }
+        { id: "sniper_full_auto", name: "Повний автомат", description: "Швидкість атаки +45%.", cost: 2770, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55 }) },
+        { id: "sniper_minigun", name: "Снайперський мініган", description: "Дуже швидка стрільба, +2 пробиття.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.35, pierce: (s.pierce || 1) + 2 }) }
       ],
       path3: [
         { id: "sniper_spotter", name: "Спостерігач", description: "Дальність +30px.", cost: 185, effect: (s) => ({ ...s, range: s.range + 30 }) },
@@ -372,9 +372,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "chain_voltage", name: "Підвищена напруга", description: "Шкода +8.", cost: 210, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
         { id: "chain_overload", name: "Перевантаження", description: "Шкода +15, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 3) + 1 }) },
-        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +25, +2 ланцюги.", cost: 1080, effect: (s) => ({ ...s, damage: s.damage + 25, pierce: (s.pierce || 3) + 2 }) },
-        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +50, +3 ланцюги.", cost: 2375, effect: (s) => ({ ...s, damage: s.damage + 50, pierce: (s.pierce || 3) + 3 }) },
-        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +120, +6 ланцюгів, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 120, pierce: (s.pierce || 3) + 6, ignoresArmor: true }) }
+        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +20, +1 ланцюг.", cost: 1080, effect: (s) => ({ ...s, damage: s.damage + 20, pierce: (s.pierce || 3) + 1 }) },
+        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +35, +2 ланцюги.", cost: 2375, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 3) + 2 }) },
+        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +70, +4 ланцюги, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 70, pierce: (s.pierce || 3) + 4, ignoresArmor: true }) }
       ],
       path2: [
         { id: "chain_conductivity", name: "Провідність", description: "Швидкість атаки +20%.", cost: 210, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
@@ -411,11 +411,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +300, радіус +30px, 8 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 300, pierce: (s.pierce || 3) + 5, ignoresArmor: true }) }
       ],
       path2: [
-        { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +25%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +35%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
-        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +45%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, range: s.range + 20 }) },
-        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +55%, макс 6 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) },
-        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Шалена швидкість, макс 8 мін, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, alwaysDouble: true, camoDetection: true }) }
+        { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +15%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +25%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
+        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +30%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, range: s.range + 20 }) },
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +35%, макс 5 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65, twoHits: true }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 6 мін, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, alwaysDouble: true, camoDetection: true }) }
       ],
       path3: [
         { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30%.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
@@ -850,11 +850,11 @@ export const WAVES: WaveSegment[][] = [
   ],
   // Wave 31: Support chaos
   [
-    { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 600 },
-    { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
-    { type: "camo", count: 18, spawnDelay: 800, delayBeforeNext: 600 },
-    { type: "lead", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
-    { type: "regen", count: 15, spawnDelay: 900 }
+    { type: "rachky_brat", count: 14, spawnDelay: 750, delayBeforeNext: 600 },
+    { type: "gas_brat", count: 12, spawnDelay: 950, delayBeforeNext: 600 },
+    { type: "camo", count: 14, spawnDelay: 850, delayBeforeNext: 600 },
+    { type: "lead", count: 9, spawnDelay: 1250, delayBeforeNext: 600 },
+    { type: "regen", count: 12, spawnDelay: 950 }
   ],
   // === WAVE 32: GRANITE + PHANTOM + EXPLODER intro ===
   // Wave 32: First Granite + Phantom + Exploder
@@ -923,18 +923,18 @@ export const WAVES: WaveSegment[][] = [
   // === WAVE 40: THE ULTIMATE FINAL WAVE ===
   // Wave 40: Boss + Megaboss + everything
   [
-    { type: "boss", count: 3, spawnDelay: 3000, delayBeforeNext: 1500 },
+    { type: "boss", count: 2, spawnDelay: 3000, delayBeforeNext: 1500 },
     { type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 1000 },
-    { type: "granite", count: 20, spawnDelay: 900, delayBeforeNext: 600 },
-    { type: "infinix_brat", count: 20, spawnDelay: 800, delayBeforeNext: 600 },
-    { type: "camo", count: 25, spawnDelay: 500, delayBeforeNext: 500 },
-    { type: "lead", count: 20, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "regen", count: 25, spawnDelay: 600, delayBeforeNext: 500 },
-    { type: "phantom", count: 15, spawnDelay: 900, delayBeforeNext: 500 },
-    { type: "exploder", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
-    { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "healer", count: 10, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "jumper", count: 15, spawnDelay: 1000 }
+    { type: "granite", count: 16, spawnDelay: 950, delayBeforeNext: 600 },
+    { type: "infinix_brat", count: 16, spawnDelay: 850, delayBeforeNext: 600 },
+    { type: "camo", count: 20, spawnDelay: 550, delayBeforeNext: 500 },
+    { type: "lead", count: 16, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "regen", count: 20, spawnDelay: 650, delayBeforeNext: 500 },
+    { type: "phantom", count: 12, spawnDelay: 950, delayBeforeNext: 500 },
+    { type: "exploder", count: 8, spawnDelay: 1250, delayBeforeNext: 500 },
+    { type: "shielded", count: 12, spawnDelay: 1050, delayBeforeNext: 500 },
+    { type: "healer", count: 8, spawnDelay: 1050, delayBeforeNext: 500 },
+    { type: "jumper", count: 12, spawnDelay: 1050 }
   ],
   // === COMBO WAVES 41-46: Synergy enemy combinations ===
   // Wave 41: COMBO - Camo+Lead (невидимі + імунні до молотків)
@@ -967,13 +967,13 @@ export const WAVES: WaveSegment[][] = [
   ],
   // Wave 44: COMBO - Granite+Lead (подвійна броня)
   [
-    { type: "granite", count: 18, spawnDelay: 1400, delayBeforeNext: 600 },
-    { type: "lead", count: 20, spawnDelay: 900, delayBeforeNext: 600 },
-    { type: "granite", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
-    { type: "lead", count: 15, spawnDelay: 800, delayBeforeNext: 600 },
-    { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 600 },
-    { type: "heavy", count: 12, spawnDelay: 1500, delayBeforeNext: 600 },
-    { type: "shielded", count: 10, spawnDelay: 1200 }
+    { type: "granite", count: 15, spawnDelay: 1450, delayBeforeNext: 600 },
+    { type: "lead", count: 18, spawnDelay: 950, delayBeforeNext: 600 },
+    { type: "granite", count: 10, spawnDelay: 1250, delayBeforeNext: 600 },
+    { type: "lead", count: 12, spawnDelay: 850, delayBeforeNext: 600 },
+    { type: "coat", count: 12, spawnDelay: 1050, delayBeforeNext: 600 },
+    { type: "heavy", count: 10, spawnDelay: 1550, delayBeforeNext: 600 },
+    { type: "shielded", count: 8, spawnDelay: 1250 }
   ],
   // Wave 45: COMBO - Jumper+Regen (телепорт + регенерація)
   [
@@ -987,19 +987,19 @@ export const WAVES: WaveSegment[][] = [
   ],
   // Wave 46: COMBO ULTIMATE - All synergies combined
   [
-    { type: "boss", count: 3, spawnDelay: 3000, delayBeforeNext: 1200 },
+    { type: "boss", count: 2, spawnDelay: 3000, delayBeforeNext: 1200 },
     { type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 800 },
-    { type: "camo", count: 20, spawnDelay: 500, delayBeforeNext: 400 },
-    { type: "lead", count: 18, spawnDelay: 700, delayBeforeNext: 400 },
-    { type: "phantom", count: 12, spawnDelay: 900, delayBeforeNext: 400 },
-    { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
-    { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 400 },
-    { type: "exploder", count: 10, spawnDelay: 1100, delayBeforeNext: 400 },
-    { type: "granite", count: 15, spawnDelay: 1200, delayBeforeNext: 400 },
-    { type: "jumper", count: 12, spawnDelay: 1000, delayBeforeNext: 400 },
-    { type: "infinix_brat", count: 18, spawnDelay: 800, delayBeforeNext: 400 },
-    { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
-    { type: "gas_brat", count: 15, spawnDelay: 800 }
+    { type: "camo", count: 16, spawnDelay: 550, delayBeforeNext: 400 },
+    { type: "lead", count: 14, spawnDelay: 750, delayBeforeNext: 400 },
+    { type: "phantom", count: 10, spawnDelay: 950, delayBeforeNext: 400 },
+    { type: "regen", count: 16, spawnDelay: 650, delayBeforeNext: 400 },
+    { type: "shielded", count: 12, spawnDelay: 1050, delayBeforeNext: 400 },
+    { type: "exploder", count: 8, spawnDelay: 1150, delayBeforeNext: 400 },
+    { type: "granite", count: 12, spawnDelay: 1250, delayBeforeNext: 400 },
+    { type: "jumper", count: 10, spawnDelay: 1050, delayBeforeNext: 400 },
+    { type: "infinix_brat", count: 14, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "rachky_brat", count: 16, spawnDelay: 650, delayBeforeNext: 400 },
+    { type: "gas_brat", count: 12, spawnDelay: 850 }
   ]
 ];
 

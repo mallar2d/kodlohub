@@ -42,13 +42,14 @@ interface PlacedTower {
   isAoESlow?: boolean;
   damageDebuff?: number;
   freezeChance?: number;
+  slowAmount?: number;
   gachaChance?: number;
   copilotBug?: boolean;
-  slowAmount?: number;
   antiArmor?: boolean;
   shotCount?: number;
   // BTD6 upgrades stats
   ignoresArmor?: boolean;
+  armorPierce?: number;
   alwaysDouble?: boolean;
   critMultiplier?: number;
   damageBuff?: number;
@@ -71,6 +72,10 @@ interface PlacedTower {
   hasCamoBuff?: boolean;
   hasCoffeeBuff?: boolean;
   coffeeBuffStrength?: number; // 0-1 how strong the buff is (for visual intensity)
+  coffeeDamageBonus?: number;
+  coffeeRangeBonus?: number;
+  coffeeRangeBuffPercent?: number;
+  coffeeIgnoreArmorBuff?: number;
   targetingMode?: "first" | "last" | "strongest" | "nearest";
 }
 
@@ -94,6 +99,7 @@ interface ActiveEnemy {
   distanceTraveled: number;
   // Statuses
   slowDuration: number; // in frames
+  candySlowFactor?: number;
   freezeDuration: number; // in frames
   gasSlowDuration: number; // in frames
   gasSlowFactor?: number;
@@ -138,9 +144,11 @@ interface Projectile {
   isAoESlow?: boolean;
   damageDebuff?: number;
   freezeChance?: number;
+  slowAmount?: number;
   gachaChance?: number;
   copilotBug?: boolean;
   ignoresArmor?: boolean;
+  armorPierce?: number;
   alwaysDouble?: boolean;
   critMultiplier?: number;
   slowDurationBonus?: number;
@@ -149,6 +157,7 @@ interface Projectile {
   gachaDamageOverride?: number;
   freezeDurationBonus?: number;
   bsodAoE?: boolean;
+  disableAbilities?: boolean;
   bugExplodeDmg?: number;
   bugExplodeRadius?: number;
   bugContagion?: boolean;
@@ -198,6 +207,7 @@ interface Mine {
   radius: number; // explosion radius
   triggerRadius: number; // how close enemy needs to be
   ignoresArmor?: boolean;
+  armorPierce?: number;
   slowAmount?: number;
   freezeChance?: number;
   freezeDuration?: number;
@@ -472,6 +482,14 @@ export default function BratTDClient() {
       if (dist < radius) return true;
     }
     return false;
+  };
+
+  const getEffectiveTowerRange = (tower: PlacedTower) => {
+    return tower.range + (tower.coffeeRangeBonus || 0) + tower.range * (tower.coffeeRangeBuffPercent || 0);
+  };
+
+  const getEffectiveTowerDamage = (tower: PlacedTower) => {
+    return tower.damage + (tower.coffeeDamageBonus || 0);
   };
 
   // Spawn float text
@@ -771,7 +789,7 @@ export default function BratTDClient() {
 
     // Apply initial setup for buffs/aura
     if (type === "coffee") {
-      newTower.buffMultiplier = 0.25;
+      newTower.buffMultiplier = 0.05;
       newTower.endOfWaveBonus = 20;
     } else if (type === "gas") {
       newTower.slowAmount = 0.15;
@@ -1200,7 +1218,7 @@ export default function BratTDClient() {
             currentSpeed = 0;
           } else {
             if (enemy.slowDuration > 0) {
-              currentSpeed *= 0.5; // Candy slows by 50%
+              currentSpeed *= (1 - (enemy.candySlowFactor || 0.5));
             }
             if (enemy.gasSlowDuration > 0) {
               currentSpeed *= (1 - (enemy.gasSlowFactor || 0.15));
@@ -1246,9 +1264,9 @@ export default function BratTDClient() {
             enemy.distanceTraveled += currentSpeed;
           }
 
-          // Regen healing (0.3 HP per frame, approx 18 HP per second)
+          // Regen healing (0.18 HP per frame, approx 10.8 HP per second)
           if (enemy.isRegen && enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.freezeDuration <= 0) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + 0.3);
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + 0.18);
           }
 
           // Healer: heals nearby allies (3 HP/sec = 0.05 HP/frame)
@@ -1275,8 +1293,8 @@ export default function BratTDClient() {
                 if (getDistance(e.x, e.y, mine.x, mine.y) <= mine.radius) {
                   let dmg = mine.damage;
                   if (mine.ignoresArmor) { /* no reduction */ }
-                  else if (e.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * 0.25);
-                  else if (e.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * 0.5);
+                  else if (e.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.75 * (1 - (mine.armorPierce || 0))));
+                  else if (e.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.5 * (1 - (mine.armorPierce || 0))));
                   if (e.damageReduce) dmg = Math.floor(dmg * (1 - e.damageReduce));
                   e.hp -= dmg;
                   hitCount++;
@@ -1302,7 +1320,7 @@ export default function BratTDClient() {
           let abilitiesDisabled = false;
           towersRef.current.forEach((t) => {
             if (t.type === "gas" && (t.disableGlitch || t.disableAbilities)) {
-              if (getDistance(enemy.x, enemy.y, t.x, t.y) <= t.range) {
+              if (getDistance(enemy.x, enemy.y, t.x, t.y) <= getEffectiveTowerRange(t)) {
                 if (t.disableGlitch) glitchDisabled = true;
                 if (t.disableAbilities) abilitiesDisabled = true;
               }
@@ -1359,19 +1377,31 @@ export default function BratTDClient() {
           // Find max coffee buff multiplier
           let maxBuff = 0;
           let hasCamoBuff = false;
+          let maxDamageBuff = 0;
+          let maxRangeBuff = 0;
+          let maxRangeBuffPercent = 0;
+          let maxIgnoreArmorBuff = 0;
           coffeeTowers.forEach((coffee) => {
             const dist = getDistance(tower.x, tower.y, coffee.x, coffee.y);
             if (dist <= coffee.range) {
-              const buffVal = coffee.buffMultiplier || 0.25;
+              const buffVal = coffee.buffMultiplier || 0.05;
               if (buffVal > maxBuff) maxBuff = buffVal;
               if (coffee.camoDetectionBuff) {
                 hasCamoBuff = true;
               }
+              if (coffee.damageBuff && coffee.damageBuff > maxDamageBuff) maxDamageBuff = coffee.damageBuff;
+              if (coffee.rangeBuff && coffee.rangeBuff > maxRangeBuff) maxRangeBuff = coffee.rangeBuff;
+              if (coffee.rangeBuffPercent && coffee.rangeBuffPercent > maxRangeBuffPercent) maxRangeBuffPercent = coffee.rangeBuffPercent;
+              if (coffee.ignoreArmorBuff && coffee.ignoreArmorBuff > maxIgnoreArmorBuff) maxIgnoreArmorBuff = coffee.ignoreArmorBuff;
             }
           });
           tower.hasCamoBuff = hasCamoBuff;
           tower.hasCoffeeBuff = maxBuff > 0;
           tower.coffeeBuffStrength = Math.min(1, maxBuff / 1.2);
+          tower.coffeeDamageBonus = maxDamageBuff;
+          tower.coffeeRangeBonus = maxRangeBuff;
+          tower.coffeeRangeBuffPercent = maxRangeBuffPercent;
+          tower.coffeeIgnoreArmorBuff = maxIgnoreArmorBuff;
 
           // Check if affected by Gas Brat debuff (slow attack rate)
           let speedDebuff = 1.0;
@@ -1381,7 +1411,7 @@ export default function BratTDClient() {
               let abilitiesDisabled = false;
               towersRef.current.forEach((t) => {
                 if (t.type === "gas" && t.disableAbilities) {
-                  if (getDistance(enemy.x, enemy.y, t.x, t.y) <= t.range) {
+                  if (getDistance(enemy.x, enemy.y, t.x, t.y) <= getEffectiveTowerRange(t)) {
                     abilitiesDisabled = true;
                   }
                 }
@@ -1416,9 +1446,11 @@ export default function BratTDClient() {
           if (tower.type === "kladmen") {
             if (tower.cooldown <= 0) {
               tower.cooldown = tower.fireRate * 60;
-              
+              const effectiveRange = getEffectiveTowerRange(tower);
+              const effectiveDamage = getEffectiveTowerDamage(tower);
+               
               // Find a path segment within range
-              const maxMines = tower.alwaysDouble ? 8 : tower.twoHits ? 6 : 4;
+              const maxMines = tower.alwaysDouble ? 6 : tower.twoHits ? 5 : 4;
               if (minesRef.current.filter(m => m.towerId === tower.id).length < maxMines) {
                 // Pick a random path point near the tower
                 let bestX = tower.x, bestY = tower.y;
@@ -1429,7 +1461,7 @@ export default function BratTDClient() {
                   for (let t = 0; t <= 1; t += 0.2) {
                     const px = a.x + (b.x - a.x) * t;
                     const py = a.y + (b.y - a.y) * t;
-                    if (getDistance(tower.x, tower.y, px, py) <= tower.range) {
+                    if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
                       // Check no mine already here
                       const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30);
                       if (!tooClose) {
@@ -1448,10 +1480,11 @@ export default function BratTDClient() {
                     id: getPureId(),
                     x: bestX,
                     y: bestY,
-                    damage: tower.damage,
+                    damage: effectiveDamage,
                     radius: tower.explodeDmg ? 80 : 50,
                     triggerRadius: 15,
                     ignoresArmor: tower.ignoresArmor,
+                    armorPierce: tower.coffeeIgnoreArmorBuff,
                     slowAmount: tower.slowAmount,
                     freezeChance: tower.freezeChance,
                     freezeDuration: tower.freezeDurationBonus,
@@ -1473,13 +1506,15 @@ export default function BratTDClient() {
           if (tower.type === "gas") {
             if (tower.cooldown <= 0) {
               tower.cooldown = tower.fireRate * 60; // reset
-              
+              const effectiveRange = getEffectiveTowerRange(tower);
+              const effectiveDamage = getEffectiveTowerDamage(tower);
+               
               // Damage all enemies in range
               enemiesRef.current.forEach((enemy) => {
                 if (enemy.isCamo && !isCamoCapable) return;
                 const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-                if (dist <= tower.range) {
-                  let dmg = tower.damage;
+                if (dist <= effectiveRange) {
+                  let dmg = effectiveDamage;
 
                   // Shield absorption
                   if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
@@ -1547,7 +1582,7 @@ export default function BratTDClient() {
               if (e.isCamo && !isCamoCapable) return false;
               // Phantom camo requires higher level detection
               if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
-              return getDistance(tower.x, tower.y, e.x, e.y) <= tower.range;
+              return getDistance(tower.x, tower.y, e.x, e.y) <= getEffectiveTowerRange(tower);
             });
 
             if (targetsInRange.length > 0) {
@@ -1580,16 +1615,18 @@ export default function BratTDClient() {
                 y: tower.y,
                 targetId: target.id,
                 speed: tower.type === "infinix" ? 14 : 7, // Infinix beam is very fast
-                damage: tower.damage,
+                damage: getEffectiveTowerDamage(tower),
                 emoji: tower.emoji,
                 color: tower.color,
                 critChance: tower.critChance,
                 isAoESlow: tower.isAoESlow,
                 damageDebuff: tower.damageDebuff,
                 freezeChance: tower.freezeChance,
+                slowAmount: tower.slowAmount,
                 gachaChance: tower.gachaChance,
                 copilotBug: tower.copilotBug,
                 ignoresArmor: tower.ignoresArmor,
+                armorPierce: tower.coffeeIgnoreArmorBuff,
                 alwaysDouble: tower.alwaysDouble,
                 critMultiplier: tower.critMultiplier,
                 slowDurationBonus: tower.slowDurationBonus,
@@ -1598,6 +1635,7 @@ export default function BratTDClient() {
                 gachaDamageOverride: tower.gachaDamageOverride,
                 freezeDurationBonus: tower.freezeDurationBonus,
                 bsodAoE: tower.bsodAoE,
+                disableAbilities: tower.disableAbilities,
                 bugExplodeDmg: tower.bugExplodeDmg,
                 bugExplodeRadius: tower.bugExplodeRadius,
                  bugContagion: tower.bugContagion,
@@ -1740,7 +1778,7 @@ export default function BratTDClient() {
 
               // Infinix random damage
               if (proj.type === "infinix") {
-                dmg = Math.floor(getPureRandom() * 51) + 5;
+                dmg = Math.max(5, Math.floor(proj.damage * (0.5 + getPureRandom())));
               }
 
               // Lead armor hammer immunity
@@ -1753,10 +1791,11 @@ export default function BratTDClient() {
               // Apply armor reductions
               const armorIgnored = proj.ignoresArmor || false;
               if (!armorIgnored && dmg > 0) {
+                const armorPierce = Math.max(0, Math.min(1, proj.armorPierce || 0));
                 if (enemy.isArmored && proj.type === "hammer") {
-                  dmg = Math.floor(dmg * 0.5);
+                  dmg = Math.floor(dmg * (1 - 0.5 * (1 - armorPierce)));
                 } else if (enemy.isSuperArmored && proj.type === "hammer") {
-                  dmg = Math.floor(dmg * 0.25);
+                  dmg = Math.floor(dmg * (1 - 0.75 * (1 - armorPierce)));
                 }
               }
 
@@ -1798,19 +1837,33 @@ export default function BratTDClient() {
 
               // Apply status effects
               if (proj.type === "candy") {
-                enemy.slowDuration = 120; // 2 seconds slow
+                enemy.slowDuration = 120 + (proj.slowDurationBonus || 0);
+                enemy.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
                 
                 if (proj.damageDebuff) {
                   enemy.damageDebuff = Math.max(enemy.damageDebuff || 1.0, proj.damageDebuff);
                 }
 
                 if (proj.isAoESlow) {
-                  // slow nearby enemies in 60px radius
+                  const candyRadius = proj.explodeDmg && proj.explodeDmg >= 80 ? 150 : proj.explodeDmg ? 100 : 60;
+                  // slow nearby enemies and apply promised explosion damage
                   enemiesRef.current.forEach((other) => {
-                    if (other.id !== enemy.id && getDistance(enemy.x, enemy.y, other.x, other.y) <= 60) {
-                      other.slowDuration = 90;
+                    if (getDistance(enemy.x, enemy.y, other.x, other.y) <= candyRadius) {
+                      other.slowDuration = 90 + (proj.slowDurationBonus || 0);
+                      other.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
                       if (proj.damageDebuff) {
                         other.damageDebuff = Math.max(other.damageDebuff || 1.0, proj.damageDebuff);
+                      }
+                      if (proj.explodeDmg && other.id !== enemy.id) {
+                        let splashDmg = proj.explodeDmg;
+                        if (other.shieldHp !== undefined && other.shieldHp > 0) {
+                          const absorbed = Math.min(other.shieldHp, splashDmg);
+                          other.shieldHp -= absorbed;
+                          splashDmg -= absorbed;
+                        }
+                        if (other.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * other.damageDebuff);
+                        if (other.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - other.damageReduce));
+                        other.hp -= splashDmg;
                       }
                     }
                   });
@@ -1820,8 +1873,16 @@ export default function BratTDClient() {
 
               if (proj.type === "infinix") {
                 if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
-                  enemy.freezeDuration = 60;
+                  enemy.freezeDuration = 60 + (proj.freezeDurationBonus || 0);
                   spawnFloatingText(enemy.x, enemy.y - 15, "ЛАГ 999мс", "#c084fc");
+                  if (proj.bsodAoE) {
+                    enemiesRef.current.forEach((other) => {
+                      if (other.id !== enemy.id && getDistance(enemy.x, enemy.y, other.x, other.y) <= 80) {
+                        other.gasSlowDuration = Math.max(other.gasSlowDuration, 60);
+                        other.gasSlowFactor = Math.max(other.gasSlowFactor || 0, 0.35);
+                      }
+                    });
+                  }
                 }
                 
                 if (proj.copilotBug) {
@@ -1832,6 +1893,43 @@ export default function BratTDClient() {
                 }
               }
 
+              if (proj.type === "chain") {
+                if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
+                  enemy.freezeDuration = 30 + (proj.freezeDurationBonus || 0);
+                  spawnFloatingText(enemy.x, enemy.y - 15, "⚡ СТАН", "#38bdf8");
+                }
+                if (proj.slowAmount) {
+                  enemy.gasSlowDuration = Math.max(enemy.gasSlowDuration, 60);
+                  enemy.gasSlowFactor = Math.max(enemy.gasSlowFactor || 0, proj.slowAmount);
+                }
+                if (proj.disableAbilities) {
+                  enemy.isGlitching = false;
+                }
+              }
+
+              if (proj.type === "sniper" && proj.explodeDmg) {
+                const explosionRadius = proj.explodeDmg >= 200 ? 120 : 50;
+                enemiesRef.current.forEach((other) => {
+                  if (other.id === enemy.id || other.hp <= 0) return;
+                  if (getDistance(enemy.x, enemy.y, other.x, other.y) > explosionRadius) return;
+                  let splashDmg = proj.explodeDmg || 0;
+                  if (other.shieldHp !== undefined && other.shieldHp > 0) {
+                    const absorbed = Math.min(other.shieldHp, splashDmg);
+                    other.shieldHp -= absorbed;
+                    splashDmg -= absorbed;
+                  }
+                  if (!proj.ignoresArmor && splashDmg > 0) {
+                    const armorPierce = Math.max(0, Math.min(1, proj.armorPierce || 0));
+                    if (other.isArmored) splashDmg = Math.floor(splashDmg * (1 - 0.5 * (1 - armorPierce)));
+                    else if (other.isSuperArmored) splashDmg = Math.floor(splashDmg * (1 - 0.75 * (1 - armorPierce)));
+                  }
+                  if (other.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * other.damageDebuff);
+                  if (other.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - other.damageReduce));
+                  other.hp -= splashDmg;
+                });
+                spawnHitParticles(enemy.x, enemy.y, "#f43f5e", 14, "square");
+              }
+
               // Floating texts
               if (isCrit) {
                 spawnFloatingText(enemy.x, enemy.y - 25, "ПОЧУВ! CRIT", "#f43f5e");
@@ -1840,7 +1938,7 @@ export default function BratTDClient() {
               // Check kill
               if (wasAlive && enemy.hp <= 0) {
                 const sourceTower = towersRef.current
-                  .filter((t) => t.type === proj.type && getDistance(t.x, t.y, enemy.x, enemy.y) <= t.range + 40)
+                  .filter((t) => t.type === proj.type && getDistance(t.x, t.y, enemy.x, enemy.y) <= getEffectiveTowerRange(t) + 40)
                   .sort((a, b) => getDistance(a.x, a.y, enemy.x, enemy.y) - getDistance(b.x, b.y, enemy.x, enemy.y))[0];
                 
                 if (sourceTower) {
@@ -2145,7 +2243,7 @@ export default function BratTDClient() {
         const selectedTower = towersRef.current.find((t) => t.id === selectedPlacedTowerId);
         if (selectedTower) {
           ctx.beginPath();
-          ctx.arc(selectedTower.x, selectedTower.y, selectedTower.range, 0, Math.PI * 2);
+          ctx.arc(selectedTower.x, selectedTower.y, getEffectiveTowerRange(selectedTower), 0, Math.PI * 2);
           ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
           ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
           ctx.lineWidth = 1.5;
@@ -2163,7 +2261,7 @@ export default function BratTDClient() {
         );
         if (hoveredTower && hoveredTower.id !== selectedPlacedTowerId) {
           ctx.beginPath();
-          ctx.arc(hoveredTower.x, hoveredTower.y, hoveredTower.range, 0, Math.PI * 2);
+          ctx.arc(hoveredTower.x, hoveredTower.y, getEffectiveTowerRange(hoveredTower), 0, Math.PI * 2);
           ctx.fillStyle = "rgba(6, 182, 212, 0.04)";
           ctx.strokeStyle = "rgba(6, 182, 212, 0.45)";
           ctx.lineWidth = 1.5;
@@ -2237,7 +2335,7 @@ export default function BratTDClient() {
           for (const enemy of enemiesRef.current) {
             if (enemy.hp <= 0) continue;
             const d = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-            if (d < nearestDist && d <= tower.range * 1.5) {
+            if (d < nearestDist && d <= getEffectiveTowerRange(tower) * 1.5) {
               nearestDist = d;
               nearestEnemy = enemy;
             }
