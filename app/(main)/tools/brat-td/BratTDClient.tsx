@@ -1269,7 +1269,27 @@ export default function BratTDClient() {
         for (let i = projectilesRef.current.length - 1; i >= 0; i--) {
           const proj = projectilesRef.current[i];
           
-          // Straight flight
+          // Homing: adjust angle toward target each frame
+          if (proj.targetId) {
+            const targetEnemy = enemiesRef.current.find(e => e.id === proj.targetId && e.hp > 0);
+            if (targetEnemy) {
+              const dx = targetEnemy.x - proj.x;
+              const dy = targetEnemy.y - proj.y;
+              const targetAngle = Math.atan2(dy, dx);
+              // Smooth turn toward target (max ~15 degrees per frame)
+              let angleDiff = targetAngle - proj.angle;
+              while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+              while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+              const maxTurn = 0.26; // ~15 degrees
+              proj.angle += Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+              proj.lastTargetX = targetEnemy.x;
+              proj.lastTargetY = targetEnemy.y;
+            } else {
+              proj.targetId = "";
+            }
+          }
+
+          // Flight
           proj.x += Math.cos(proj.angle) * proj.speed;
           proj.y += Math.sin(proj.angle) * proj.speed;
 
@@ -1306,7 +1326,7 @@ export default function BratTDClient() {
             
             // Check collision distance
             const colDist = getDistance(proj.x, proj.y, enemy.x, enemy.y);
-            if (colDist <= enemy.radius + 6 && !proj.hitEnemyIds.includes(enemy.id)) {
+            if (colDist <= enemy.radius + 8 && !proj.hitEnemyIds.includes(enemy.id)) {
               // Hit!
               proj.hitEnemyIds.push(enemy.id);
               proj.pierce--;
