@@ -678,29 +678,29 @@ export const WAVES: WaveSegment[][] = [
     { type: "coat", count: 12, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "fast", count: 18, spawnDelay: 500 }
   ],
-  // === WAVE 12: CAMO intro ===
-  // Wave 12: First Camo
+  // === WAVE 12-15: Heavy/Coat pressure ===
+  // Wave 12: Heavy + fast pressure
   [
-    { type: "camo", count: 8, spawnDelay: 1500, delayBeforeNext: 1200 },
-    { type: "fast", count: 20, spawnDelay: 500 }
+    { type: "heavy", count: 6, spawnDelay: 2200, delayBeforeNext: 1200 },
+    { type: "fast", count: 18, spawnDelay: 500 }
   ],
-  // Wave 13: Camo + ordinary
+  // Wave 13: Coat + ordinary
   [
-    { type: "ordinary", count: 20, spawnDelay: 800, delayBeforeNext: 1000 },
-    { type: "camo", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
-    { type: "fast", count: 15, spawnDelay: 500 }
+    { type: "ordinary", count: 22, spawnDelay: 800, delayBeforeNext: 1000 },
+    { type: "coat", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "fast", count: 12, spawnDelay: 600 }
   ],
-  // Wave 14: Camo + heavy
+  // Wave 14: Heavy + lead
   [
-    { type: "camo", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "heavy", count: 8, spawnDelay: 2200, delayBeforeNext: 800 },
-    { type: "ordinary", count: 15, spawnDelay: 800 }
+    { type: "heavy", count: 8, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "lead", count: 6, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "ordinary", count: 18, spawnDelay: 800 }
   ],
-  // Wave 15: Camo pressure
+  // Wave 15: Coat + fast pressure
   [
-    { type: "camo", count: 18, spawnDelay: 900, delayBeforeNext: 1000 },
-    { type: "coat", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
-    { type: "fast", count: 20, spawnDelay: 450 }
+    { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "heavy", count: 6, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "fast", count: 22, spawnDelay: 400 }
   ],
   // === WAVE 16: LEAD intro ===
   // Wave 16: First Lead
@@ -708,9 +708,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 8, spawnDelay: 2000, delayBeforeNext: 1200 },
     { type: "ordinary", count: 20, spawnDelay: 800 }
   ],
-  // Wave 17: Lead + camo
+  // Wave 17: Lead + heavy
   [
-    { type: "camo", count: 12, spawnDelay: 1100, delayBeforeNext: 1000 },
+    { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 1000 },
     { type: "lead", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
     { type: "fast", count: 18, spawnDelay: 500 }
   ],
@@ -723,16 +723,17 @@ export const WAVES: WaveSegment[][] = [
   // Wave 19: Mixed armor
   [
     { type: "lead", count: 12, spawnDelay: 1400, delayBeforeNext: 800 },
-    { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
-    { type: "coat", count: 12, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
-  // === WAVE 20: INFINIX_BRAT (glitching) intro ===
-  // Wave 20: First Infinix Brat
+  // === WAVE 20: INFINIX_BRAT + CAMO intro ===
+  // Wave 20: First Infinix Brat + First Camo
   [
     { type: "infinix_brat", count: 8, spawnDelay: 1500, delayBeforeNext: 1200 },
+    { type: "camo", count: 8, spawnDelay: 1500, delayBeforeNext: 1000 },
     { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
-    { type: "fast", count: 18, spawnDelay: 500 }
+    { type: "fast", count: 15, spawnDelay: 500 }
   ],
   // Wave 21: Infinix + camo
   [
