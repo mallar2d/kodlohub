@@ -802,10 +802,14 @@ export default function BratTDClient() {
     const rect = canvas.getBoundingClientRect();
     const scaleX = GAME_WIDTH / rect.width;
     const scaleY = GAME_HEIGHT / rect.height;
-    setMousePos({
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    });
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    setMousePos({ x, y });
+    
+    // Also update drag position if dragging
+    if (draggedTowerType) {
+      setDraggedTowerPos({ x, y });
+    }
   };
 
   // --- SELLING & UPGRADING TOWERS ---
@@ -2128,7 +2132,7 @@ export default function BratTDClient() {
 
       // --- Draw Shop Hover or Drag Preview (on top of towers) ---
       const activePreviewType = selectedShopTower || draggedTowerType;
-      const previewPos = selectedShopTower && isMouseOnCanvas ? mousePos : (draggedTowerPos || null);
+      const previewPos = draggedTowerPos || (selectedShopTower && isMouseOnCanvas ? mousePos : null);
 
       if (activePreviewType && previewPos && previewPos.x > 0 && previewPos.y > 0) {
         const config = TOWER_CONFIGS[activePreviewType];
