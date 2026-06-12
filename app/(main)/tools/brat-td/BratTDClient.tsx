@@ -71,6 +71,7 @@ interface PlacedTower {
   hasCamoBuff?: boolean;
   hasCoffeeBuff?: boolean;
   coffeeBuffStrength?: number; // 0-1 how strong the buff is (for visual intensity)
+  targetingMode?: "first" | "last" | "strongest" | "nearest";
 }
 
 
@@ -116,6 +117,7 @@ interface ActiveEnemy {
   shieldRegenTimer?: number;
   isPhantomCamo?: boolean;
   isExploder?: boolean;
+  isHealer?: boolean;
   lastHitFrame?: number;
   tier?: number;
   damageReduce?: number;
@@ -366,16 +368,55 @@ export default function BratTDClient() {
     load();
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameStatus !== "playing") return;
+      
+      const towerKeys = ["1", "2", "3", "4", "5", "6", "7"];
+      const towerTypes = Object.keys(TOWER_CONFIGS);
+      
+      if (towerKeys.includes(e.key)) {
+        const idx = parseInt(e.key) - 1;
+        if (idx < towerTypes.length) {
+          const type = towerTypes[idx];
+          setSelectedShopTower(selectedShopTower === type ? null : type);
+          setSelectedPlacedTowerId(null);
+          setSelectedTower(null);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedShopTower(null);
+        setSelectedPlacedTowerId(null);
+        setSelectedTower(null);
+      } else if (e.key === "p" || e.key === "P") {
+        setIsPaused(prev => !prev);
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameStatus, selectedShopTower]);
+
   // Audio helper
-  const playPdrSound = () => {
+  const playTowerSound = (towerType?: string) => {
     try {
-      const audio = new Audio("/PDR_PRODUCTION_SOUND.mp3");
-      audio.volume = 0.45;
+      const sounds: Record<string, { file: string; volume: number }> = {
+        hammer: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
+        coffee: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.2 },
+        candy: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.3 },
+        infinix: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
+        gas: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.15 },
+        sniper: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
+        chain: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
+        kladmen: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
+      };
+      const sound = sounds[towerType ?? ""] ?? { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 };
+      const audio = new Audio(sound.file);
+      audio.volume = sound.volume;
       audio.play().catch(() => {});
-    } catch {
-      // Autoplay blocked or audio missing
-    }
+    } catch {}
   };
+  const playPdrSound = () => playTowerSound();
 
   // Set status message with log
   const pushLog = (msg: string) => {
@@ -443,7 +484,7 @@ export default function BratTDClient() {
       infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
       camo: "🦹", regen: "💗", lead: "🔩",
       phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-      sniper: "🎯", chain: "⚡"
+      sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚"
     };
     
     // Find closest pathIndex for spawned minion
@@ -488,6 +529,7 @@ export default function BratTDClient() {
       isLead: baseConfig.isLead,
       isPhantomCamo: baseConfig.isPhantomCamo,
       isExploder: baseConfig.isExploder,
+      isHealer: baseConfig.isHealer,
       shieldHp: baseConfig.shieldHp,
       tier: baseConfig.tier,
       damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
@@ -693,7 +735,8 @@ export default function BratTDClient() {
       level: 1,
       totalKills: 0,
       camoDetection: config.camoDetection || false,
-      pierce: config.pierce || 1
+      pierce: config.pierce || 1,
+      targetingMode: "first",
     };
 
     // Apply initial setup for buffs/aura
@@ -711,7 +754,7 @@ export default function BratTDClient() {
     pushLog(`Створено юніт: ${config.name}!`);
     
     // Play sound!
-    playPdrSound();
+    playTowerSound(type);
     
     // Spawn feedback
     spawnFloatingText(x, y - 20, `-${config.cost} ☕`, "#ef4444");
@@ -950,7 +993,7 @@ export default function BratTDClient() {
                   infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
                   camo: "🦹", regen: "💗", lead: "🔩",
                   phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-                  sniper: "🎯", chain: "⚡"
+                  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚"
                 };
 
                 const newEnemy: ActiveEnemy = {
@@ -984,6 +1027,7 @@ export default function BratTDClient() {
                   isLead: baseConfig.isLead,
                   isPhantomCamo: baseConfig.isPhantomCamo,
                   isExploder: baseConfig.isExploder,
+                  isHealer: baseConfig.isHealer,
                   shieldHp: baseConfig.shieldHp,
                   tier: baseConfig.tier,
                   damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
@@ -1153,6 +1197,15 @@ export default function BratTDClient() {
           // Regen healing (0.3 HP per frame, approx 18 HP per second)
           if (enemy.isRegen && enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.freezeDuration <= 0) {
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + 0.3);
+          }
+
+          // Healer: heals nearby allies (3 HP/sec = 0.05 HP/frame)
+          if (enemy.isHealer && enemy.hp > 0 && enemy.freezeDuration <= 0) {
+            enemiesRef.current.forEach((ally) => {
+              if (ally.id !== enemy.id && ally.hp > 0 && ally.hp < ally.maxHp && getDistance(enemy.x, enemy.y, ally.x, ally.y) <= 80) {
+                ally.hp = Math.min(ally.maxHp, ally.hp + 0.05);
+              }
+            });
           }
 
           // Check if standing in ability-disabling or glitch-disabling gas aura
@@ -1354,8 +1407,17 @@ export default function BratTDClient() {
             });
 
             if (targetsInRange.length > 0) {
-              // Target first (furthest along path)
-              targetsInRange.sort((a, b) => b.distanceTraveled - a.distanceTraveled);
+              // Apply targeting mode
+              const mode = tower.targetingMode || "first";
+              if (mode === "first") {
+                targetsInRange.sort((a, b) => b.distanceTraveled - a.distanceTraveled);
+              } else if (mode === "last") {
+                targetsInRange.sort((a, b) => a.distanceTraveled - b.distanceTraveled);
+              } else if (mode === "strongest") {
+                targetsInRange.sort((a, b) => b.hp - a.hp);
+              } else if (mode === "nearest") {
+                targetsInRange.sort((a, b) => getDistance(tower.x, tower.y, a.x, a.y) - getDistance(tower.x, tower.y, b.x, b.y));
+              }
               const target = targetsInRange[0];
 
               // Fire!
@@ -1756,6 +1818,17 @@ export default function BratTDClient() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      // Map theme based on wave
+      const themes = [
+        { bg: "#000000", grid: "rgba(58, 58, 63, 0.2)", accent: "#06b6d4" }, // Night (default)
+        { bg: "#0a0a1a", grid: "rgba(58, 58, 80, 0.25)", accent: "#818cf8" }, // Twilight
+        { bg: "#0f0a00", grid: "rgba(80, 58, 30, 0.25)", accent: "#f59e0b" }, // Sunset
+        { bg: "#0a000a", grid: "rgba(80, 30, 58, 0.25)", accent: "#ec4899" }, // Neon
+        { bg: "#001a0a", grid: "rgba(30, 80, 58, 0.25)", accent: "#22c55e" }, // Toxic
+      ];
+      const themeIdx = Math.floor((waveRef.current - 1) / 10) % themes.length;
+      const theme = themes[themeIdx];
+
       // Screen shake
       const shake = screenShakeRef.current;
       const isShaking = shake.duration > 0;
@@ -1769,13 +1842,13 @@ export default function BratTDClient() {
       }
 
       // Clear screen
-      ctx.fillStyle = "#000000"; // SpaceX dark night
+      ctx.fillStyle = theme.bg; // SpaceX dark night
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       // --- Draw Grid (Background vibe) ---
       const gridSize = 40;
       const gridOffset = (frameCountRef.current * 0.3) % gridSize;
-      ctx.strokeStyle = "rgba(58, 58, 63, 0.2)";
+      ctx.strokeStyle = theme.grid;
       ctx.lineWidth = 1;
       for (let x = -gridSize + gridOffset; x < GAME_WIDTH + gridSize; x += gridSize) {
         ctx.beginPath();
@@ -1814,12 +1887,12 @@ export default function BratTDClient() {
         ctx.lineTo(PATH[i].x, PATH[i].y);
       }
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "#06b6d4"; // Cyan rail
+      ctx.strokeStyle = theme.accent; // Cyan rail
       ctx.lineDashOffset = -frameCountRef.current * 2;
       ctx.setLineDash([8, 12]);
       
       // Glow settings
-      ctx.shadowColor = "#06b6d4";
+      ctx.shadowColor = theme.accent;
       ctx.shadowBlur = 8;
       ctx.stroke();
       ctx.setLineDash([]);
@@ -2034,11 +2107,31 @@ export default function BratTDClient() {
           ctx.fill();
         }
 
-        // Draw emoji inside
+        // Draw emoji inside (rotate toward nearest enemy)
+        let towerAngle = 0;
+        if (tower.type !== "coffee" && tower.type !== "gas") {
+          let nearestEnemy: ActiveEnemy | null = null;
+          let nearestDist = Infinity;
+          for (const enemy of enemiesRef.current) {
+            if (enemy.hp <= 0) continue;
+            const d = getDistance(tower.x, tower.y, enemy.x, enemy.y);
+            if (d < nearestDist && d <= tower.range * 1.5) {
+              nearestDist = d;
+              nearestEnemy = enemy;
+            }
+          }
+          if (nearestEnemy) {
+            towerAngle = Math.atan2(nearestEnemy.y - tower.y, nearestEnemy.x - tower.x);
+          }
+        }
+        ctx.save();
+        ctx.translate(tower.x, tower.y);
+        ctx.rotate(towerAngle);
         ctx.font = "20px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(tower.emoji, tower.x, tower.y);
+        ctx.fillText(tower.emoji, 0, 0);
+        ctx.restore();
 
         // Coffee buff visual indicator
         if (tower.hasCoffeeBuff && tower.type !== "coffee") {
@@ -2109,6 +2202,21 @@ export default function BratTDClient() {
           ctx.fillStyle = "#000000";
           ctx.font = "bold 8px Arial";
           ctx.fillText(`${enemy.tier}`, bx, by);
+        }
+
+        // Healer aura (pulsing green ring)
+        if (enemy.isHealer && enemy.hp > 0) {
+          const healPulse = Math.sin(frameCountRef.current * 0.1) * 0.3 + 0.7;
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, 30, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(74, 222, 128, ${0.25 * healPulse})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, 60, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(74, 222, 128, ${0.12 * healPulse})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
 
         // Status effect overlays
@@ -2657,6 +2765,33 @@ export default function BratTDClient() {
           )}
         </div>
 
+        {/* Wave Preview */}
+        {gameStatus === "playing" && !isWaveActive && (() => {
+          const nextWaveNum = wave;
+          if (nextWaveNum > 46) return null;
+          const nextSegments = getScaledWave(nextWaveNum);
+          const uniqueTypes = [...new Set(nextSegments.map(s => s.type))];
+          const emojiMap: Record<string, string> = {
+            ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
+            infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
+            camo: "🦹", regen: "💗", lead: "🔩",
+            phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
+            healer: "💚", kladmen: "💣"
+          };
+          const totalEnemies = nextSegments.reduce((sum, s) => sum + s.count, 0);
+          return (
+            <div className="card-dark p-3 border-hairline-dark flex items-center gap-3 text-sm">
+              <span className="micro-cap text-ink-mute">Наступна хвиля:</span>
+              <span className="flex items-center gap-1">
+                {uniqueTypes.map(t => (
+                  <span key={t} className="text-base" title={t}>{emojiMap[t] || "?"}</span>
+                ))}
+              </span>
+              <span className="text-ink-mute text-xs">({totalEnemies} ворогів)</span>
+            </div>
+          );
+        })()}
+
         {/* Message Ticker Log */}
         <div className="card-dark p-3 text-sm border-hairline-dark flex items-center gap-3 bg-canvas-night-soft text-cyan-400 font-mono">
           <span className="animate-pulse text-xs">●</span>
@@ -2676,6 +2811,27 @@ export default function BratTDClient() {
                   {selectedPlacedTower.name}
                 </h3>
                 <p className="text-xs text-ink-mute mt-0.5">Рівень: {selectedPlacedTower.level} | Убивств: {selectedPlacedTower.totalKills}</p>
+                    {/* Targeting mode toggle */}
+                    <div className="flex items-center gap-1 mt-1">
+                      {(["first", "last", "strongest", "nearest"] as const).map((mode) => {
+                        const labels: Record<string, string> = { first: "Перший", last: "Останній", strongest: "Найсильніший", nearest: "Найближчий" };
+                        const isActive = (selectedPlacedTower.targetingMode || "first") === mode;
+                        return (
+                          <button
+                            key={mode}
+                            onClick={() => {
+                              const t = towersRef.current.find((t) => t.id === selectedPlacedTower.id);
+                              if (t) { t.targetingMode = mode; setSelectedTower({ ...t }); }
+                            }}
+                            className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
+                              isActive ? "border-cyan-500 text-cyan-400 bg-cyan-950/50" : "border-hairline-dark text-ink-mute hover:text-on-primary"
+                            }`}
+                          >
+                            {labels[mode]}
+                          </button>
+                        );
+                      })}
+                    </div>
               </div>
               <div className="flex items-center gap-2">
                 <button

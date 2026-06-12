@@ -126,6 +126,7 @@ export interface EnemyConfig {
   glitchDistance?: number;
   shieldHp?: number;
   shieldRegenDelay?: number;
+  isHealer?: boolean;
   tier?: number; // 1-5, scales stats
 }
 
@@ -390,6 +391,40 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "chain_EMP", name: "ЕМП-імпульс", description: "50% оглушення на 2с, сповільнення 70%, вимикає здібності ворогів.", cost: 5545, effect: (s) => ({ ...s, freezeChance: 0.50, freezeDurationBonus: 120, slowAmount: 0.70, disableAbilities: true }) }
       ]
     }
+  },
+  kladmen: {
+    name: "Кладмен",
+    description: "Ставить міни на дорозі. Міни вибухають при контакті з ворогом, наносячи шкоду в зоні.",
+    cost: 275,
+    range: 150,
+    damage: 35,
+    fireRate: 2.5,
+    color: "#ef4444",
+    emoji: "💣",
+    pierce: 1,
+    upgrades: {
+      path1: [
+        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +20.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 20 }) },
+        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +35, радіус вибуху +20px.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 35, explodeDmg: 20 }) },
+        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +60, вибух зачіпає 3 цілі.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 60, pierce: (s.pierce || 1) + 2 }) },
+        { id: "kladmen_c4", name: "C4", description: "Шкода +100, пробиває броню.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 100, ignoresArmor: true }) },
+        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +250, величезний радіус вибуху, 5 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 250, pierce: (s.pierce || 1) + 4, ignoresArmor: true }) }
+      ],
+      path2: [
+        { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +25%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
+        { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +35%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
+        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +45%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, range: s.range + 20 }) },
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +55%, +1 міна одночасно.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Шалена швидкість, +2 міни одночасно, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, alwaysDouble: true, camoDetection: true }) }
+      ],
+      path3: [
+        { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30% на 2с.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
+        { id: "kladmen_freeze", name: "Кріо-міна", description: "15% шанс заморозити ворога на 1с.", cost: 330, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
+        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги горять — отримують 10 шкоди/с на 3с після вибуху.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
+        { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності ворогів.", cost: 1540, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
+        { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "Вибух наносить 200 додаткової шкоди, 45% оглушення, сповільнення 50%.", cost: 3850, effect: (s) => ({ ...s, gachaChance: 0.45, gachaDamageOverride: 200, slowAmount: 0.50, freezeDurationBonus: 120 }) }
+      ]
+    }
   }
 };
 
@@ -594,6 +629,18 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     shieldRegenDelay: 360,
     description: "Має щит на 80 HP. Щит регенерує через 6 секунд після знищення."
   },
+  healer: {
+    name: "Брат-Цілитель",
+    hp: 60,
+    speed: 0.8,
+    reward: 10,
+    damage: 10,
+    color: "#4ade80",
+    borderColor: "#16a34a",
+    radius: 15,
+    isHealer: true,
+    description: "Лікує сусідніх ворогів на 3 HP/с. Пріоритетна ціль!"
+  },
   megaboss: {
     name: "Мега-Бос",
     hp: 3000,
@@ -784,6 +831,7 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "rachky_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 1000 },
     { type: "gas_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "healer", count: 6, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
   // Wave 29: Support + armor
@@ -835,6 +883,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "phantom", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "lead", count: 15, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "exploder", count: 6, spawnDelay: 1600, delayBeforeNext: 800 },
+    { type: "healer", count: 8, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "coat", count: 12, spawnDelay: 1300 }
   ],
   // === WAVE 36: JUMPER + SHIELDED intro ===
@@ -884,6 +933,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "phantom", count: 15, spawnDelay: 900, delayBeforeNext: 500 },
     { type: "exploder", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
     { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "healer", count: 10, spawnDelay: 1000, delayBeforeNext: 500 },
     { type: "jumper", count: 15, spawnDelay: 1000 }
   ],
   // === COMBO WAVES 41-46: Synergy enemy combinations ===
@@ -961,7 +1011,7 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
   // Endless mode after wave 46
   const multiplier = Math.pow(1.06, waveNumber - 46);
 
-  const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded"];
+  const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer"];
   const segments: WaveSegment[] = [];
 
   // Bosses every 5 waves
