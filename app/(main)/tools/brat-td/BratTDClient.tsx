@@ -190,6 +190,23 @@ interface SpeedTrail {
   life: number;
 }
 
+interface Mine {
+  id: string;
+  x: number;
+  y: number;
+  damage: number;
+  radius: number; // explosion radius
+  triggerRadius: number; // how close enemy needs to be
+  ignoresArmor?: boolean;
+  slowAmount?: number;
+  freezeChance?: number;
+  freezeDuration?: number;
+  disableAbilities?: boolean;
+  damageDebuff?: number;
+  pierce: number; // max enemies hit
+  towerId: string;
+}
+
 // Pure helpers to satisfy react-hooks/purity ruleset checking for Math.random
 const getPureRandom = () => Math.random();
 const getPureId = () => Math.random().toString(36).substr(2, 9);
@@ -326,6 +343,7 @@ export default function BratTDClient() {
   const particlesRef = useRef<Particle[]>([]);
   const floatingTextsRef = useRef<FloatingText[]>([]);
   const speedTrailsRef = useRef<SpeedTrail[]>([]);
+  const minesRef = useRef<Mine[]>([]);
 
   // Synchronized refs for the requestAnimationFrame loop to prevent stale values
   const livesRef = useRef(100);
@@ -545,6 +563,7 @@ export default function BratTDClient() {
     particlesRef.current = [];
     floatingTextsRef.current = [];
     speedTrailsRef.current = [];
+    minesRef.current = [];
     setLives(100);
     setGold(350);
     setWave(1);
@@ -832,6 +851,10 @@ export default function BratTDClient() {
     
     // Remove tower
     towersRef.current.splice(towerIdx, 1);
+    
+    // Remove mines from this tower
+    minesRef.current = minesRef.current.filter(m => m.towerId !== tower.id);
+    
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
     pushLog(`Продано ${tower.name} за ${sellPrice} Nescafe Gold.`);
@@ -1215,6 +1238,43 @@ export default function BratTDClient() {
             });
           }
 
+          // Check mines
+          for (let mi = minesRef.current.length - 1; mi >= 0; mi--) {
+            const mine = minesRef.current[mi];
+            if (getDistance(enemy.x, enemy.y, mine.x, mine.y) <= mine.triggerRadius) {
+              // BOOM! Mine explodes
+              spawnHitParticles(mine.x, mine.y, "#ef4444", 15, "square");
+              spawnFloatingText(mine.x, mine.y - 15, "💥 МІНА!", "#ef4444");
+              
+              // Damage enemies in blast radius
+              let hitCount = 0;
+              enemiesRef.current.forEach((e) => {
+                if (e.hp <= 0 || hitCount >= mine.pierce) return;
+                if (getDistance(e.x, e.y, mine.x, mine.y) <= mine.radius) {
+                  let dmg = mine.damage;
+                  if (mine.ignoresArmor) { /* no reduction */ }
+                  else if (e.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * 0.25);
+                  else if (e.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * 0.5);
+                  if (e.damageReduce) dmg = Math.floor(dmg * (1 - e.damageReduce));
+                  e.hp -= dmg;
+                  hitCount++;
+                  if (mine.slowAmount) e.gasSlowDuration = 60;
+                  if (mine.freezeChance && getPureRandom() < mine.freezeChance) e.freezeDuration = mine.freezeDuration || 60;
+                  if (mine.disableAbilities) { e.isGlitching = false; }
+                  if (mine.damageDebuff) e.damageDebuff = Math.max(e.damageDebuff || 1.0, mine.damageDebuff);
+                  if (e.hp <= 0) {
+                    const sourceTower = towersRef.current.find(t => t.id === mine.towerId);
+                    if (sourceTower) sourceTower.totalKills++;
+                  }
+                }
+              });
+              
+              // Remove mine
+              minesRef.current.splice(mi, 1);
+              screenShakeRef.current = { x: 0, y: 0, intensity: 3, duration: 5 };
+            }
+          }
+
           // Check if standing in ability-disabling or glitch-disabling gas aura
           let glitchDisabled = false;
           let abilitiesDisabled = false;
@@ -1329,6 +1389,61 @@ export default function BratTDClient() {
 
           // Coffee towers do not shoot
           if (tower.type === "coffee") return;
+
+          // Кладмен places mines on the path
+          if (tower.type === "kladmen") {
+            if (tower.cooldown <= 0) {
+              tower.cooldown = tower.fireRate * 60;
+              
+              // Find a path segment within range
+              const maxMines = tower.alwaysDouble ? 8 : tower.twoHits ? 6 : 4;
+              if (minesRef.current.filter(m => m.towerId === tower.id).length < maxMines) {
+                // Pick a random path point near the tower
+                let bestX = tower.x, bestY = tower.y;
+                let found = false;
+                for (let pi = 0; pi < PATH.length - 1; pi++) {
+                  const a = PATH[pi], b = PATH[pi + 1];
+                  // Sample points along segment
+                  for (let t = 0; t <= 1; t += 0.2) {
+                    const px = a.x + (b.x - a.x) * t;
+                    const py = a.y + (b.y - a.y) * t;
+                    if (getDistance(tower.x, tower.y, px, py) <= tower.range) {
+                      // Check no mine already here
+                      const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30);
+                      if (!tooClose) {
+                        bestX = px + (getPureRandom() - 0.5) * 10;
+                        bestY = py + (getPureRandom() - 0.5) * 10;
+                        found = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (found) break;
+                }
+                
+                if (found) {
+                  const mine: Mine = {
+                    id: getPureId(),
+                    x: bestX,
+                    y: bestY,
+                    damage: tower.damage,
+                    radius: tower.explodeDmg ? 80 : 50,
+                    triggerRadius: 15,
+                    ignoresArmor: tower.ignoresArmor,
+                    slowAmount: tower.slowAmount,
+                    freezeChance: tower.freezeChance,
+                    freezeDuration: tower.freezeDurationBonus,
+                    disableAbilities: tower.disableAbilities,
+                    damageDebuff: tower.damageDebuff ? 1.25 : undefined,
+                    pierce: tower.pierce || 3,
+                    towerId: tower.id
+                  };
+                  minesRef.current.push(mine);
+                }
+              }
+            }
+            return;
+          }
 
           const isCamoCapable = tower.camoDetection || hasCamoBuff;
 
@@ -1945,6 +2060,25 @@ export default function BratTDClient() {
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 9px var(--font-display)";
       ctx.fillText("CORE", endX - 15, endY);
+
+      // --- Draw Mines ---
+      minesRef.current.forEach((mine) => {
+        const pulse = Math.sin(frameCountRef.current * 0.15) * 0.3 + 0.7;
+        // Mine body (small red circle)
+        ctx.beginPath();
+        ctx.arc(mine.x, mine.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(239, 68, 68, ${0.6 * pulse})`;
+        ctx.fill();
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Trigger radius indicator (subtle)
+        ctx.beginPath();
+        ctx.arc(mine.x, mine.y, mine.triggerRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(239, 68, 68, ${0.12 * pulse})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
 
       // --- Draw Speed Trails (pink candy dust) ---
       speedTrailsRef.current.forEach((trail) => {

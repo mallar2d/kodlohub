@@ -394,35 +394,35 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   kladmen: {
     name: "Кладмен",
-    description: "Ставить міни на дорозі. Міни вибухають при контакті з ворогом, наносячи шкоду в зоні.",
+    description: "Ставить міни на дорозі. Міни вибухають при контакті, наносячи AoE шкоду. Макс 4 міни одночасно.",
     cost: 275,
     range: 150,
-    damage: 35,
-    fireRate: 2.5,
+    damage: 50,
+    fireRate: 1.8,
     color: "#ef4444",
     emoji: "💣",
-    pierce: 1,
+    pierce: 3,
     upgrades: {
       path1: [
-        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +20.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 20 }) },
-        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +35, радіус вибуху +20px.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 35, explodeDmg: 20 }) },
-        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +60, вибух зачіпає 3 цілі.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 60, pierce: (s.pierce || 1) + 2 }) },
-        { id: "kladmen_c4", name: "C4", description: "Шкода +100, пробиває броню.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 100, ignoresArmor: true }) },
-        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +250, величезний радіус вибуху, 5 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 250, pierce: (s.pierce || 1) + 4, ignoresArmor: true }) }
+        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +30.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 30 }) },
+        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +50, радіус вибуху +20px.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 50, explodeDmg: 20 }) },
+        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +80, вибух зачіпає 5 цілей.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 80, pierce: (s.pierce || 3) + 2 }) },
+        { id: "kladmen_c4", name: "C4", description: "Шкода +130, пробиває броню.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 130, ignoresArmor: true }) },
+        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +300, радіус +30px, 8 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 300, pierce: (s.pierce || 3) + 5, ignoresArmor: true }) }
       ],
       path2: [
         { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +25%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
         { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +35%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
         { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +45%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, range: s.range + 20 }) },
-        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +55%, +1 міна одночасно.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) },
-        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Шалена швидкість, +2 міни одночасно, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, alwaysDouble: true, camoDetection: true }) }
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +55%, макс 6 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Шалена швидкість, макс 8 мін, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, alwaysDouble: true, camoDetection: true }) }
       ],
       path3: [
-        { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30% на 2с.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
+        { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30%.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
         { id: "kladmen_freeze", name: "Кріо-міна", description: "15% шанс заморозити ворога на 1с.", cost: 330, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
-        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги горять — отримують 10 шкоди/с на 3с після вибуху.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
-        { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності ворогів.", cost: 1540, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
-        { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "Вибух наносить 200 додаткової шкоди, 45% оглушення, сповільнення 50%.", cost: 3850, effect: (s) => ({ ...s, gachaChance: 0.45, gachaDamageOverride: 200, slowAmount: 0.50, freezeDurationBonus: 120 }) }
+        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги отримують на 25% більше шкоди після вибуху.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
+        { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності.", cost: 1540, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
+        { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "45% оглушення, сповільнення 50%, вимикає здібності.", cost: 3850, effect: (s) => ({ ...s, freezeChance: 0.45, slowAmount: 0.50, freezeDurationBonus: 120, disableAbilities: true }) }
       ]
     }
   }
