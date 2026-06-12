@@ -68,6 +68,8 @@ interface PlacedTower {
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
   hasCamoBuff?: boolean;
+  hasCoffeeBuff?: boolean;
+  coffeeBuffStrength?: number; // 0-1 how strong the buff is (for visual intensity)
 }
 
 
@@ -1066,6 +1068,8 @@ export default function BratTDClient() {
             }
           });
           tower.hasCamoBuff = hasCamoBuff;
+          tower.hasCoffeeBuff = maxBuff > 0;
+          tower.coffeeBuffStrength = Math.min(1, maxBuff / 1.2);
 
           // Check if affected by Gas Brat debuff (slow attack rate)
           let speedDebuff = 1.0;
@@ -1864,6 +1868,36 @@ export default function BratTDClient() {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(tower.emoji, tower.x, tower.y);
+
+        // Coffee buff visual indicator
+        if (tower.hasCoffeeBuff && tower.type !== "coffee") {
+          const pulse = Math.sin(frameCountRef.current * 0.08) * 0.3 + 0.7;
+          const strength = tower.coffeeBuffStrength || 0.5;
+          const glowRadius = 20 + strength * 4;
+
+          // Golden glow ring
+          ctx.beginPath();
+          ctx.arc(tower.x, tower.y, glowRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(234, 179, 8, ${0.3 * pulse * strength})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Inner golden fill
+          ctx.beginPath();
+          ctx.arc(tower.x, tower.y, 18, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(234, 179, 8, ${0.06 * pulse * strength})`;
+          ctx.fill();
+
+          // Small coffee icon above tower
+          ctx.font = "10px Arial";
+          ctx.fillText("☕", tower.x, tower.y - 24);
+        }
+
+        // Camo buff indicator
+        if (tower.hasCamoBuff && !tower.camoDetection) {
+          ctx.font = "9px Arial";
+          ctx.fillText("👁", tower.x + 14, tower.y - 18);
+        }
       });
 
       // --- Draw Enemies ---
