@@ -462,36 +462,36 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   monolith: {
     name: "Коростишівський Моноліт",
-    description: "Дорогий anti-boss юніт. Повільний, але пробиває броню і свинець.",
-    cost: 900,
-    range: 185,
-    damage: 180,
-    fireRate: 4.0,
+    description: "Аналог Super Monkey: дорогий, дуже швидко кидає гранітні уламки. Без базового камуфляжу.",
+    cost: 1100,
+    range: 165,
+    damage: 16,
+    fireRate: 0.14,
     color: "#9ca3af",
     emoji: "🗿",
     camoDetection: false,
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "mono_chisel", name: "Гранітне Зубило", description: "Шкода +80.", cost: 520, effect: (s) => ({ ...s, damage: s.damage + 80 }) },
-        { id: "mono_core", name: "Ядро Кар'єру", description: "Шкода +140, ігнорує броню.", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 140, ignoresArmor: true }) },
-        { id: "mono_crack", name: "Тріщина Реальності", description: "Шкода +220, пірс +1.", cost: 2600, effect: (s) => ({ ...s, damage: s.damage + 220, pierce: (s.pierce || 1) + 1 }) },
-        { id: "mono_quake", name: "Кар'єрний Удар", description: "Шкода +360, вибух 50px.", cost: 5400, effect: (s) => ({ ...s, damage: s.damage + 360, explodeDmg: 120 }) },
-        { id: "mono_judgement", name: "Суд Коростишева", description: "Шкода +700, вибух 120px, пірс +2.", cost: 11800, effect: (s) => ({ ...s, damage: s.damage + 700, explodeDmg: 220, pierce: (s.pierce || 1) + 2, ignoresArmor: true }) }
+        { id: "mono_sharp", name: "Гострі Уламки", description: "Шкода +8.", cost: 520, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
+        { id: "mono_dense", name: "Щільний Граніт", description: "Шкода +14, пірс +1.", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_plasma", name: "Плазмовий Кар'єр", description: "Шкода +24, ігнорує броню.", cost: 2600, effect: (s) => ({ ...s, damage: s.damage + 24, ignoresArmor: true }) },
+        { id: "mono_sun", name: "Сонячний Моноліт", description: "Шкода +45, пірс +2.", cost: 5400, effect: (s) => ({ ...s, damage: s.damage + 45, pierce: (s.pierce || 1) + 2 }) },
+        { id: "mono_temple", name: "Храм Коростишева", description: "Шкода +90, вибух 50px, пірс +3.", cost: 11800, effect: (s) => ({ ...s, damage: s.damage + 90, explodeDmg: 70, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
       ],
       path2: [
-        { id: "mono_oil", name: "Мастило Кар'єру", description: "Швидкість атаки +15%.", cost: 480, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
-        { id: "mono_loader", name: "Автонавантажувач", description: "Швидкість +20%.", cost: 1050, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
-        { id: "mono_double", name: "Два Валуа", description: "Кожен 3-й постріл подвійний.", cost: 2300, effect: (s) => ({ ...s, twoHits: true }) },
-        { id: "mono_factory", name: "Гранітний Завод", description: "Швидкість +35%.", cost: 4800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
-        { id: "mono_industry", name: "Коростишівська Індустрія", description: "Швидкість +45%, пірс +2.", cost: 9900, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, pierce: (s.pierce || 1) + 2 }) }
+        { id: "mono_hands", name: "Швидкі Руки", description: "Швидкість атаки +12%.", cost: 480, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.88 }) },
+        { id: "mono_reflex", name: "Гранітний Рефлекс", description: "Швидкість +18%.", cost: 1050, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
+        { id: "mono_double", name: "Подвійний Уламок", description: "Кожен 3-й постріл подвійний.", cost: 2300, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "mono_laser", name: "Лазерний Кар'єр", description: "Швидкість +25%, пірс +1.", cost: 4800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_robo", name: "Робо-Моноліт", description: "Кожен постріл подвійний, швидкість +20%, пірс +2.", cost: 9900, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, alwaysDouble: true, pierce: (s.pierce || 1) + 2 }) }
       ],
       path3: [
-        { id: "mono_scope", name: "Кам'яне Око", description: "Дальність +35px.", cost: 420, effect: (s) => ({ ...s, range: s.range + 35 }) },
-        { id: "mono_camo", name: "Радар Кар'єру", description: "Виявляє камуфляж.", cost: 900, effect: (s) => ({ ...s, camoDetection: true }) },
-        { id: "mono_stun", name: "Гравітаційний Удар", description: "15% шанс оглушити на 1с.", cost: 2100, effect: (s) => ({ ...s, freezeChance: 0.15, freezeDurationBonus: 30 }) },
-        { id: "mono_emp", name: "Кам'яний EMP", description: "25% оглушення, вимикає здібності.", cost: 4600, effect: (s) => ({ ...s, freezeChance: 0.25, freezeDurationBonus: 60, disableAbilities: true }) },
-        { id: "mono_singularity", name: "Монолітна Сингулярність", description: "40% оглушення, +120 шкоди, камуфляж.", cost: 9600, effect: (s) => ({ ...s, freezeChance: 0.40, freezeDurationBonus: 120, damage: s.damage + 120, camoDetection: true, disableAbilities: true }) }
+        { id: "mono_scope", name: "Кам'яне Око", description: "Дальність +30px.", cost: 420, effect: (s) => ({ ...s, range: s.range + 30 }) },
+        { id: "mono_camo", name: "Радар Кар'єру", description: "Виявляє камуфляж, пірс +1.", cost: 900, effect: (s) => ({ ...s, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_knock", name: "Гравітаційний Удар", description: "10% шанс оглушити на 0.5с, дальність +20px.", cost: 2100, effect: (s) => ({ ...s, freezeChance: 0.10, range: s.range + 20 }) },
+        { id: "mono_emp", name: "Кам'яний EMP", description: "20% оглушення, вимикає здібності.", cost: 4600, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30, disableAbilities: true }) },
+        { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +35 шкоди, камуфляж, здібності вимкнено.", cost: 9600, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 35, camoDetection: true, disableAbilities: true }) }
       ]
     }
   }
