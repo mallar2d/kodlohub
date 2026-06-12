@@ -360,7 +360,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   chain: {
     name: "Ланцюгова Башня",
     description: "Б'є блискавкою, що перескакує між ворогами. Ефективна проти натовпів.",
-    cost: 300,
+    cost: 400,
     range: 130,
     damage: 15,
     fireRate: 1.0,
