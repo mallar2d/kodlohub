@@ -300,11 +300,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "💨",
     upgrades: {
       path1: [
-        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +6, радіус +10px.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 6, range: s.range + 10 }) },
-        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +10, радіус +15px.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, range: s.range + 15 }) },
-        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +18, радіус +15px. Вороги в аурі отримують подвійну шкоду від регенерації (зупиняє зцілення).", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 18, range: s.range + 15, antiArmor: true }) },
-        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +30, радіус +20px. Вбивство в аурі вибухає (40 шкоди, 50px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 30, range: s.range + 20, explodeDmg: 40 }) },
-        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +80, радіус +25px, ігнорує будь-яку броню. Залишає слід (20 шкоди/с на 3с).", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 80, range: s.range + 25, ignoresArmor: true, gachaChance: 0.15, gachaDamageOverride: 60 }) }
+        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +8.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
+        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +14, швидкість тиків +20%.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 14, fireRate: s.fireRate * 0.80 }) },
+        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +22. Вороги в аурі не регенерують.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 22, antiArmor: true }) },
+        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +40, швидкість тиків +30%. Вбивство в аурі вибухає (50 шкоди, 60px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 40, fireRate: s.fireRate * 0.70, explodeDmg: 50 }) },
+        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +100, ігнорує броню, 15% шанс на додаткові 80 шкоди при тику.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 100, ignoresArmor: true, gachaChance: 0.15, gachaDamageOverride: 80 }) }
       ],
       path2: [
         { id: "gas_odor", name: "Різкий запах", description: "Збільшує шкоду аури на 3.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
