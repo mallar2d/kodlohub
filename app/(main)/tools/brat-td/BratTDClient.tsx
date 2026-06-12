@@ -204,11 +204,12 @@ interface LeaderboardEntry {
   score: number;
   wave: number;
   date: string;
+  isGlobal?: boolean;
 }
 
 const LEADERBOARD_KEY = "brat_td_leaderboard";
 
-function getLeaderboard(): LeaderboardEntry[] {
+function getLocalLeaderboard(): LeaderboardEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
@@ -225,13 +226,63 @@ function getLeaderboard(): LeaderboardEntry[] {
   }
 }
 
-function addToLeaderboard(name: string, score: number, wave: number): LeaderboardEntry[] {
-  const entries = getLeaderboard();
+function saveLocalLeaderboard(entries: LeaderboardEntry[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+}
+
+function addToLocalLeaderboard(name: string, score: number, wave: number): LeaderboardEntry[] {
+  const entries = getLocalLeaderboard();
   entries.push({ name, score, wave, date: new Date().toISOString().split("T")[0] });
   entries.sort((a, b) => b.score - a.score);
   const top10 = entries.slice(0, 10);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(top10));
+  saveLocalLeaderboard(top10);
   return top10;
+}
+
+async function fetchGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
+  try {
+    const res = await fetch("/api/brat-td");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string }) => ({
+      name: e.player_name,
+      score: e.score,
+      wave: e.wave,
+      date: e.created_at?.split("T")[0] ?? "",
+      isGlobal: true,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function submitGlobalScore(playerName: string, score: number, wave: number): Promise<boolean> {
+  try {
+    const res = await fetch("/api/brat-td", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName, score, wave }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function mergeLeaderboards(global: LeaderboardEntry[], local: LeaderboardEntry[]): LeaderboardEntry[] {
+  const merged = [...global, ...local];
+  merged.sort((a, b) => b.score - a.score);
+  const seen = new Set<string>();
+  const unique: LeaderboardEntry[] = [];
+  for (const e of merged) {
+    const key = `${e.name}-${e.score}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(e);
+    }
+  }
+  return unique.slice(0, 10);
 }
 
 export default function BratTDClient() {
@@ -302,9 +353,14 @@ export default function BratTDClient() {
   useEffect(() => { isAutoStartRef.current = isAutoStart; }, [isAutoStart]);
   useEffect(() => { scoreRef.current = score; }, [score]);
 
-  // Load leaderboard on mount
+  // Load leaderboard on mount (API + localStorage merge)
   useEffect(() => {
-    setLeaderboard(getLeaderboard());
+    const load = async () => {
+      const local = getLocalLeaderboard();
+      const global = await fetchGlobalLeaderboard();
+      setLeaderboard(mergeLeaderboards(global, local));
+    };
+    load();
   }, []);
 
   // Audio helper
@@ -2268,10 +2324,16 @@ export default function BratTDClient() {
     pushLog("Почалася нескінченна гра! Вороги стають сильнішими з кожною хвилею.");
   };
 
-  const handleSubmitScore = () => {
+  const handleSubmitScore = async () => {
     const name = playerName.trim() || "Анонім";
-    const updated = addToLeaderboard(name, score, wave - 1);
-    setLeaderboard(updated);
+    // Always save locally
+    addToLocalLeaderboard(name, score, wave - 1);
+    // Try to save globally (works if authenticated)
+    await submitGlobalScore(name, score, wave - 1);
+    // Reload merged leaderboard
+    const local = getLocalLeaderboard();
+    const global = await fetchGlobalLeaderboard();
+    setLeaderboard(mergeLeaderboards(global, local));
     setScoreSubmitted(true);
   };
 
