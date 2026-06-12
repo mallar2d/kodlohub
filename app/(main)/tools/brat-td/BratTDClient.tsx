@@ -62,6 +62,8 @@ interface PlacedTower {
   bugContagion?: boolean;
   disableGlitch?: boolean;
   disableAbilities?: boolean;
+  camoDetection?: boolean;
+  camoDetectionBuff?: boolean;
 }
 
 
@@ -89,6 +91,9 @@ interface ActiveEnemy {
   gasSlowFactor?: number;
   damageDebuff?: number; // multiplier
   hasCopilotBug?: boolean;
+  bugExplodeDmg?: number;
+  bugExplodeRadius?: number;
+  bugContagion?: boolean;
   // Specials
   isArmored?: boolean;
   isSuperArmored?: boolean;
@@ -97,6 +102,9 @@ interface ActiveEnemy {
   isSlowingTowers?: boolean;
   isSpawningTrail?: boolean;
   onDeath?: (x: number, y: number, spawnCallback: (type: string, rx: number, ry: number) => void) => void;
+  isCamo?: boolean;
+  isRegen?: boolean;
+  isLead?: boolean;
 }
 
 interface Projectile {
@@ -128,6 +136,7 @@ interface Projectile {
   bugExplodeDmg?: number;
   bugExplodeRadius?: number;
   bugContagion?: boolean;
+  camoDetection?: boolean;
   // simple physics
   angle: number;
   lastTargetX: number;
@@ -191,6 +200,7 @@ export default function BratTDClient() {
   const [isPaused, setIsPaused] = useState(false);
   const [gameSpeed, setGameSpeed] = useState<1 | 2>(1);
   const [isEndless, setIsEndless] = useState(false);
+  const [isAutoStart, setIsAutoStart] = useState(false);
   
   const [selectedShopTower, setSelectedShopTower] = useState<string | null>(null);
   const [selectedPlacedTowerId, setSelectedPlacedTowerId] = useState<string | null>(null);
@@ -217,6 +227,7 @@ export default function BratTDClient() {
   const gameStatusRef = useRef<"idle" | "playing" | "gameover" | "victory">("idle");
   const isPausedRef = useRef(false);
   const gameSpeedRef = useRef<1 | 2>(1);
+  const isAutoStartRef = useRef(false);
 
   // Spawner tracking
   const spawnQueueRef = useRef<{ type: string; delay: number }[]>([]);
@@ -230,6 +241,7 @@ export default function BratTDClient() {
   useEffect(() => { gameStatusRef.current = gameStatus; }, [gameStatus]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   useEffect(() => { gameSpeedRef.current = gameSpeed; }, [gameSpeed]);
+  useEffect(() => { isAutoStartRef.current = isAutoStart; }, [isAutoStart]);
 
   // Audio helper
   const playPdrSound = () => {
@@ -305,7 +317,8 @@ export default function BratTDClient() {
     const baseConfig = getEnemyStatsForWave(type, waveRef.current);
     const emojiMap: Record<string, string> = {
       ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-      infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿"
+      infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
+      camo: "🦹", regen: "💗", lead: "🔩"
     };
     
     // Find closest pathIndex for spawned minion
@@ -344,7 +357,10 @@ export default function BratTDClient() {
       isGlitching: baseConfig.isGlitching,
       isSlowingTowers: baseConfig.isSlowingTowers,
       isSpawningTrail: baseConfig.isSpawningTrail,
-      onDeath: baseConfig.onDeath
+      onDeath: baseConfig.onDeath,
+      isCamo: baseConfig.isCamo,
+      isRegen: baseConfig.isRegen,
+      isLead: baseConfig.isLead
     };
     enemiesRef.current.push(newEnemy);
   };
@@ -466,7 +482,8 @@ export default function BratTDClient() {
         path2Tier: 0,
         path3Tier: 0,
         level: 1,
-        totalKills: 0
+        totalKills: 0,
+        camoDetection: config.camoDetection || false
       };
 
       // Apply initial setup for buffs/aura
@@ -607,7 +624,9 @@ export default function BratTDClient() {
       bugExplodeRadius: tower.bugExplodeRadius,
       bugContagion: tower.bugContagion,
       disableGlitch: tower.disableGlitch,
-      disableAbilities: tower.disableAbilities
+      disableAbilities: tower.disableAbilities,
+      camoDetection: tower.camoDetection,
+      camoDetectionBuff: tower.camoDetectionBuff
     });
 
     // Deduct cost and apply variables
@@ -650,6 +669,8 @@ export default function BratTDClient() {
     tower.bugContagion = newStats.bugContagion;
     tower.disableGlitch = newStats.disableGlitch;
     tower.disableAbilities = newStats.disableAbilities;
+    tower.camoDetection = newStats.camoDetection;
+    tower.camoDetectionBuff = newStats.camoDetectionBuff;
     
     tower.level += 1;
 
@@ -690,7 +711,8 @@ export default function BratTDClient() {
                 const baseConfig = getEnemyStatsForWave(nextSpawn.type, waveRef.current);
                 const emojiMap: Record<string, string> = {
                   ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-                  infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿"
+                  infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
+                  camo: "🦹", regen: "💗", lead: "🔩"
                 };
 
                 const newEnemy: ActiveEnemy = {
@@ -718,7 +740,10 @@ export default function BratTDClient() {
                   isGlitching: baseConfig.isGlitching,
                   isSlowingTowers: baseConfig.isSlowingTowers,
                   isSpawningTrail: baseConfig.isSpawningTrail,
-                  onDeath: baseConfig.onDeath
+                  onDeath: baseConfig.onDeath,
+                  isCamo: baseConfig.isCamo,
+                  isRegen: baseConfig.isRegen,
+                  isLead: baseConfig.isLead
                 };
 
                 enemiesRef.current.push(newEnemy);
@@ -748,6 +773,11 @@ export default function BratTDClient() {
               setGameStatus("victory");
             } else {
               setWave((prev) => prev + 1);
+              if (isAutoStartRef.current) {
+                setTimeout(() => {
+                  startNextWave();
+                }, 1000);
+              }
             }
           }
         }
@@ -855,6 +885,11 @@ export default function BratTDClient() {
             enemy.distanceTraveled += currentSpeed;
           }
 
+          // Regen healing (0.3 HP per frame, approx 18 HP per second)
+          if (enemy.isRegen && enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.freezeDuration <= 0) {
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + 0.3);
+          }
+
           // Check if standing in ability-disabling or glitch-disabling gas aura
           let glitchDisabled = false;
           let abilitiesDisabled = false;
@@ -916,11 +951,15 @@ export default function BratTDClient() {
         towers.forEach((tower) => {
           // Find max coffee buff multiplier
           let maxBuff = 0;
+          let hasCamoBuff = false;
           coffeeTowers.forEach((coffee) => {
             const dist = getDistance(tower.x, tower.y, coffee.x, coffee.y);
             if (dist <= coffee.range) {
               const buffVal = coffee.buffMultiplier || 0.25;
               if (buffVal > maxBuff) maxBuff = buffVal;
+              if (coffee.camoDetectionBuff) {
+                hasCamoBuff = true;
+              }
             }
           });
 
@@ -957,6 +996,8 @@ export default function BratTDClient() {
           // Coffee towers do not shoot
           if (tower.type === "coffee") return;
 
+          const isCamoCapable = tower.camoDetection || hasCamoBuff;
+
           // Gas towers do AoE tick damage inside the update loop directly (no projectiles)
           if (tower.type === "gas") {
             if (tower.cooldown <= 0) {
@@ -964,6 +1005,7 @@ export default function BratTDClient() {
               
               // Damage all enemies in range
               enemiesRef.current.forEach((enemy) => {
+                if (enemy.isCamo && !isCamoCapable) return;
                 const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
                 if (dist <= tower.range) {
                   let dmg = tower.damage;
@@ -982,6 +1024,7 @@ export default function BratTDClient() {
                   // Apply damage debuff if active on enemy
                   if (enemy.damageDebuff) dmg *= enemy.damageDebuff;
 
+                  const wasAlive = enemy.hp > 0;
                   enemy.hp -= dmg;
                   enemy.gasSlowDuration = 30; // 0.5s slow inside gas
                   enemy.gasSlowFactor = tower.slowAmount || 0.15;
@@ -1005,28 +1048,11 @@ export default function BratTDClient() {
                     });
                   }
 
-                  if (enemy.hp <= 0) {
+                  if (wasAlive && enemy.hp <= 0) {
                     tower.totalKills++;
                   }
                 }
               });
-
-              // Clean up dead enemies from gas ticks
-              for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
-                const enemy = enemiesRef.current[i];
-                if (enemy.hp <= 0) {
-                  // Reward gold
-                  setGold((prev) => prev + enemy.reward);
-                  spawnFloatingText(enemy.x, enemy.y, `+${enemy.reward} ☕`, "#eab308");
-                  
-                  // Spawn minions if boss
-                  if (enemy.onDeath) {
-                    enemy.onDeath(enemy.x, enemy.y, spawnEnemyCallback);
-                  }
-                  
-                  enemiesRef.current.splice(i, 1);
-                }
-              }
             }
             return;
           }
@@ -1035,6 +1061,7 @@ export default function BratTDClient() {
           if (tower.cooldown <= 0 && enemiesRef.current.length > 0) {
             // Find enemies in range
             const targetsInRange = enemiesRef.current.filter((e) => {
+              if (e.isCamo && !isCamoCapable) return false;
               return getDistance(tower.x, tower.y, e.x, e.y) <= tower.range;
             });
 
@@ -1150,9 +1177,14 @@ export default function BratTDClient() {
                 dmg = Math.floor(getPureRandom() * 51) + 5; // [5, 55]
               }
 
+              // Lead armor hammer immunity (Physical hammers deal 0 damage to lead enemies unless upgraded to ignoresArmor)
+              if (target.isLead && proj.type === "hammer" && !proj.ignoresArmor) {
+                dmg = 0;
+              }
+
               // Apply armor reductions
               const armorIgnored = proj.ignoresArmor || false;
-              if (!armorIgnored) {
+              if (!armorIgnored && dmg > 0) {
                 if (target.isArmored && proj.type === "hammer") {
                   dmg = Math.floor(dmg * 0.5); // cut by 50%
                 } else if (target.isSuperArmored && proj.type === "hammer") {
@@ -1162,7 +1194,7 @@ export default function BratTDClient() {
 
               // Check Criticals (for hammer upgrade)
               let isCrit = false;
-              if (proj.critChance && getPureRandom() < proj.critChance) {
+              if (dmg > 0 && proj.critChance && getPureRandom() < proj.critChance) {
                 const mult = proj.critMultiplier || 3;
                 dmg *= mult;
                 isCrit = true;
@@ -1170,18 +1202,19 @@ export default function BratTDClient() {
               }
 
               // Check Gacha chance (for Infinix jackpot)
-              if (proj.gachaChance && getPureRandom() < proj.gachaChance) {
+              if (dmg > 0 && proj.gachaChance && getPureRandom() < proj.gachaChance) {
                 dmg = proj.gachaDamageOverride || 300;
                 isCrit = true;
                 playPdrSound();
               }
 
               // Apply damage debuff if active on enemy
-              if (target.damageDebuff) {
+              if (target.damageDebuff && dmg > 0) {
                 dmg = Math.floor(dmg * target.damageDebuff);
               }
 
               // Apply damage
+              const wasAlive = target.hp > 0;
               target.hp -= dmg;
 
               // Apply status effects
@@ -1218,6 +1251,9 @@ export default function BratTDClient() {
                 // Bug infection
                 if (proj.copilotBug) {
                   target.hasCopilotBug = true;
+                  target.bugExplodeDmg = proj.bugExplodeDmg || 50;
+                  target.bugExplodeRadius = proj.bugExplodeRadius || 80;
+                  target.bugContagion = proj.bugContagion || false;
                 }
               }
 
@@ -1227,7 +1263,7 @@ export default function BratTDClient() {
               }
 
               // Check kill
-              if (target.hp <= 0) {
+              if (wasAlive && target.hp <= 0) {
                 // Increment tower kill count
                 // Find tower that fired this projectile
                 // Since we don't store tower source id on projectile directly,
@@ -1238,31 +1274,6 @@ export default function BratTDClient() {
                 
                 if (sourceTower) {
                   sourceTower.totalKills++;
-                }
-
-                // Reward gold
-                setGold((prev) => prev + target.reward);
-                spawnFloatingText(target.x, target.y, `+${target.reward} ☕`, "#eab308");
-
-                // Check Copilot Bug explosion
-                if (target.hasCopilotBug) {
-                  spawnFloatingText(target.x, target.y - 15, "BUG EXPLOSION!", "#a855f7");
-                  spawnHitParticles(target.x, target.y, "#a855f7", 15, "square");
-                  
-                  // Damage nearby enemies
-                  enemiesRef.current.forEach((other) => {
-                    if (other.id !== target.id && getDistance(target.x, target.y, other.x, other.y) <= 80) {
-                      other.hp -= 50;
-                      if (other.hp <= 0 && sourceTower) {
-                        sourceTower.totalKills++;
-                      }
-                    }
-                  });
-                }
-
-                // Spawn minions if boss
-                if (target.onDeath) {
-                  target.onDeath(target.x, target.y, spawnEnemyCallback);
                 }
               }
 
@@ -1280,6 +1291,57 @@ export default function BratTDClient() {
             if (proj.type === "hammer") {
               proj.angle += 0.25;
             }
+          }
+        }
+
+        // --- 6. UNIFIED DEAD ENEMIES CLEANUP ---
+        for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
+          const enemy = enemiesRef.current[i];
+          if (enemy.hp <= 0) {
+            // Reward gold
+            setGold((prev) => prev + enemy.reward);
+            spawnFloatingText(enemy.x, enemy.y, `+${enemy.reward} ☕`, "#eab308");
+
+            // Check Copilot Bug explosion
+            if (enemy.hasCopilotBug) {
+              const explodeDmg = enemy.bugExplodeDmg || 50;
+              const explodeRad = enemy.bugExplodeRadius || 80;
+              spawnFloatingText(enemy.x, enemy.y - 15, "BUG EXPLOSION!", "#a855f7");
+              spawnHitParticles(enemy.x, enemy.y, "#a855f7", 15, "square");
+
+              // Damage nearby enemies
+              enemiesRef.current.forEach((other) => {
+                if (other.id !== enemy.id && other.hp > 0 && getDistance(enemy.x, enemy.y, other.x, other.y) <= explodeRad) {
+                  const wasAliveOther = other.hp > 0;
+                  other.hp -= explodeDmg;
+                  // If other dies from explosion, attribute kill to nearest Infinix tower
+                  if (wasAliveOther && other.hp <= 0) {
+                    const sourceTower = towersRef.current
+                      .filter((t) => t.type === "infinix" && getDistance(t.x, t.y, other.x, other.y) <= t.range + 40)
+                      .sort((a, b) => getDistance(a.x, a.y, other.x, other.y) - getDistance(b.x, b.y, other.x, other.y))[0];
+                    if (sourceTower) {
+                      sourceTower.totalKills++;
+                    }
+
+                    // Spread the bug if bugContagion is active
+                    if (enemy.bugContagion) {
+                      other.hasCopilotBug = true;
+                      other.bugExplodeDmg = enemy.bugExplodeDmg;
+                      other.bugExplodeRadius = enemy.bugExplodeRadius;
+                      other.bugContagion = true;
+                    }
+                  }
+                }
+              });
+            }
+
+            // Spawn minions if boss
+            if (enemy.onDeath) {
+              enemy.onDeath(enemy.x, enemy.y, spawnEnemyCallback);
+            }
+
+            // Remove enemy from list
+            enemiesRef.current.splice(i, 1);
           }
         }
       }
@@ -1413,7 +1475,7 @@ export default function BratTDClient() {
       // --- Draw Hovered Tower Range ---
       if (isMouseOnCanvas && !selectedShopTower) {
         const hoveredTower = towersRef.current.find(
-          (t) => getDistance(mousePos.x, mousePos.y, t.x, t.y) < 20
+          (t) => getDistance(mousePos.x, mousePos.y, t.x, t.y) < 26
         );
         if (hoveredTower && hoveredTower.id !== selectedPlacedTowerId) {
           ctx.beginPath();
@@ -1734,6 +1796,16 @@ export default function BratTDClient() {
                   className="px-4 py-2 border border-hairline-dark rounded hover:bg-canvas-night-soft text-sm font-bold text-cyan-400 micro-cap"
                 >
                   Швидкість: {gameSpeed}x
+                </button>
+                <button
+                  onClick={() => setIsAutoStart(!isAutoStart)}
+                  className={`px-4 py-2 border rounded text-sm font-bold micro-cap transition-all ${
+                    isAutoStart 
+                      ? "bg-cyan-950/50 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]" 
+                      : "border-hairline-dark hover:bg-canvas-night-soft text-ink-mute"
+                  }`}
+                >
+                  Авто-накат: {isAutoStart ? "УВМ" : "ВИМК"}
                 </button>
                 {!isWaveActive && (
                   <button

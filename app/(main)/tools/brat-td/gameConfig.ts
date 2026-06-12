@@ -51,6 +51,8 @@ export interface UpgradeStats {
   bugContagion?: boolean;
   disableGlitch?: boolean;
   disableAbilities?: boolean;
+  camoDetection?: boolean;
+  camoDetectionBuff?: boolean;
 }
 
 export interface Upgrade {
@@ -70,6 +72,7 @@ export interface TowerStats {
   description: string;
   color: string; // Theme color for canvas representation
   emoji: string;
+  camoDetection?: boolean;
 }
 
 export interface TowerConfig extends TowerStats {
@@ -96,6 +99,9 @@ export interface EnemyConfig {
   isSlowingTowers?: boolean; // reduces fireRate of nearby towers
   isSpawningTrail?: boolean; // spawns pink trail that speeds up other enemies
   onDeath?: (enemyX: number, enemyY: number, spawnEnemyCallback: (type: string, x: number, y: number) => void) => void;
+  isCamo?: boolean;
+  isRegen?: boolean;
+  isLead?: boolean;
 }
 
 export const TOWER_CONFIGS: Record<string, TowerConfig> = {
@@ -125,7 +131,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       ],
       path3: [
         { id: "hammer_long", name: "Дальній кидок", description: "Збільшує дальність кидка на 25px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px.", cost: 70, effect: (s) => ({ ...s, range: s.range + 35 }) },
+        { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px, виявляє камуфляжних ворогів.", cost: 70, effect: (s) => ({ ...s, range: s.range + 35, camoDetection: true }) },
         { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "Дає 20% шанс завдати 3-кратну шкоду.", cost: 150, effect: (s) => ({ ...s, critChance: 0.20 }) },
         { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту збільшується до 40%.", cost: 300, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40 }) },
         { id: "hammer_legend", name: "Легенда без слів", description: "Шанс криту 60%, критичні удари наносять 6x шкоду.", cost: 1000, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6 }) }
@@ -159,7 +165,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path3: [
         { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +2 до шкоди.", cost: 90, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
         { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +5 до шкоди.", cost: 150, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5 }) },
-        { id: "coffee_roast", name: "Міцне обсмаження", description: "+10 шкоди та +15px дальності для веж поруч.", cost: 300, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 15 }) },
+        { id: "coffee_roast", name: "Міцне обсмаження", description: "+10 шкоди, +15px дальності та виявлення камуфляжу для веж поруч.", cost: 300, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 15, camoDetectionBuff: true }) },
         { id: "coffee_filter", name: "Анти-лаг фільтр", description: "Бафнуті вежі пробивають 30% броні ворогів.", cost: 550, effect: (s) => ({ ...s, ignoreArmorBuff: 0.3 }) },
         { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30 до шкоди та +25% дальності.", cost: 1400, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
       ]
@@ -185,7 +191,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path2: [
         { id: "candy_big", name: "Великі рачки", description: "Дальність стрільби цукерками +15px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 15 }) },
         { id: "candy_dispense", name: "Швидкий викид", description: "Швидкість стрільби цукерками +25%.", cost: 80, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні, сповільнюючи ворогів у радіусі 60px.", cost: 220, effect: (s) => ({ ...s, isAoESlow: true }) },
+        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px) та виявляють камуфляж.", cost: 220, effect: (s) => ({ ...s, isAoESlow: true, camoDetection: true }) },
         { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px та наносить 15 шкоди.", cost: 450, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15 }) },
         { id: "candy_singularity", name: "Рачкова сингулярність", description: "Цукерковий вибух у 150px наносить 80 шкоди та миттєво стопить натовп.", cost: 1300, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20 }) }
       ],
@@ -200,13 +206,14 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   infinix: {
     name: "Infinix Tower",
-    description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода.",
+    description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода. Бачить камуфляж.",
     cost: 200,
     range: 180,
     damage: 30,
     fireRate: 0.8,
     color: "#a855f7", // Purple
     emoji: "📱",
+    camoDetection: true,
     upgrades: {
       path1: [
         { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 5.", cost: 70, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
@@ -257,7 +264,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       ],
       path3: [
         { id: "gas_cheap_filter", name: "Дешевий фільтр", description: "Радіус аури +15px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 15 }) },
-        { id: "gas_containment", name: "Біологічне стримування", description: "Аура завдає подвійну шкоду броньованим ворогам (Брати в Куртці та Гранітні).", cost: 80, effect: (s) => ({ ...s, antiArmor: true }) },
+        { id: "gas_containment", name: "Біологічне стримування", description: "Аура завдає подвійну шкоду броньованим ворогам та виявляє камуфляж.", cost: 80, effect: (s) => ({ ...s, antiArmor: true, camoDetection: true }) },
         { id: "gas_glitch", name: "Глючний газ", description: "Infinix-брати втрачають можливість телепортуватися всередині аури.", cost: 200, effect: (s) => ({ ...s, disableGlitch: true }) },
         { id: "gas_gacha", name: "Аура Гачі", description: "8% шанс нанести ворогам 150 додаткової шкоди при кожному тику.", cost: 480, effect: (s) => ({ ...s, gachaChance: 0.08, gachaDamageOverride: 150 }) },
         { id: "gas_entropy", name: "Ентропійний колапс", description: "Повністю відключає спеціальні здібності ворогів в аурі. Шкода +35.", cost: 1300, effect: (s) => ({ ...s, damage: s.damage + 35, disableGlitch: true, disableAbilities: true }) }
@@ -269,9 +276,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
 export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   ordinary: {
     name: "Звичайний Брат",
-    hp: 40,
+    hp: 60,
     speed: 1.2,
-    reward: 15,
+    reward: 6,
     damage: 5,
     color: "#94a3b8",
     borderColor: "#475569",
@@ -280,9 +287,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   fast: {
     name: "Швидкий Брат",
-    hp: 25,
+    hp: 40,
     speed: 2.2,
-    reward: 12,
+    reward: 5,
     damage: 5,
     color: "#fbbf24",
     borderColor: "#d97706",
@@ -291,9 +298,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   heavy: {
     name: "Товстий Брат",
-    hp: 180,
+    hp: 300,
     speed: 0.7,
-    reward: 35,
+    reward: 15,
     damage: 15,
     color: "#f87171",
     borderColor: "#dc2626",
@@ -302,9 +309,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   coat: {
     name: "Брат у Куртці",
-    hp: 90,
+    hp: 150,
     speed: 1.0,
-    reward: 30,
+    reward: 12,
     damage: 10,
     color: "#38bdf8",
     borderColor: "#0284c7",
@@ -314,9 +321,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   infinix_brat: {
     name: "Інфінікс-Брат",
-    hp: 110,
+    hp: 200,
     speed: 1.3,
-    reward: 40,
+    reward: 18,
     damage: 12,
     color: "#c084fc",
     borderColor: "#7c3aed",
@@ -326,9 +333,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   boss: {
     name: "Головний Брат",
-    hp: 800,
+    hp: 1500,
     speed: 0.6,
-    reward: 150,
+    reward: 60,
     damage: 50,
     color: "#e11d48",
     borderColor: "#4c0519",
@@ -346,9 +353,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   rachky_brat: {
     name: "Рачковий Брат",
-    hp: 60,
+    hp: 100,
     speed: 1.1,
-    reward: 25,
+    reward: 10,
     damage: 8,
     color: "#fda4af",
     borderColor: "#e11d48",
@@ -358,9 +365,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   gas_brat: {
     name: "Газовий Брат",
-    hp: 100,
+    hp: 180,
     speed: 0.9,
-    reward: 30,
+    reward: 12,
     damage: 10,
     color: "#86efac",
     borderColor: "#16a34a",
@@ -370,15 +377,51 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   granite: {
     name: "Гранітний Брат",
-    hp: 300,
+    hp: 500,
     speed: 0.4,
-    reward: 50,
+    reward: 25,
     damage: 20,
     color: "#6b7280",
     borderColor: "#1f2937",
     radius: 17,
     isSuperArmored: true,
     description: "З Коростишева. Броня знижує фізичну шкоду від молотків на 75%."
+  },
+  camo: {
+    name: "Камуфляжний Брат",
+    hp: 80,
+    speed: 1.5,
+    reward: 12,
+    damage: 8,
+    color: "#065f46",
+    borderColor: "#022c22",
+    radius: 13,
+    isCamo: true,
+    description: "Невидимий для більшості веж без сканера або орлиного ока."
+  },
+  regen: {
+    name: "Регенеративний Брат",
+    hp: 120,
+    speed: 1.0,
+    reward: 15,
+    damage: 10,
+    color: "#db2777",
+    borderColor: "#831843",
+    radius: 14,
+    isRegen: true,
+    description: "Постійно регенерує здоров'я, якщо не заморожений."
+  },
+  lead: {
+    name: "Свинцевий Брат",
+    hp: 150,
+    speed: 0.6,
+    reward: 20,
+    damage: 12,
+    color: "#4b5563",
+    borderColor: "#1f2937",
+    radius: 16,
+    isLead: true,
+    description: "Повністю імунний до молотків. Вразливий до кави, цукерок та газу."
   }
 };
 
@@ -392,120 +435,123 @@ export interface WaveSegment {
 export const WAVES: WaveSegment[][] = [
   // Wave 1: Intro to Ordinary Brats
   [
-    { type: "ordinary", count: 6, spawnDelay: 2000 }
+    { type: "ordinary", count: 15, spawnDelay: 1500 }
   ],
   // Wave 2: A bit more ordinary, and introduction of Fast Brats
   [
-    { type: "ordinary", count: 8, spawnDelay: 1500, delayBeforeNext: 2000 },
-    { type: "fast", count: 3, spawnDelay: 1200 }
+    { type: "ordinary", count: 12, spawnDelay: 1200, delayBeforeNext: 1500 },
+    { type: "fast", count: 8, spawnDelay: 800 }
   ],
   // Wave 3: Faster rushes
   [
-    { type: "ordinary", count: 10, spawnDelay: 1000, delayBeforeNext: 1500 },
-    { type: "fast", count: 8, spawnDelay: 800 }
+    { type: "ordinary", count: 20, spawnDelay: 800, delayBeforeNext: 1000 },
+    { type: "fast", count: 15, spawnDelay: 600 }
   ],
   // Wave 4: First Heavy Brat testing DPS
   [
-    { type: "ordinary", count: 8, spawnDelay: 1200, delayBeforeNext: 2000 },
-    { type: "heavy", count: 2, spawnDelay: 4000, delayBeforeNext: 1000 },
-    { type: "fast", count: 5, spawnDelay: 1000 }
+    { type: "ordinary", count: 10, spawnDelay: 1000, delayBeforeNext: 1000 },
+    { type: "heavy", count: 5, spawnDelay: 3000 }
   ],
-  // Wave 5: Introducing Brats in Coats (armored)
+  // Wave 5: Introducing Camo Brats!
   [
-    { type: "coat", count: 5, spawnDelay: 2000, delayBeforeNext: 1500 },
-    { type: "ordinary", count: 12, spawnDelay: 800, delayBeforeNext: 1000 },
-    { type: "fast", count: 6, spawnDelay: 600 }
-  ],
-  // Wave 6: Glitching Infinix Brats
-  [
-    { type: "infinix_brat", count: 5, spawnDelay: 2200, delayBeforeNext: 1000 },
-    { type: "coat", count: 6, spawnDelay: 1500 }
-  ],
-  // Wave 7: Rachky and Gas support brats
-  [
-    { type: "rachky_brat", count: 4, spawnDelay: 1800, delayBeforeNext: 500 },
-    { type: "gas_brat", count: 4, spawnDelay: 2000, delayBeforeNext: 1000 },
-    { type: "infinix_brat", count: 4, spawnDelay: 1500 }
-  ],
-  // Wave 8: Heavy granite block and mixed rush
-  [
-    { type: "granite", count: 3, spawnDelay: 3000, delayBeforeNext: 1000 },
-    { type: "fast", count: 15, spawnDelay: 400, delayBeforeNext: 500 },
-    { type: "heavy", count: 4, spawnDelay: 2000 }
-  ],
-  // Wave 9: Hard mixed wave
-  [
-    { type: "coat", count: 8, spawnDelay: 1200, delayBeforeNext: 500 },
-    { type: "infinix_brat", count: 8, spawnDelay: 1000, delayBeforeNext: 800 },
-    { type: "granite", count: 4, spawnDelay: 2500 }
-  ],
-  // Wave 10: Final Boss - Golovnyi Brat (plus guards)
-  [
-    { type: "boss", count: 1, spawnDelay: 5000, delayBeforeNext: 3000 },
-    { type: "granite", count: 2, spawnDelay: 2000, delayBeforeNext: 1000 },
-    { type: "infinix_brat", count: 6, spawnDelay: 1200 }
-  ],
-  // Wave 11: Swarm of Fast Brats and Ordinary (speed test)
-  [
-    { type: "fast", count: 20, spawnDelay: 400, delayBeforeNext: 1000 },
-    { type: "ordinary", count: 10, spawnDelay: 600 }
-  ],
-  // Wave 12: Swarm of Heavy Brats (dps test)
-  [
-    { type: "heavy", count: 8, spawnDelay: 2000, delayBeforeNext: 1000 },
-    { type: "fast", count: 10, spawnDelay: 500 }
-  ],
-  // Wave 13: Armor Swarm (Coat and Granite check)
-  [
-    { type: "coat", count: 12, spawnDelay: 1000, delayBeforeNext: 1000 },
-    { type: "granite", count: 6, spawnDelay: 2000 }
-  ],
-  // Wave 14: Infinix glitchers and support (glitch warp check)
-  [
-    { type: "infinix_brat", count: 10, spawnDelay: 1000, delayBeforeNext: 800 },
-    { type: "rachky_brat", count: 8, spawnDelay: 800 }
-  ],
-  // Wave 15: Heavy stinky gas wave (aura and slow check)
-  [
-    { type: "gas_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "heavy", count: 6, spawnDelay: 1500 }
-  ],
-  // Wave 16: Boss split checkers (double mini-boss)
-  [
-    { type: "boss", count: 2, spawnDelay: 4000, delayBeforeNext: 1000 },
+    { type: "camo", count: 8, spawnDelay: 1500, delayBeforeNext: 1000 },
     { type: "fast", count: 15, spawnDelay: 500 }
   ],
-  // Wave 17: Support swarm (buff trails and smell slow)
+  // Wave 6: Heavy Coat armored rush
   [
-    { type: "rachky_brat", count: 12, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "gas_brat", count: 12, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "fast", count: 10, spawnDelay: 400 }
+    { type: "coat", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "ordinary", count: 10, spawnDelay: 800 }
   ],
-  // Wave 18: Granite wall (extreme physical armor)
+  // Wave 7: Introducing Lead Brats!
   [
-    { type: "granite", count: 15, spawnDelay: 1500 }
+    { type: "lead", count: 10, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "ordinary", count: 15, spawnDelay: 800 }
   ],
-  // Wave 19: Glitch swarm
+  // Wave 8: Mixed Camo and Lead
   [
-    { type: "infinix_brat", count: 20, spawnDelay: 800 }
+    { type: "camo", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "lead", count: 8, spawnDelay: 1500 }
   ],
-  // Wave 20: Three Bosses
+  // Wave 9: Infinix glitchers support rush
   [
-    { type: "boss", count: 3, spawnDelay: 3500, delayBeforeNext: 1000 },
-    { type: "heavy", count: 8, spawnDelay: 1500 }
+    { type: "infinix_brat", count: 8, spawnDelay: 1500, delayBeforeNext: 1000 },
+    { type: "coat", count: 10, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "fast", count: 10, spawnDelay: 500 }
   ],
-  // Wave 21: Mixed madness (fast + support + glitch)
+  // Wave 10: Introducing Regen Brats!
   [
-    { type: "fast", count: 30, spawnDelay: 300, delayBeforeNext: 500 },
-    { type: "rachky_brat", count: 15, spawnDelay: 600, delayBeforeNext: 500 },
-    { type: "infinix_brat", count: 12, spawnDelay: 800 }
+    { type: "regen", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "fast", count: 12, spawnDelay: 600 }
   ],
-  // Wave 22: The Ultimate final wave (All stars!)
+  // Wave 11: Support swarm (trails & tower slows)
   [
-    { type: "boss", count: 3, spawnDelay: 3000, delayBeforeNext: 1000 },
-    { type: "granite", count: 10, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "infinix_brat", count: 15, spawnDelay: 800, delayBeforeNext: 1000 },
-    { type: "gas_brat", count: 10, spawnDelay: 1000 }
+    { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "gas_brat", count: 15, spawnDelay: 1000 }
+  ],
+  // Wave 12: Granite blockers
+  [
+    { type: "granite", count: 10, spawnDelay: 2000, delayBeforeNext: 1000 },
+    { type: "heavy", count: 10, spawnDelay: 1500 }
+  ],
+  // Wave 13: Camo-Regen rush
+  [
+    { type: "camo", count: 20, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "regen", count: 15, spawnDelay: 1000 }
+  ],
+  // Wave 14: Lead and Infinix glitchers
+  [
+    { type: "lead", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "infinix_brat", count: 15, spawnDelay: 900 }
+  ],
+  // Wave 15: Triple mixed rush
+  [
+    { type: "regen", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "granite", count: 10, spawnDelay: 1500, delayBeforeNext: 500 },
+    { type: "fast", count: 20, spawnDelay: 400 }
+  ],
+  // Wave 16: The Boss and granite support
+  [
+    { type: "boss", count: 1, spawnDelay: 4000, delayBeforeNext: 2000 },
+    { type: "granite", count: 8, spawnDelay: 1500, delayBeforeNext: 500 },
+    { type: "coat", count: 12, spawnDelay: 800 }
+  ],
+  // Wave 17: Camo-Lead-Regen rush
+  [
+    { type: "camo", count: 25, spawnDelay: 600, delayBeforeNext: 500 },
+    { type: "lead", count: 15, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "regen", count: 15, spawnDelay: 800 }
+  ],
+  // Wave 18: Digital chaos (glitchers + trails + slows)
+  [
+    { type: "infinix_brat", count: 20, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 500 },
+    { type: "gas_brat", count: 20, spawnDelay: 800 }
+  ],
+  // Wave 19: High-health regen & granite wall
+  [
+    { type: "granite", count: 15, spawnDelay: 1200, delayBeforeNext: 500 },
+    { type: "regen", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "camo", count: 15, spawnDelay: 600 }
+  ],
+  // Wave 20: Double bosses
+  [
+    { type: "boss", count: 2, spawnDelay: 3000, delayBeforeNext: 1000 },
+    { type: "heavy", count: 15, spawnDelay: 1200 }
+  ],
+  // Wave 21: Camo-Regen-Lead swarm
+  [
+    { type: "camo", count: 30, spawnDelay: 400, delayBeforeNext: 500 },
+    { type: "regen", count: 30, spawnDelay: 500, delayBeforeNext: 500 },
+    { type: "lead", count: 20, spawnDelay: 800 }
+  ],
+  // Wave 22: The Ultimate Final Wave!
+  [
+    { type: "boss", count: 4, spawnDelay: 3000, delayBeforeNext: 1000 },
+    { type: "granite", count: 20, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "infinix_brat", count: 20, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "camo", count: 25, spawnDelay: 500, delayBeforeNext: 500 },
+    { type: "lead", count: 25, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "regen", count: 25, spawnDelay: 600 }
   ]
 ];
 
@@ -519,7 +565,7 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
   const multiplier = Math.pow(1.15, waveNumber - 22);
 
   // We can construct a randomized segment list based on wave number
-  const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite"];
+  const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead"];
   const segments: WaveSegment[] = [];
 
   // Always add some boss(es) in multiples of 5 waves
