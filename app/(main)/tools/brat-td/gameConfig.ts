@@ -70,6 +70,7 @@ export interface UpgradeStats {
   disableAbilities?: boolean;
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
+  pierce?: number;
 }
 
 export interface Upgrade {
@@ -90,6 +91,7 @@ export interface TowerStats {
   color: string; // Theme color for canvas representation
   emoji: string;
   camoDetection?: boolean;
+  pierce?: number;
 }
 
 export interface TowerConfig extends TowerStats {
@@ -131,13 +133,14 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.2,
     color: "#38bdf8", // Sky blue
     emoji: "🔨",
+    pierce: 1,
     upgrades: {
       path1: [
         { id: "hammer_sharp", name: "Гострий молоток", description: "Збільшує шкоду молотка на 5.", cost: 50, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
-        { id: "hammer_steel", name: "Сталеве гартування", description: "Збільшує шкоду молотка ще на 10.", cost: 90, effect: (s) => ({ ...s, damage: s.damage + 10 }) },
-        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, але атака на 25% повільніша.", cost: 180, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, fireRate: s.fireRate * 1.25 }) },
-        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45. Молотки повністю ігнорують броню в куртці.", cost: 350, effect: (s) => ({ ...s, damage: s.damage + 45, ignoresArmor: true }) },
-        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+130) та збільшений радіус (+35).", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 130, range: s.range + 35 }) }
+        { id: "hammer_steel", name: "Сталеве гартування", description: "Шкода +10, пробиття (пірс) +1.", cost: 90, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, пірс +2, але атака на 25% повільніша.", cost: 180, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, fireRate: s.fireRate * 1.25, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45, пірс +2. Молотки ігнорують броню.", cost: 350, effect: (s) => ({ ...s, damage: s.damage + 45, ignoresArmor: true, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+130), радіус (+35) та великий пірс (+6).", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 130, range: s.range + 35, pierce: (s.pierce || 1) + 6 }) }
       ],
       path2: [
         { id: "hammer_fast", name: "Швидка рука", description: "Збільшує швидкість атаки на 15%.", cost: 60, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
@@ -148,9 +151,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       ],
       path3: [
         { id: "hammer_long", name: "Дальній кидок", description: "Збільшує дальність кидка на 25px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px, виявляє камуфляжних ворогів.", cost: 70, effect: (s) => ({ ...s, range: s.range + 35, camoDetection: true }) },
-        { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "Дає 20% шанс завдати 3-кратну шкоду.", cost: 150, effect: (s) => ({ ...s, critChance: 0.20 }) },
-        { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту збільшується до 40%.", cost: 300, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40 }) },
+        { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px, пірс +1, виявляє камуфляж.", cost: 70, effect: (s) => ({ ...s, range: s.range + 35, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "20% шанс нанести 3-кратну шкоду, пірс +1.", cost: 150, effect: (s) => ({ ...s, critChance: 0.20, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту 40%, пірс +1.", cost: 300, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40, pierce: (s.pierce || 1) + 1 }) },
         { id: "hammer_legend", name: "Легенда без слів", description: "Шанс криту 60%, критичні удари наносять 6x шкоду.", cost: 1000, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6 }) }
       ]
     }
@@ -197,6 +200,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.5,
     color: "#f97316", // Orange
     emoji: "🍬",
+    pierce: 1,
     upgrades: {
       path1: [
         { id: "candy_sweet", name: "Солодкий удар", description: "Шкода від цукерок +3.", cost: 50, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
@@ -208,9 +212,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path2: [
         { id: "candy_big", name: "Великі рачки", description: "Дальність стрільби цукерками +15px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 15 }) },
         { id: "candy_dispense", name: "Швидкий викид", description: "Швидкість стрільби цукерками +25%.", cost: 80, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px) та виявляють камуфляж.", cost: 220, effect: (s) => ({ ...s, isAoESlow: true, camoDetection: true }) },
-        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px та наносить 15 шкоди.", cost: 450, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15 }) },
-        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Цукерковий вибух у 150px наносить 80 шкоди та миттєво стопить натовп.", cost: 1300, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20 }) }
+        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px), пірс +1 та бачить камуфляж.", cost: 220, effect: (s) => ({ ...s, isAoESlow: true, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
+        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px, наносить 15 шкоди, пірс +2.", cost: 450, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15, pierce: (s.pierce || 1) + 2 }) },
+        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Вибух у 150px наносить 80 шкоди, миттєво стопить натовп, пірс +5.", cost: 1300, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20, pierce: (s.pierce || 1) + 5 }) }
       ],
       path3: [
         { id: "candy_sugar_cheap", name: "Дешевий цукор", description: "Апгрейд Candy Launcher стає дешевшим (повертає 30 Gold).", cost: 30, effect: (s) => s },
@@ -231,6 +235,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     color: "#a855f7", // Purple
     emoji: "📱",
     camoDetection: true,
+    pierce: 1,
     upgrades: {
       path1: [
         { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 5.", cost: 70, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
@@ -242,9 +247,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path2: [
         { id: "infinix_refresh90", name: "Частота 90Гц", description: "Збільшує швидкість імпульсу на 15%.", cost: 80, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "infinix_refresh120", name: "Частота 120Гц", description: "Швидкість стрільби +30%.", cost: 130, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
-        { id: "infinix_lag", name: "Лаг 999 мс", description: "Імпульси мають 15% шанс повністю заморозити ворога на 1 секунду.", cost: 230, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
-        { id: "infinix_freeze", name: "Критичний фриз", description: "Шанс заморозки 30%, тривалість збільшується до 2 секунд.", cost: 480, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60 }) },
-        { id: "infinix_bsod", name: "Синій екран (BSOD)", description: "45% шанс заморозити ворога на 3с. Заморожені вороги сповільнюють сусідів.", cost: 1400, effect: (s) => ({ ...s, freezeChance: 0.45, freezeDurationBonus: 120, bsodAoE: true }) }
+        { id: "infinix_lag", name: "Лаг 999 мс", description: "Імпульси мають 15% шанс повністю заморозити ворога на 1 секунду, пірс +1.", cost: 230, effect: (s) => ({ ...s, freezeChance: 0.15, pierce: (s.pierce || 1) + 1 }) },
+        { id: "infinix_freeze", name: "Критичний фриз", description: "Шанс заморозки 30%, тривалість 2 секунди, пірс +2.", cost: 480, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, pierce: (s.pierce || 1) + 2 }) },
+        { id: "infinix_bsod", name: "Синій екран (BSOD)", description: "45% шанс заморозити ворога на 3с. Заморожені вороги сповільнюють сусідів, пірс +4.", cost: 1400, effect: (s) => ({ ...s, freezeChance: 0.45, freezeDurationBonus: 120, bsodAoE: true, pierce: (s.pierce || 1) + 4 }) }
       ],
       path3: [
         { id: "infinix_4g", name: "Сигнал 4G", description: "Дальність стрільби вежі +25px.", cost: 50, effect: (s) => ({ ...s, range: s.range + 25 }) },
@@ -293,9 +298,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
 export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   ordinary: {
     name: "Звичайний Брат",
-    hp: 60,
+    hp: 25,
     speed: 1.2,
-    reward: 6,
+    reward: 2,
     damage: 5,
     color: "#94a3b8",
     borderColor: "#475569",
@@ -304,9 +309,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   fast: {
     name: "Швидкий Брат",
-    hp: 40,
+    hp: 15,
     speed: 2.2,
-    reward: 5,
+    reward: 2,
     damage: 5,
     color: "#fbbf24",
     borderColor: "#d97706",
@@ -315,9 +320,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   heavy: {
     name: "Товстий Брат",
-    hp: 300,
+    hp: 120,
     speed: 0.7,
-    reward: 15,
+    reward: 10,
     damage: 15,
     color: "#f87171",
     borderColor: "#dc2626",
@@ -326,9 +331,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   coat: {
     name: "Брат у Куртці",
-    hp: 150,
+    hp: 50,
     speed: 1.0,
-    reward: 12,
+    reward: 6,
     damage: 10,
     color: "#38bdf8",
     borderColor: "#0284c7",
@@ -338,9 +343,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   infinix_brat: {
     name: "Інфінікс-Брат",
-    hp: 200,
+    hp: 70,
     speed: 1.3,
-    reward: 18,
+    reward: 8,
     damage: 12,
     color: "#c084fc",
     borderColor: "#7c3aed",
@@ -350,9 +355,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   boss: {
     name: "Головний Брат",
-    hp: 1500,
+    hp: 750,
     speed: 0.6,
-    reward: 60,
+    reward: 35,
     damage: 50,
     color: "#e11d48",
     borderColor: "#4c0519",
@@ -370,9 +375,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   rachky_brat: {
     name: "Рачковий Брат",
-    hp: 100,
+    hp: 40,
     speed: 1.1,
-    reward: 10,
+    reward: 5,
     damage: 8,
     color: "#fda4af",
     borderColor: "#e11d48",
@@ -382,9 +387,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   gas_brat: {
     name: "Газовий Брат",
-    hp: 180,
+    hp: 80,
     speed: 0.9,
-    reward: 12,
+    reward: 6,
     damage: 10,
     color: "#86efac",
     borderColor: "#16a34a",
@@ -394,9 +399,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   granite: {
     name: "Гранітний Брат",
-    hp: 500,
+    hp: 180,
     speed: 0.4,
-    reward: 25,
+    reward: 15,
     damage: 20,
     color: "#6b7280",
     borderColor: "#1f2937",
@@ -406,9 +411,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   camo: {
     name: "Камуфляжний Брат",
-    hp: 80,
+    hp: 25,
     speed: 1.5,
-    reward: 12,
+    reward: 5,
     damage: 8,
     color: "#065f46",
     borderColor: "#022c22",
@@ -418,9 +423,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   regen: {
     name: "Регенеративний Брат",
-    hp: 120,
+    hp: 35,
     speed: 1.0,
-    reward: 15,
+    reward: 6,
     damage: 10,
     color: "#db2777",
     borderColor: "#831843",
@@ -430,9 +435,9 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   lead: {
     name: "Свинцевий Брат",
-    hp: 150,
+    hp: 60,
     speed: 0.6,
-    reward: 20,
+    reward: 8,
     damage: 12,
     color: "#4b5563",
     borderColor: "#1f2937",

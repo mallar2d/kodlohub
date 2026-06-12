@@ -31,6 +31,7 @@ interface PlacedTower {
   path3Tier: number;
   level: number;
   totalKills: number;
+  pierce: number;
   // custom stats for upgrades
   twoHits?: boolean;
   critChance?: number;
@@ -138,6 +139,8 @@ interface Projectile {
   bugExplodeRadius?: number;
   bugContagion?: boolean;
   camoDetection?: boolean;
+  pierce: number;
+  hitEnemyIds: string[];
   // simple physics
   angle: number;
   lastTargetX: number;
@@ -491,7 +494,8 @@ export default function BratTDClient() {
         path3Tier: 0,
         level: 1,
         totalKills: 0,
-        camoDetection: config.camoDetection || false
+        camoDetection: config.camoDetection || false,
+        pierce: config.pierce || 1
       };
 
       // Apply initial setup for buffs/aura
@@ -634,7 +638,8 @@ export default function BratTDClient() {
       disableGlitch: tower.disableGlitch,
       disableAbilities: tower.disableAbilities,
       camoDetection: tower.camoDetection,
-      camoDetectionBuff: tower.camoDetectionBuff
+      camoDetectionBuff: tower.camoDetectionBuff,
+      pierce: tower.pierce
     });
 
     // Deduct cost and apply variables
@@ -679,6 +684,7 @@ export default function BratTDClient() {
     tower.disableAbilities = newStats.disableAbilities;
     tower.camoDetection = newStats.camoDetection;
     tower.camoDetectionBuff = newStats.camoDetectionBuff;
+    tower.pierce = newStats.pierce || 1;
     
     tower.level += 1;
 
@@ -1117,7 +1123,9 @@ export default function BratTDClient() {
                 bugContagion: tower.bugContagion,
                 angle,
                 lastTargetX: target.x,
-                lastTargetY: target.y
+                lastTargetY: target.y,
+                pierce: tower.pierce || 1,
+                hitEnemyIds: []
               };
 
               // Hammer double projectile logic
@@ -1170,46 +1178,88 @@ export default function BratTDClient() {
             proj.lastTargetY = target.y;
           }
 
-          // Move projectile towards target
-          const dx = targetX - proj.x;
-          const dy = targetY - proj.y;
-          const dist = getDistance(proj.x, proj.y, targetX, targetY);
+          // Move projectile towards target (or fly straight if targetId is empty)
+          let dx = 0;
+          let dy = 0;
+          let dist = 0;
 
-          if (dist <= proj.speed) {
-            // Collision!
-            if (target) {
+          if (proj.targetId && target) {
+            dx = target.x - proj.x;
+            dy = target.y - proj.y;
+            dist = getDistance(proj.x, proj.y, target.x, target.y);
+            proj.angle = Math.atan2(dy, dx);
+
+            // Move
+            if (dist <= proj.speed) {
+              proj.x = target.x;
+              proj.y = target.y;
+            } else {
+              proj.x += (dx / dist) * proj.speed;
+              proj.y += (dy / dist) * proj.speed;
+            }
+          } else {
+            // Straight flight
+            proj.x += Math.cos(proj.angle) * proj.speed;
+            proj.y += Math.sin(proj.angle) * proj.speed;
+          }
+
+          // Out of bounds check
+          if (proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
+            projectilesRef.current.splice(i, 1);
+            continue;
+          }
+
+          // Spinning effect for hammer
+          if (proj.type === "hammer") {
+            proj.angle += 0.25;
+          }
+
+          // Collision detection with ALL enemies
+          let hasSpliced = false;
+          for (let eIdx = enemiesRef.current.length - 1; eIdx >= 0; eIdx--) {
+            const enemy = enemiesRef.current[eIdx];
+            if (enemy.hp <= 0) continue;
+            if (enemy.isCamo && !proj.camoDetection) continue;
+            
+            // Check collision distance
+            const colDist = getDistance(proj.x, proj.y, enemy.x, enemy.y);
+            if (colDist <= enemy.radius + 6 && !proj.hitEnemyIds.includes(enemy.id)) {
+              // Hit!
+              proj.hitEnemyIds.push(enemy.id);
+              proj.pierce--;
+
               let dmg = proj.damage;
 
-              // Infinix random damage (5 - 55)
+              // Infinix random damage
               if (proj.type === "infinix") {
-                dmg = Math.floor(getPureRandom() * 51) + 5; // [5, 55]
+                dmg = Math.floor(getPureRandom() * 51) + 5;
               }
 
-              // Lead armor hammer immunity (Physical hammers deal 0 damage to lead enemies unless upgraded to ignoresArmor)
-              if (target.isLead && proj.type === "hammer" && !proj.ignoresArmor) {
+              // Lead armor hammer immunity
+              if (enemy.isLead && proj.type === "hammer" && !proj.ignoresArmor) {
                 dmg = 0;
               }
 
               // Apply armor reductions
               const armorIgnored = proj.ignoresArmor || false;
               if (!armorIgnored && dmg > 0) {
-                if (target.isArmored && proj.type === "hammer") {
-                  dmg = Math.floor(dmg * 0.5); // cut by 50%
-                } else if (target.isSuperArmored && proj.type === "hammer") {
-                  dmg = Math.floor(dmg * 0.25); // cut by 75%
+                if (enemy.isArmored && proj.type === "hammer") {
+                  dmg = Math.floor(dmg * 0.5);
+                } else if (enemy.isSuperArmored && proj.type === "hammer") {
+                  dmg = Math.floor(dmg * 0.25);
                 }
               }
 
-              // Check Criticals (for hammer upgrade)
+              // Check Criticals
               let isCrit = false;
               if (dmg > 0 && proj.critChance && getPureRandom() < proj.critChance) {
                 const mult = proj.critMultiplier || 3;
                 dmg *= mult;
                 isCrit = true;
-                playPdrSound(); // play sound on crit hit
+                playPdrSound();
               }
 
-              // Check Gacha chance (for Infinix jackpot)
+              // Check Gacha jackpot
               if (dmg > 0 && proj.gachaChance && getPureRandom() < proj.gachaChance) {
                 dmg = proj.gachaDamageOverride || 300;
                 isCrit = true;
@@ -1217,68 +1267,60 @@ export default function BratTDClient() {
               }
 
               // Apply damage debuff if active on enemy
-              if (target.damageDebuff && dmg > 0) {
-                dmg = Math.floor(dmg * target.damageDebuff);
+              if (enemy.damageDebuff && dmg > 0) {
+                dmg = Math.floor(dmg * enemy.damageDebuff);
               }
 
               // Apply damage
-              const wasAlive = target.hp > 0;
-              target.hp -= dmg;
+              const wasAlive = enemy.hp > 0;
+              enemy.hp -= dmg;
 
               // Apply status effects
               if (proj.type === "candy") {
-                // Apply slow
-                target.slowDuration = 120; // 2 seconds slow at 60fps
+                enemy.slowDuration = 120; // 2 seconds slow
                 
                 if (proj.damageDebuff) {
-                  target.damageDebuff = Math.max(target.damageDebuff || 1.0, proj.damageDebuff);
+                  enemy.damageDebuff = Math.max(enemy.damageDebuff || 1.0, proj.damageDebuff);
                 }
 
                 if (proj.isAoESlow) {
                   // slow nearby enemies in 60px radius
                   enemiesRef.current.forEach((other) => {
-                    if (other.id !== target.id && getDistance(target.x, target.y, other.x, other.y) <= 60) {
-                      other.slowDuration = 90; // 1.5 seconds
+                    if (other.id !== enemy.id && getDistance(enemy.x, enemy.y, other.x, other.y) <= 60) {
+                      other.slowDuration = 90;
                       if (proj.damageDebuff) {
                         other.damageDebuff = Math.max(other.damageDebuff || 1.0, proj.damageDebuff);
                       }
                     }
                   });
-                  // spawn candy splash particles
-                  spawnHitParticles(target.x, target.y, "#f97316", 12);
+                  spawnHitParticles(enemy.x, enemy.y, "#f97316", 12);
                 }
               }
 
               if (proj.type === "infinix") {
-                // Lag freeze chance
                 if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
-                  target.freezeDuration = 60; // 1 second freeze
-                  spawnFloatingText(target.x, target.y - 15, "ЛАГ 999мс", "#c084fc");
+                  enemy.freezeDuration = 60;
+                  spawnFloatingText(enemy.x, enemy.y - 15, "ЛАГ 999мс", "#c084fc");
                 }
                 
-                // Bug infection
                 if (proj.copilotBug) {
-                  target.hasCopilotBug = true;
-                  target.bugExplodeDmg = proj.bugExplodeDmg || 50;
-                  target.bugExplodeRadius = proj.bugExplodeRadius || 80;
-                  target.bugContagion = proj.bugContagion || false;
+                  enemy.hasCopilotBug = true;
+                  enemy.bugExplodeDmg = proj.bugExplodeDmg || 50;
+                  enemy.bugExplodeRadius = proj.bugExplodeRadius || 80;
+                  enemy.bugContagion = proj.bugContagion || false;
                 }
               }
 
-              // Floating texts for crit/jackpot
+              // Floating texts
               if (isCrit) {
-                spawnFloatingText(target.x, target.y - 25, "ПОЧУВ! CRIT", "#f43f5e");
+                spawnFloatingText(enemy.x, enemy.y - 25, "ПОЧУВ! CRIT", "#f43f5e");
               }
 
               // Check kill
-              if (wasAlive && target.hp <= 0) {
-                // Increment tower kill count
-                // Find tower that fired this projectile
-                // Since we don't store tower source id on projectile directly,
-                // we can just attribute the kill to the nearest matching tower in range.
+              if (wasAlive && enemy.hp <= 0) {
                 const sourceTower = towersRef.current
-                  .filter((t) => t.type === proj.type && getDistance(t.x, t.y, target.x, target.y) <= t.range + 40)
-                  .sort((a, b) => getDistance(a.x, a.y, target.x, target.y) - getDistance(b.x, b.y, target.x, target.y))[0];
+                  .filter((t) => t.type === proj.type && getDistance(t.x, t.y, enemy.x, enemy.y) <= t.range + 40)
+                  .sort((a, b) => getDistance(a.x, a.y, enemy.x, enemy.y) - getDistance(b.x, b.y, enemy.x, enemy.y))[0];
                 
                 if (sourceTower) {
                   sourceTower.totalKills++;
@@ -1286,20 +1328,31 @@ export default function BratTDClient() {
               }
 
               // Trigger particles
-              spawnHitParticles(target.x, target.y, proj.color, 6);
-            }
-            
-            projectilesRef.current.splice(i, 1);
-          } else {
-            // Move projectle closer
-            proj.x += (dx / dist) * proj.speed;
-            proj.y += (dy / dist) * proj.speed;
-            
-            // Spinning effect for hammer
-            if (proj.type === "hammer") {
-              proj.angle += 0.25;
+              spawnHitParticles(enemy.x, enemy.y, proj.color, 6);
+
+              // Check if projectile is depleted
+              if (proj.pierce <= 0) {
+                projectilesRef.current.splice(i, 1);
+                hasSpliced = true;
+                break;
+              } else {
+                // Homing Ricochet to next target
+                const nextTarget = enemiesRef.current
+                  .filter((other) => other.hp > 0 && !proj.hitEnemyIds.includes(other.id) && getDistance(proj.x, proj.y, other.x, other.y) <= 120 && !(other.isCamo && !proj.camoDetection))
+                  .sort((a, b) => getDistance(proj.x, proj.y, a.x, a.y) - getDistance(proj.x, proj.y, b.x, b.y))[0];
+
+                if (nextTarget) {
+                  proj.targetId = nextTarget.id;
+                  proj.lastTargetX = nextTarget.x;
+                  proj.lastTargetY = nextTarget.y;
+                } else {
+                  proj.targetId = "";
+                }
+              }
             }
           }
+
+          if (hasSpliced) continue;
         }
 
         // --- 6. UNIFIED DEAD ENEMIES CLEANUP ---
