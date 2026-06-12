@@ -253,6 +253,8 @@ const DEFAULT_SETTINGS = {
   particles: true
 };
 
+const EARLY_WAVE_BONUSES = [78, 65, 52, 39, 26, 26, 26, 26];
+
 const LEADERBOARD_KEY = "brat_td_leaderboard";
 
 function getLocalLeaderboard(): LeaderboardEntry[] {
@@ -1235,16 +1237,17 @@ export default function BratTDClient() {
                 bonusGold += t.endOfWaveBonus;
               }
             });
+            const earlyBonus = EARLY_WAVE_BONUSES[waveRef.current - 1] || 0;
 
-            // Wave clear bonus (coffee towers only)
-            const finalBonus = bonusGold;
+            // Wave clear bonus: early catch-up (waves 1-8) + economy towers.
+            const finalBonus = bonusGold + earlyBonus;
             if (finalBonus > 0) {
               setGold((prev) => prev + finalBonus);
             }
             setScore((prev) => prev + waveRef.current * 50);
 
             pushLog(finalBonus > 0
-              ? `Накат братви відбито! +${finalBonus} ☕ від кавових башень.`
+              ? `Накат братви відбито! +${finalBonus} ☕ (${earlyBonus ? `ранній бонус ${earlyBonus}` : ""}${earlyBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
               : "Накат братви відбито!");
             
             // Check victory conditions (after wave 46)
