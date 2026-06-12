@@ -295,7 +295,7 @@ export const questions: Question[] = [
     text: "За допомогою якого Python-скрипту сусіди влаштували кібератаку на ноут Подро?",
     options: [
       "Windows Defender Manager",
-      "Mircosoft Copilot Manager",
+      "Mircosoft Copilot Network Manager",
       "Suno AI Music Bot",
       "PDR Messenger Developer Kit",
     ],
