@@ -297,7 +297,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
     cost: 360,
     range: 82,
-    damage: 4,
+    damage: 10,
     fireRate: 0.9,
     color: "#22c55e", // Green
     emoji: "💨",
