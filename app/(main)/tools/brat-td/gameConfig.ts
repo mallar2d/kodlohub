@@ -7,15 +7,32 @@ export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
 
 export const PATH: PathPoint[] = [
-  { x: 0, y: 250 },
-  { x: 180, y: 250 },
-  { x: 180, y: 100 },
-  { x: 380, y: 100 },
-  { x: 380, y: 400 },
-  { x: 580, y: 400 },
-  { x: 580, y: 250 },
-  { x: 800, y: 250 }
+  { x: 0, y: 100 },
+  { x: 450, y: 100 },
+  { x: 450, y: 240 },
+  { x: 150, y: 240 },
+  { x: 150, y: 400 },
+  { x: 680, y: 400 },
+  { x: 680, y: 220 },
+  { x: 800, y: 220 }
 ];
+
+export interface Obstacle {
+  x: number;
+  y: number;
+  radius: number;
+  name: string;
+  emoji: string;
+  color: string;
+  borderColor: string;
+}
+
+export const OBSTACLES: Obstacle[] = [
+  { x: 260, y: 170, radius: 35, name: "Коростишівський Граніт", emoji: "🪨", color: "#4b5563", borderColor: "#374151" },
+  { x: 320, y: 320, radius: 32, name: "Озеро Nescafe", emoji: "💧", color: "#1d4ed8", borderColor: "#1e3a8a" },
+  { x: 580, y: 160, radius: 28, name: "Зламаний Infinix", emoji: "📴", color: "#6b21a8", borderColor: "#581c87" }
+];
+
 
 export interface UpgradeStats {
   range: number;

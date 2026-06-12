@@ -9,7 +9,8 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   PathPoint,
-  Upgrade
+  Upgrade,
+  OBSTACLES
 } from "./gameConfig";
 
 interface PlacedTower {
@@ -454,6 +455,13 @@ export default function BratTDClient() {
       // Validate collision with path
       if (isPositionOnPath(clickX, clickY, 26)) {
         pushLog("Не можна ставити башти на дорозі!");
+        return;
+      }
+
+      // Validate collision with obstacles
+      const onObstacle = OBSTACLES.some((obs) => getDistance(clickX, clickY, obs.x, obs.y) < obs.radius + 18);
+      if (onObstacle) {
+        pushLog("Не можна будувати вежу на перешкоді!");
         return;
       }
 
@@ -1456,6 +1464,36 @@ export default function BratTDClient() {
         ctx.fill();
       });
 
+      // --- Draw Obstacles ---
+      OBSTACLES.forEach((obs) => {
+        // Draw glow aura
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${obs.color === "#1d4ed8" ? "29, 78, 216" : obs.color === "#6b21a8" ? "107, 33, 168" : "75, 85, 99"}, 0.12)`;
+        ctx.strokeStyle = obs.borderColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fill();
+
+        // Draw inner obstacle body
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius - 4, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(10, 10, 10, 0.85)";
+        ctx.fill();
+
+        // Draw emoji
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "20px var(--font-display)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(obs.emoji, obs.x, obs.y);
+
+        // Draw name label below
+        ctx.font = "bold 8px var(--font-display)";
+        ctx.fillStyle = "rgba(156, 163, 175, 0.85)"; // text-ink-mute
+        ctx.fillText(obs.name.toUpperCase(), obs.x, obs.y + obs.radius - 1);
+      });
+
       // --- Draw Placed Tower Ranges (when selected) ---
       if (selectedPlacedTowerId) {
         const selectedTower = towersRef.current.find((t) => t.id === selectedPlacedTowerId);
@@ -1518,8 +1556,9 @@ export default function BratTDClient() {
           ctx.arc(mousePos.x, mousePos.y, config.range, 0, Math.PI * 2);
           
           const onPath = isPositionOnPath(mousePos.x, mousePos.y, 26);
+          const onObstacle = OBSTACLES.some((obs) => getDistance(mousePos.x, mousePos.y, obs.x, obs.y) < obs.radius + 18);
           const overlap = towersRef.current.some((t) => getDistance(mousePos.x, mousePos.y, t.x, t.y) < 26);
-          const invalid = onPath || overlap || mousePos.x < 24 || mousePos.x > GAME_WIDTH - 24 || mousePos.y < 24 || mousePos.y > GAME_HEIGHT - 24;
+          const invalid = onPath || onObstacle || overlap || mousePos.x < 24 || mousePos.x > GAME_WIDTH - 24 || mousePos.y < 24 || mousePos.y > GAME_HEIGHT - 24;
 
           ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.08)" : "rgba(34, 197, 94, 0.08)";
           ctx.strokeStyle = invalid ? "rgba(239, 68, 68, 0.3)" : "rgba(34, 197, 94, 0.3)";
