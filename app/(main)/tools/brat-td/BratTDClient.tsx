@@ -336,6 +336,12 @@ export default function BratTDClient() {
   const [playerName, setPlayerName] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
 
+  const selectedShopTowerRef = useRef<string | null>(null);
+  const mousePosRef = useRef({ x: 0, y: 0 });
+  const isMouseOnCanvasRef = useRef(false);
+  const draggedTowerTypeRef = useRef<string | null>(null);
+  const draggedTowerPosRef = useRef<{ x: number; y: number } | null>(null);
+
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
   const enemiesRef = useRef<ActiveEnemy[]>([]);
@@ -375,6 +381,11 @@ export default function BratTDClient() {
   useEffect(() => { gameSpeedRef.current = gameSpeed; }, [gameSpeed]);
   useEffect(() => { isAutoStartRef.current = isAutoStart; }, [isAutoStart]);
   useEffect(() => { scoreRef.current = score; }, [score]);
+  useEffect(() => { selectedShopTowerRef.current = selectedShopTower; }, [selectedShopTower]);
+  useEffect(() => { mousePosRef.current = mousePos; }, [mousePos]);
+  useEffect(() => { isMouseOnCanvasRef.current = isMouseOnCanvas; }, [isMouseOnCanvas]);
+  useEffect(() => { draggedTowerTypeRef.current = draggedTowerType; }, [draggedTowerType]);
+  useEffect(() => { draggedTowerPosRef.current = draggedTowerPos; }, [draggedTowerPos]);
 
   // Load leaderboard on mount (API + localStorage merge)
   useEffect(() => {
@@ -780,18 +791,42 @@ export default function BratTDClient() {
     return true;
   };
 
+  const getCanvasPoint = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = GAME_WIDTH / rect.width;
+    const scaleY = GAME_HEIGHT / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const updateCanvasPointer = (clientX: number, clientY: number) => {
+    const point = getCanvasPoint(clientX, clientY);
+    if (!point) return null;
+
+    mousePosRef.current = point;
+    setMousePos(point);
+
+    if (draggedTowerTypeRef.current) {
+      draggedTowerPosRef.current = point;
+      setDraggedTowerPos(point);
+    }
+
+    return point;
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (gameStatus !== "playing" || isPaused) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const point = updateCanvasPointer(e.clientX, e.clientY);
+    if (!point) return;
 
-    const rect = canvas.getBoundingClientRect();
-    // Map mouse click to logical coordinates (800x500)
-    const scaleX = GAME_WIDTH / rect.width;
-    const scaleY = GAME_HEIGHT / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
+    const clickX = point.x;
+    const clickY = point.y;
 
     // 1. Placing a new tower
     if (selectedShopTower) {
@@ -815,20 +850,7 @@ export default function BratTDClient() {
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = GAME_WIDTH / rect.width;
-    const scaleY = GAME_HEIGHT / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    setMousePos({ x, y });
-    
-    // Also update drag position if dragging
-    if (draggedTowerType) {
-      setDraggedTowerPos({ x, y });
-    }
+    updateCanvasPointer(e.clientX, e.clientY);
   };
 
   // --- SELLING & UPGRADING TOWERS ---
@@ -2265,8 +2287,8 @@ export default function BratTDClient() {
       });
 
       // --- Draw Shop Hover or Drag Preview (on top of towers) ---
-      const activePreviewType = selectedShopTower || draggedTowerType;
-      const previewPos = draggedTowerPos || (selectedShopTower && isMouseOnCanvas ? mousePos : null);
+      const activePreviewType = draggedTowerTypeRef.current || selectedShopTowerRef.current;
+      const previewPos = draggedTowerPosRef.current || (selectedShopTowerRef.current && isMouseOnCanvasRef.current ? mousePosRef.current : null);
 
       if (activePreviewType && previewPos && previewPos.x > 0 && previewPos.y > 0) {
         const config = TOWER_CONFIGS[activePreviewType];
@@ -2753,21 +2775,24 @@ export default function BratTDClient() {
             height={GAME_HEIGHT}
             onClick={handleCanvasClick}
             onMouseMove={handleCanvasMouseMove}
-            onMouseEnter={() => setIsMouseOnCanvas(true)}
-            onMouseLeave={() => setIsMouseOnCanvas(false)}
+            onMouseEnter={(e) => {
+              isMouseOnCanvasRef.current = true;
+              setIsMouseOnCanvas(true);
+              updateCanvasPointer(e.clientX, e.clientY);
+            }}
+            onMouseLeave={() => {
+              isMouseOnCanvasRef.current = false;
+              setIsMouseOnCanvas(false);
+            }}
             onDragOver={(e) => {
               e.preventDefault();
-              if (!draggedTowerType) return;
-              const canvas = canvasRef.current;
-              if (!canvas) return;
-              const rect = canvas.getBoundingClientRect();
-              const scaleX = GAME_WIDTH / rect.width;
-              const scaleY = GAME_HEIGHT / rect.height;
-              const x = (e.clientX - rect.left) * scaleX;
-              const y = (e.clientY - rect.top) * scaleY;
-              setDraggedTowerPos({ x, y });
+              if (!draggedTowerTypeRef.current) return;
+              isMouseOnCanvasRef.current = true;
+              setIsMouseOnCanvas(true);
+              updateCanvasPointer(e.clientX, e.clientY);
             }}
             onDragLeave={() => {
+              draggedTowerPosRef.current = null;
               setDraggedTowerPos(null);
             }}
             onDrop={(e) => {
@@ -2776,15 +2801,12 @@ export default function BratTDClient() {
               const towerType = e.dataTransfer.getData("text/plain");
               if (!towerType || !TOWER_CONFIGS[towerType]) return;
               
-              const canvas = canvasRef.current;
-              if (!canvas) return;
-              const rect = canvas.getBoundingClientRect();
-              const scaleX = GAME_WIDTH / rect.width;
-              const scaleY = GAME_HEIGHT / rect.height;
-              const x = (e.clientX - rect.left) * scaleX;
-              const y = (e.clientY - rect.top) * scaleY;
+              const point = updateCanvasPointer(e.clientX, e.clientY);
+              if (!point) return;
               
-              tryPlaceTower(towerType, x, y);
+              tryPlaceTower(towerType, point.x, point.y);
+              draggedTowerTypeRef.current = null;
+              draggedTowerPosRef.current = null;
               setDraggedTowerType(null);
               setDraggedTowerPos(null);
             }}
@@ -3168,16 +3190,27 @@ export default function BratTDClient() {
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/plain", type);
                         e.dataTransfer.effectAllowed = "copy";
+                        draggedTowerTypeRef.current = type;
+                        selectedShopTowerRef.current = null;
                         setDraggedTowerType(type);
+                        setSelectedShopTower(null);
                         setSelectedPlacedTowerId(null);
                         setSelectedTower(null);
                       }}
                       onDragEnd={() => {
+                        draggedTowerTypeRef.current = null;
+                        draggedTowerPosRef.current = null;
                         setDraggedTowerType(null);
                         setDraggedTowerPos(null);
                       }}
                       onClick={() => {
-                        setSelectedShopTower(isSelected ? null : type);
+                        const nextSelected = isSelected ? null : type;
+                        selectedShopTowerRef.current = nextSelected;
+                        draggedTowerTypeRef.current = null;
+                        draggedTowerPosRef.current = null;
+                        setSelectedShopTower(nextSelected);
+                        setDraggedTowerType(null);
+                        setDraggedTowerPos(null);
                         setSelectedPlacedTowerId(null);
                         setSelectedTower(null);
                       }}
