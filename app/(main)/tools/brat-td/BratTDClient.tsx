@@ -701,8 +701,11 @@ export default function BratTDClient() {
     setGold(selectedDifficulty.gold);
     goldRef.current = selectedDifficulty.gold;
     setWave(1);
+    waveRef.current = 1;
     setIsWaveActive(false);
+    isWaveActiveRef.current = false;
     setGameStatus("playing");
+    gameStatusRef.current = "playing";
     setIsPaused(false);
     setIsEndless(false);
     setScore(0);
@@ -735,6 +738,7 @@ export default function BratTDClient() {
     spawnQueueRef.current = queue;
     spawnTimerRef.current = 0;
     setIsWaveActive(true);
+    isWaveActiveRef.current = true;
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
     playTowerSound("wave");
 
@@ -1228,6 +1232,8 @@ export default function BratTDClient() {
             }
           } else if (enemiesRef.current.length === 0) {
             // Wave clear!
+            const clearedWave = waveRef.current;
+            isWaveActiveRef.current = false;
             setIsWaveActive(false);
             
             // Apply Nescafe Ritual end of wave bonuses
@@ -1237,24 +1243,27 @@ export default function BratTDClient() {
                 bonusGold += t.endOfWaveBonus;
               }
             });
-            const earlyBonus = EARLY_WAVE_BONUSES[waveRef.current - 1] || 0;
+            const earlyBonus = EARLY_WAVE_BONUSES[clearedWave - 1] || 0;
 
             // Wave clear bonus: early catch-up (waves 1-8) + economy towers.
             const finalBonus = bonusGold + earlyBonus;
             if (finalBonus > 0) {
               setGold((prev) => prev + finalBonus);
             }
-            setScore((prev) => prev + waveRef.current * 50);
+            setScore((prev) => prev + clearedWave * 50);
 
             pushLog(finalBonus > 0
               ? `Накат братви відбито! +${finalBonus} ☕ (${earlyBonus ? `ранній бонус ${earlyBonus}` : ""}${earlyBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
               : "Накат братви відбито!");
             
             // Check victory conditions (after wave 46)
-            if (waveRef.current === 46 && !isEndless) {
+            if (clearedWave === 46 && !isEndless) {
+              gameStatusRef.current = "victory";
               setGameStatus("victory");
             } else {
-              setWave((prev) => prev + 1);
+              const nextWave = clearedWave + 1;
+              waveRef.current = nextWave;
+              setWave(nextWave);
               if (isAutoStartRef.current) {
                 setTimeout(() => {
                   startNextWave();
@@ -1371,6 +1380,7 @@ export default function BratTDClient() {
                 setLives((prev) => {
                   const newLives = Math.max(0, prev - enemy.damage);
                   if (newLives <= 0) {
+                    gameStatusRef.current = "gameover";
                     setGameStatus("gameover");
                     pushLog("Кодло не вивезло. Братва прорвала оборону.");
                   }
@@ -2854,8 +2864,12 @@ export default function BratTDClient() {
 
   const handleEndless = () => {
     setIsEndless(true);
+    gameStatusRef.current = "playing";
     setGameStatus("playing");
+    waveRef.current = 47;
     setWave(47);
+    isWaveActiveRef.current = false;
+    setIsWaveActive(false);
     pushLog("Почалася нескінченна гра! Вороги стають сильнішими з кожною хвилею.");
   };
 
