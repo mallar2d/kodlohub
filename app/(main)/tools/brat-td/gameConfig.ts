@@ -198,11 +198,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "☕",
     upgrades: {
       path1: [
-        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +20%.", cost: 660, effect: (s) => ({ ...s, buffMultiplier: 0.20 }) },
-        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +35%.", cost: 1240, effect: (s) => ({ ...s, buffMultiplier: 0.35 }) },
-        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +50%.", cost: 2890, effect: (s) => ({ ...s, buffMultiplier: 0.50 }) },
-        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +80%.", cost: 5940, effect: (s) => ({ ...s, buffMultiplier: 0.80 }) },
-        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +120%.", cost: 15675, effect: (s) => ({ ...s, buffMultiplier: 1.20 }) }
+        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +10%.", cost: 660, effect: (s) => ({ ...s, buffMultiplier: 0.10 }) },
+        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +18%.", cost: 1240, effect: (s) => ({ ...s, buffMultiplier: 0.18 }) },
+        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +25%.", cost: 2890, effect: (s) => ({ ...s, buffMultiplier: 0.25 }) },
+        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +40%.", cost: 5940, effect: (s) => ({ ...s, buffMultiplier: 0.40 }) },
+        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +60%.", cost: 15675, effect: (s) => ({ ...s, buffMultiplier: 0.60 }) }
       ],
       path2: [
         { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 15px.", cost: 530, effect: (s) => ({ ...s, range: s.range + 15 }) },
@@ -300,11 +300,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "💨",
     upgrades: {
       path1: [
-        { id: "gas_radius1", name: "Широка зона", description: "Збільшує радіус дії аури на 25px.", cost: 130, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "gas_radius2", name: "Один Скін", description: "Збільшує радіус дії аури на 40px.", cost: 300, effect: (s) => ({ ...s, range: s.range + 40 }) },
-        { id: "gas_double_cloud", name: "Подвійна хмара", description: "Радіус аури +40px, шкода +5.", cost: 700, effect: (s) => ({ ...s, range: s.range + 40, damage: s.damage + 5 }) },
-        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Радіус аури +50px, шкода +15.", cost: 1780, effect: (s) => ({ ...s, range: s.range + 50, damage: s.damage + 15 }) },
-        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Велетенський радіус (+80px), шкода +60, ігнорує будь-яку броню.", cost: 5545, effect: (s) => ({ ...s, range: s.range + 80, damage: s.damage + 60, ignoresArmor: true }) }
+        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +6, радіус +10px.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 6, range: s.range + 10 }) },
+        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +10, радіус +15px.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, range: s.range + 15 }) },
+        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +18, радіус +15px. Вороги в аурі отримують подвійну шкоду від регенерації (зупиняє зцілення).", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 18, range: s.range + 15, antiArmor: true }) },
+        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +30, радіус +20px. Вбивство в аурі вибухає (40 шкоди, 50px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 30, range: s.range + 20, explodeDmg: 40 }) },
+        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +80, радіус +25px, ігнорує будь-яку броню. Залишає слід (20 шкоди/с на 3с).", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 80, range: s.range + 25, ignoresArmor: true, gachaChance: 0.15, gachaDamageOverride: 60 }) }
       ],
       path2: [
         { id: "gas_odor", name: "Різкий запах", description: "Збільшує шкоду аури на 3.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
@@ -366,14 +366,14 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.0,
     color: "#0ea5e9",
     emoji: "⚡",
-    pierce: 4,
+    pierce: 3,
     upgrades: {
       path1: [
         { id: "chain_voltage", name: "Підвищена напруга", description: "Шкода +8.", cost: 210, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
-        { id: "chain_overload", name: "Перевантаження", description: "Шкода +15, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 4) + 1 }) },
-        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +25, +2 ланцюги.", cost: 1080, effect: (s) => ({ ...s, damage: s.damage + 25, pierce: (s.pierce || 4) + 2 }) },
-        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +50, +3 ланцюги.", cost: 2375, effect: (s) => ({ ...s, damage: s.damage + 50, pierce: (s.pierce || 4) + 3 }) },
-        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +120, +6 ланцюгів, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 120, pierce: (s.pierce || 4) + 6, ignoresArmor: true }) }
+        { id: "chain_overload", name: "Перевантаження", description: "Шкода +15, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 3) + 1 }) },
+        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +25, +2 ланцюги.", cost: 1080, effect: (s) => ({ ...s, damage: s.damage + 25, pierce: (s.pierce || 3) + 2 }) },
+        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +50, +3 ланцюги.", cost: 2375, effect: (s) => ({ ...s, damage: s.damage + 50, pierce: (s.pierce || 3) + 3 }) },
+        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +120, +6 ланцюгів, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 120, pierce: (s.pierce || 3) + 6, ignoresArmor: true }) }
       ],
       path2: [
         { id: "chain_conductivity", name: "Провідність", description: "Швидкість атаки +20%.", cost: 210, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
@@ -386,7 +386,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "chain_static", name: "Статичний заряд", description: "10% шанс оглушити ворога на 0.5с.", cost: 210, effect: (s) => ({ ...s, freezeChance: 0.10 }) },
         { id: "chain_paralyze", name: "Параліч", description: "20% шанс оглушити на 1с.", cost: 495, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30 }) },
         { id: "chain_magnetic", name: "Магнітне поле", description: "Сповільнює вражених ворогів на 30%.", cost: 1080, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
-        { id: "chain_superconductor", name: "Надпровідник", description: "35% оглушення, сповільнення 50%, +2 ланцюги.", cost: 2375, effect: (s) => ({ ...s, freezeChance: 0.35, slowAmount: 0.50, pierce: (s.pierce || 4) + 2 }) },
+        { id: "chain_superconductor", name: "Надпровідник", description: "35% оглушення, сповільнення 50%, +2 ланцюги.", cost: 2375, effect: (s) => ({ ...s, freezeChance: 0.35, slowAmount: 0.50, pierce: (s.pierce || 3) + 2 }) },
         { id: "chain_EMP", name: "ЕМП-імпульс", description: "50% оглушення на 2с, сповільнення 70%, вимикає здібності ворогів.", cost: 5545, effect: (s) => ({ ...s, freezeChance: 0.50, freezeDurationBonus: 120, slowAmount: 0.70, disableAbilities: true }) }
       ]
     }
