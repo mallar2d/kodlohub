@@ -126,6 +126,30 @@ export interface EnemyConfig {
   glitchDistance?: number;
   shieldHp?: number;
   shieldRegenDelay?: number;
+  tier?: number; // 1-5, scales stats
+}
+
+// Tier scaling: each tier makes enemies harder
+// Higher tiers inherit abilities from lower tiers
+export const TIER_SCALING = [
+  // tier 1: base (waves 1-10)
+  { hpMult: 1.0, speedMult: 1.0, damageReduce: 0, rewardMult: 1.0, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
+  // tier 2: tough (waves 11-20)
+  { hpMult: 1.5, speedMult: 1.05, damageReduce: 0.10, rewardMult: 1.3, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
+  // tier 3: elite (waves 21-30)
+  { hpMult: 2.5, speedMult: 1.10, damageReduce: 0.20, rewardMult: 1.8, inheritsRegen: true, inheritsArmor: false, inheritsLead: false },
+  // tier 4: champion (waves 31-40)
+  { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 2.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
+  // tier 5: legend (waves 41-46+)
+  { hpMult: 6.0, speedMult: 1.20, damageReduce: 0.40, rewardMult: 3.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: true },
+];
+
+export function getTierForWave(waveNumber: number): number {
+  if (waveNumber <= 10) return 1;
+  if (waveNumber <= 20) return 2;
+  if (waveNumber <= 30) return 3;
+  if (waveNumber <= 40) return 4;
+  return 5;
 }
 
 export const TOWER_CONFIGS: Record<string, TowerConfig> = {
@@ -972,15 +996,48 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
 export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyConfig {
   const base = ENEMY_CONFIGS[type];
   if (!base) return ENEMY_CONFIGS.ordinary;
-  if (waveNumber <= 46) return base;
 
-  const multiplier = Math.pow(1.08, waveNumber - 46);
-  const speedMultiplier = Math.min(1.6, Math.pow(1.015, waveNumber - 46));
+  const tier = getTierForWave(waveNumber);
+  const tierData = TIER_SCALING[tier - 1];
+
+  // Apply tier scaling
+  let hp = Math.floor(base.hp * tierData.hpMult);
+  let speed = base.speed * tierData.speedMult;
+  let reward = Math.floor(base.reward * tierData.rewardMult);
+  let isArmored = base.isArmored;
+  let isSuperArmored = base.isSuperArmored;
+  let isRegen = base.isRegen;
+  let isLead = base.isLead;
+
+  // Tier inheritance: higher tiers gain abilities
+  if (tierData.inheritsRegen && !isRegen) {
+    isRegen = true;
+  }
+  if (tierData.inheritsArmor && !isArmored && !isSuperArmored) {
+    isArmored = true;
+  }
+  if (tierData.inheritsLead && !isLead) {
+    isLead = true;
+  }
+
+  // Endless mode (after wave 46): additional scaling on top of tier
+  if (waveNumber > 46) {
+    const endlessMult = Math.pow(1.06, waveNumber - 46);
+    const endlessSpeed = Math.min(1.4, Math.pow(1.012, waveNumber - 46));
+    hp = Math.floor(hp * endlessMult);
+    speed = speed * endlessSpeed;
+    reward = Math.floor(reward * Math.pow(1.02, waveNumber - 46));
+  }
 
   return {
     ...base,
-    hp: Math.floor(base.hp * multiplier),
-    speed: base.speed * speedMultiplier,
-    reward: Math.floor(base.reward * Math.pow(1.02, waveNumber - 46))
+    hp,
+    speed,
+    reward,
+    isArmored,
+    isSuperArmored,
+    isRegen,
+    isLead,
+    tier,
   };
 }

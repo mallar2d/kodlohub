@@ -6,6 +6,7 @@ import {
   TOWER_CONFIGS,
   getScaledWave,
   getEnemyStatsForWave,
+  TIER_SCALING,
   GAME_WIDTH,
   GAME_HEIGHT,
   PathPoint,
@@ -116,6 +117,8 @@ interface ActiveEnemy {
   isPhantomCamo?: boolean;
   isExploder?: boolean;
   lastHitFrame?: number;
+  tier?: number;
+  damageReduce?: number;
 }
 
 interface Projectile {
@@ -485,7 +488,9 @@ export default function BratTDClient() {
       isLead: baseConfig.isLead,
       isPhantomCamo: baseConfig.isPhantomCamo,
       isExploder: baseConfig.isExploder,
-      shieldHp: baseConfig.shieldHp
+      shieldHp: baseConfig.shieldHp,
+      tier: baseConfig.tier,
+      damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
     };
     enemiesRef.current.push(newEnemy);
   };
@@ -981,7 +986,9 @@ export default function BratTDClient() {
                   isLead: baseConfig.isLead,
                   isPhantomCamo: baseConfig.isPhantomCamo,
                   isExploder: baseConfig.isExploder,
-                  shieldHp: baseConfig.shieldHp
+                  shieldHp: baseConfig.shieldHp,
+                  tier: baseConfig.tier,
+                  damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
                 };
 
                 enemiesRef.current.push(newEnemy);
@@ -1300,6 +1307,11 @@ export default function BratTDClient() {
                   // Apply damage debuff if active on enemy
                   if (enemy.damageDebuff) dmg *= enemy.damageDebuff;
 
+                  // Apply tier damage reduction
+                  if (enemy.damageReduce && enemy.damageReduce > 0) {
+                    dmg = Math.floor(dmg * (1 - enemy.damageReduce));
+                  }
+
                   const wasAlive = enemy.hp > 0;
                   enemy.hp -= dmg;
                   enemy.gasSlowDuration = 30; // 0.5s slow inside gas
@@ -1563,6 +1575,11 @@ export default function BratTDClient() {
               // Apply damage debuff if active on enemy
               if (enemy.damageDebuff && dmg > 0) {
                 dmg = Math.floor(dmg * enemy.damageDebuff);
+              }
+
+              // Apply tier damage reduction
+              if (enemy.damageReduce && enemy.damageReduce > 0 && dmg > 0) {
+                dmg = Math.floor(dmg * (1 - enemy.damageReduce));
               }
 
               // Apply damage
@@ -2080,6 +2097,21 @@ export default function BratTDClient() {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(enemy.emoji, enemy.x, enemy.y);
+
+        // Tier indicator badge
+        if (enemy.tier && enemy.tier > 1) {
+          const tierColors = ["", "#94a3b8", "#22c55e", "#3b82f6", "#a855f7", "#f59e0b"];
+          const tierColor = tierColors[enemy.tier] || "#ffffff";
+          const bx = enemy.x + enemy.radius - 2;
+          const by = enemy.y - enemy.radius + 2;
+          ctx.fillStyle = tierColor;
+          ctx.beginPath();
+          ctx.arc(bx, by, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#000000";
+          ctx.font = "bold 8px Arial";
+          ctx.fillText(`${enemy.tier}`, bx, by);
+        }
 
         // Status effect overlays
         if (enemy.slowDuration > 0) {
