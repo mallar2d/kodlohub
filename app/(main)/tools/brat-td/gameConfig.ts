@@ -303,7 +303,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Далекобійний снайпер. Бачить камуфляж, б'є боляче, але рідко.",
     cost: 350,
     range: 250,
-    damage: 80,
+    damage: 108,
     fireRate: 3.0,
     color: "#f43f5e",
     emoji: "🎯",
@@ -861,38 +861,103 @@ export const WAVES: WaveSegment[][] = [
     { type: "exploder", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
     { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 500 },
     { type: "jumper", count: 15, spawnDelay: 1000 }
+  ],
+  // === COMBO WAVES 41-46: Synergy enemy combinations ===
+  // Wave 41: COMBO - Camo+Lead (невидимі + імунні до молотків)
+  [
+    { type: "camo", count: 25, spawnDelay: 600, delayBeforeNext: 600 },
+    { type: "lead", count: 20, spawnDelay: 800, delayBeforeNext: 600 },
+    { type: "camo", count: 15, spawnDelay: 500, delayBeforeNext: 600 },
+    { type: "lead", count: 15, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "phantom", count: 10, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "fast", count: 30, spawnDelay: 350 }
+  ],
+  // Wave 42: COMBO - Regen+Phantom (регенерація + супер-камуфляж)
+  [
+    { type: "regen", count: 25, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "phantom", count: 15, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
+    { type: "phantom", count: 12, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "camo", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
+    { type: "infinix_brat", count: 15, spawnDelay: 900 }
+  ],
+  // Wave 43: COMBO - Shielded+Exploder (щит + вибух при смерті)
+  [
+    { type: "shielded", count: 15, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "exploder", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "shielded", count: 12, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "exploder", count: 10, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 500 },
+    { type: "gas_brat", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "granite", count: 10, spawnDelay: 1500 }
+  ],
+  // Wave 44: COMBO - Granite+Lead (подвійна броня)
+  [
+    { type: "granite", count: 18, spawnDelay: 1400, delayBeforeNext: 600 },
+    { type: "lead", count: 20, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "granite", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "lead", count: 15, spawnDelay: 800, delayBeforeNext: 600 },
+    { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "heavy", count: 12, spawnDelay: 1500, delayBeforeNext: 600 },
+    { type: "shielded", count: 10, spawnDelay: 1200 }
+  ],
+  // Wave 45: COMBO - Jumper+Regen (телепорт + регенерація)
+  [
+    { type: "jumper", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "regen", count: 25, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "jumper", count: 10, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
+    { type: "infinix_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "phantom", count: 12, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "rachky_brat", count: 18, spawnDelay: 700 }
+  ],
+  // Wave 46: COMBO ULTIMATE - All synergies combined
+  [
+    { type: "boss", count: 3, spawnDelay: 3000, delayBeforeNext: 1200 },
+    { type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 800 },
+    { type: "camo", count: 20, spawnDelay: 500, delayBeforeNext: 400 },
+    { type: "lead", count: 18, spawnDelay: 700, delayBeforeNext: 400 },
+    { type: "phantom", count: 12, spawnDelay: 900, delayBeforeNext: 400 },
+    { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
+    { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 400 },
+    { type: "exploder", count: 10, spawnDelay: 1100, delayBeforeNext: 400 },
+    { type: "granite", count: 15, spawnDelay: 1200, delayBeforeNext: 400 },
+    { type: "jumper", count: 12, spawnDelay: 1000, delayBeforeNext: 400 },
+    { type: "infinix_brat", count: 18, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
+    { type: "gas_brat", count: 15, spawnDelay: 800 }
   ]
 ];
 
 export function getScaledWave(waveNumber: number): WaveSegment[] {
-  if (waveNumber <= 40) {
+  if (waveNumber <= 46) {
     return WAVES[waveNumber - 1];
   }
 
-  // Endless mode after wave 40
-  const multiplier = Math.pow(1.12, waveNumber - 40);
+  // Endless mode after wave 46
+  const multiplier = Math.pow(1.06, waveNumber - 46);
 
   const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded"];
   const segments: WaveSegment[] = [];
 
-  // Bosses every 3 waves
-  if (waveNumber % 3 === 0) {
-    const bossCount = Math.floor((waveNumber - 3) / 5);
+  // Bosses every 5 waves
+  if (waveNumber % 5 === 0) {
+    const bossCount = Math.floor((waveNumber - 46) / 8) + 1;
     segments.push({ type: "boss", count: bossCount, spawnDelay: 3500, delayBeforeNext: 2000 });
   }
 
-  // Megaboss every 8 waves
-  if (waveNumber % 8 === 0) {
+  // Megaboss every 12 waves
+  if (waveNumber % 12 === 0) {
     segments.push({ type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 2000 });
   }
 
-  // 5-8 random segments
-  const segmentCount = 5 + Math.min(8, Math.floor((waveNumber - 40) / 3));
+  // 5-7 random segments (slower growth)
+  const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 46) / 4));
   for (let i = 0; i < segmentCount; i++) {
     const randomType = types[Math.floor(Math.random() * types.length)];
     const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
     const count = Math.floor(baseCount * Math.sqrt(multiplier));
-    const delay = Math.max(200, Math.floor(1000 / (1 + (waveNumber - 40) * 0.08)));
+    const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 46) * 0.05)));
     segments.push({
       type: randomType,
       count: count > 0 ? count : 1,
@@ -907,15 +972,15 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
 export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyConfig {
   const base = ENEMY_CONFIGS[type];
   if (!base) return ENEMY_CONFIGS.ordinary;
-  if (waveNumber <= 40) return base;
+  if (waveNumber <= 46) return base;
 
-  const multiplier = Math.pow(1.20, waveNumber - 40);
-  const speedMultiplier = Math.min(1.8, Math.pow(1.03, waveNumber - 40));
+  const multiplier = Math.pow(1.08, waveNumber - 46);
+  const speedMultiplier = Math.min(1.6, Math.pow(1.015, waveNumber - 46));
 
   return {
     ...base,
     hp: Math.floor(base.hp * multiplier),
     speed: base.speed * speedMultiplier,
-    reward: Math.floor(base.reward * Math.pow(1.02, waveNumber - 40))
+    reward: Math.floor(base.reward * Math.pow(1.02, waveNumber - 46))
   };
 }

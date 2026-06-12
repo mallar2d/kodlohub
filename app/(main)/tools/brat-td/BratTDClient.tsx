@@ -461,6 +461,18 @@ export default function BratTDClient() {
       pushLog("🗿 Хвиля 32: Гранітні, Фантоми та Вибухові Брати! Граніт має 75% броню, Фантоми невидимі навіть для сканерів.");
     } else if (waveRef.current === 36) {
       pushLog("🦘🛡️ Хвиля 36: Стрибуни та Щитові Брати! Стрибуни телепортуються на 100px, Щитові мають регенеруючий щит.");
+    } else if (waveRef.current === 41) {
+      pushLog("💀 КОМБО #1 (Camo+Lead): Невидимі + імунні до молотків! Потрібні башні з камуфляж-детекцією, що б'ють не молотком.");
+    } else if (waveRef.current === 42) {
+      pushLog("💀 КОМБО #2 (Regen+Phantom): Регенерація + супер-камуфляж! Вороги зцілюються і невидимі навіть для сканерів.");
+    } else if (waveRef.current === 43) {
+      pushLog("💀 КОМБО #3 (Shielded+Exploder): Щит + вибух при смерті! Вибух оглушує башні, щит захищає від першого удару.");
+    } else if (waveRef.current === 44) {
+      pushLog("💀 КОМБО #4 (Granite+Lead): Подвійна броня! Граніт -75% фіз. шкоди, Свинець - повний імунітет до молотків.");
+    } else if (waveRef.current === 45) {
+      pushLog("💀 КОМБО #5 (Jumper+Regen): Телепорт + регенерація! Вороги стрибають вперед і зцілюються.");
+    } else if (waveRef.current === 46) {
+      pushLog("👹 ФІНАЛЬНИЙ КОМБО-БОС: ВСІ СИНЕРГІЇ! Удачі...");
     }
   };
 
@@ -838,8 +850,8 @@ export default function BratTDClient() {
 
             pushLog(`Накат братви відбито! Отримано +${finalBonus} ☕ Nescafe Gold.`);
             
-            // Check victory conditions (after wave 40)
-            if (waveRef.current === 40 && !isEndless) {
+            // Check victory conditions (after wave 46)
+            if (waveRef.current === 46 && !isEndless) {
               setGameStatus("victory");
             } else {
               setWave((prev) => prev + 1);
@@ -2116,7 +2128,7 @@ export default function BratTDClient() {
   const handleEndless = () => {
     setIsEndless(true);
     setGameStatus("playing");
-    setWave(41);
+    setWave(47);
     pushLog("Почалася нескінченна гра! Вороги стають сильнішими з кожною хвилею.");
   };
 
