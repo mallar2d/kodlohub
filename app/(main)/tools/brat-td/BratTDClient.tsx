@@ -8,7 +8,8 @@ import {
   getEnemyStatsForWave,
   GAME_WIDTH,
   GAME_HEIGHT,
-  PathPoint
+  PathPoint,
+  Upgrade
 } from "./gameConfig";
 
 interface PlacedTower {
@@ -24,6 +25,9 @@ interface PlacedTower {
   name: string;
   cooldown: number; // frames remaining until next shot
   upgradesBought: string[];
+  path1Tier: number;
+  path2Tier: number;
+  path3Tier: number;
   level: number;
   totalKills: number;
   // custom stats for upgrades
@@ -39,7 +43,27 @@ interface PlacedTower {
   slowAmount?: number;
   antiArmor?: boolean;
   shotCount?: number;
+  // BTD6 upgrades stats
+  ignoresArmor?: boolean;
+  alwaysDouble?: boolean;
+  critMultiplier?: number;
+  damageBuff?: number;
+  rangeBuff?: number;
+  ignoreArmorBuff?: number;
+  rangeBuffPercent?: number;
+  slowDurationBonus?: number;
+  slowFactorBonus?: number;
+  explodeDmg?: number;
+  gachaDamageOverride?: number;
+  freezeDurationBonus?: number;
+  bsodAoE?: boolean;
+  bugExplodeDmg?: number;
+  bugExplodeRadius?: number;
+  bugContagion?: boolean;
+  disableGlitch?: boolean;
+  disableAbilities?: boolean;
 }
+
 
 interface ActiveEnemy {
   id: string;
@@ -92,6 +116,18 @@ interface Projectile {
   freezeChance?: number;
   gachaChance?: number;
   copilotBug?: boolean;
+  ignoresArmor?: boolean;
+  alwaysDouble?: boolean;
+  critMultiplier?: number;
+  slowDurationBonus?: number;
+  slowFactorBonus?: number;
+  explodeDmg?: number;
+  gachaDamageOverride?: number;
+  freezeDurationBonus?: number;
+  bsodAoE?: boolean;
+  bugExplodeDmg?: number;
+  bugExplodeRadius?: number;
+  bugContagion?: boolean;
   // simple physics
   angle: number;
   lastTargetX: number;
@@ -129,6 +165,19 @@ interface SpeedTrail {
 // Pure helpers to satisfy react-hooks/purity ruleset checking for Math.random
 const getPureRandom = () => Math.random();
 const getPureId = () => Math.random().toString(36).substr(2, 9);
+
+// BTD6 Crosspathing logic helper
+const checkUpgradeAllowed = (path1: number, path2: number, path3: number, pathIndex: number): boolean => {
+  const newTiers = [path1, path2, path3];
+  newTiers[pathIndex]++;
+  if (newTiers[pathIndex] > 5) return false;
+  const activePaths = newTiers.filter(t => t > 0).length;
+  const highTiers = newTiers.filter(t => t >= 3).length;
+  return activePaths <= 2 && highTiers <= 1;
+};
+
+
+
 
 export default function BratTDClient() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -413,6 +462,9 @@ export default function BratTDClient() {
         name: config.name,
         cooldown: 0,
         upgradesBought: [],
+        path1Tier: 0,
+        path2Tier: 0,
+        path3Tier: 0,
         level: 1,
         totalKills: 0
       };
@@ -472,12 +524,11 @@ export default function BratTDClient() {
     const tower = towersRef.current[towerIdx];
     const baseConfig = TOWER_CONFIGS[tower.type];
     
-    // Calculate total cost spent on tower
+    // Calculate total cost spent on tower based on path tiers
     let totalCost = baseConfig.cost;
-    tower.upgradesBought.forEach((upId) => {
-      const up = baseConfig.upgrades.find((u) => u.id === upId);
-      if (up) totalCost += up.cost;
-    });
+    for (let i = 0; i < tower.path1Tier; i++) totalCost += baseConfig.upgrades.path1[i].cost;
+    for (let i = 0; i < tower.path2Tier; i++) totalCost += baseConfig.upgrades.path2[i].cost;
+    for (let i = 0; i < tower.path3Tier; i++) totalCost += baseConfig.upgrades.path3[i].cost;
 
     const sellPrice = Math.floor(totalCost * 0.7);
     setGold((prev) => prev + sellPrice);
@@ -490,14 +541,33 @@ export default function BratTDClient() {
     spawnFloatingText(tower.x, tower.y - 20, `+${sellPrice} ☕`, "#22c55e");
   };
 
-  const buyUpgrade = (upgradeId: string) => {
+  const buyUpgrade = (pathIndex: number) => {
     if (!selectedPlacedTowerId) return;
     const tower = towersRef.current.find((t) => t.id === selectedPlacedTowerId);
     if (!tower) return;
 
+    // Check if upgrade is allowed under BTD6 rules
+    if (!checkUpgradeAllowed(tower.path1Tier, tower.path2Tier, tower.path3Tier, pathIndex)) {
+      pushLog("Цей шлях заблоковано правилами крос-пасингу BTD6!");
+      return;
+    }
+
     const baseConfig = TOWER_CONFIGS[tower.type];
-    const upgrade = baseConfig.upgrades.find((u) => u.id === upgradeId);
-    if (!upgrade) return;
+    
+    // Find next upgrade in path
+    let upgrade = null;
+    if (pathIndex === 0 && tower.path1Tier < 5) {
+      upgrade = baseConfig.upgrades.path1[tower.path1Tier];
+    } else if (pathIndex === 1 && tower.path2Tier < 5) {
+      upgrade = baseConfig.upgrades.path2[tower.path2Tier];
+    } else if (pathIndex === 2 && tower.path3Tier < 5) {
+      upgrade = baseConfig.upgrades.path3[tower.path3Tier];
+    }
+
+    if (!upgrade) {
+      pushLog("Шлях уже повністю прокачано!");
+      return;
+    }
 
     if (gold < upgrade.cost) {
       pushLog("Недостатньо Nescafe Gold для апгрейду!");
@@ -519,12 +589,35 @@ export default function BratTDClient() {
       gachaChance: tower.gachaChance,
       copilotBug: tower.copilotBug,
       slowAmount: tower.slowAmount,
-      antiArmor: tower.antiArmor
+      antiArmor: tower.antiArmor,
+      ignoresArmor: tower.ignoresArmor,
+      alwaysDouble: tower.alwaysDouble,
+      critMultiplier: tower.critMultiplier,
+      damageBuff: tower.damageBuff,
+      rangeBuff: tower.rangeBuff,
+      ignoreArmorBuff: tower.ignoreArmorBuff,
+      rangeBuffPercent: tower.rangeBuffPercent,
+      slowDurationBonus: tower.slowDurationBonus,
+      slowFactorBonus: tower.slowFactorBonus,
+      explodeDmg: tower.explodeDmg,
+      gachaDamageOverride: tower.gachaDamageOverride,
+      freezeDurationBonus: tower.freezeDurationBonus,
+      bsodAoE: tower.bsodAoE,
+      bugExplodeDmg: tower.bugExplodeDmg,
+      bugExplodeRadius: tower.bugExplodeRadius,
+      bugContagion: tower.bugContagion,
+      disableGlitch: tower.disableGlitch,
+      disableAbilities: tower.disableAbilities
     });
 
     // Deduct cost and apply variables
     setGold((prev) => prev - upgrade.cost);
-    tower.upgradesBought.push(upgradeId);
+    tower.upgradesBought.push(upgrade.id);
+    
+    if (pathIndex === 0) tower.path1Tier++;
+    else if (pathIndex === 1) tower.path2Tier++;
+    else if (pathIndex === 2) tower.path3Tier++;
+
     tower.range = newStats.range;
     tower.damage = newStats.damage;
     tower.fireRate = newStats.fireRate;
@@ -539,10 +632,29 @@ export default function BratTDClient() {
     tower.copilotBug = newStats.copilotBug;
     tower.slowAmount = newStats.slowAmount;
     tower.antiArmor = newStats.antiArmor;
+    tower.ignoresArmor = newStats.ignoresArmor;
+    tower.alwaysDouble = newStats.alwaysDouble;
+    tower.critMultiplier = newStats.critMultiplier;
+    tower.damageBuff = newStats.damageBuff;
+    tower.rangeBuff = newStats.rangeBuff;
+    tower.ignoreArmorBuff = newStats.ignoreArmorBuff;
+    tower.rangeBuffPercent = newStats.rangeBuffPercent;
+    tower.slowDurationBonus = newStats.slowDurationBonus;
+    tower.slowFactorBonus = newStats.slowFactorBonus;
+    tower.explodeDmg = newStats.explodeDmg;
+    tower.gachaDamageOverride = newStats.gachaDamageOverride;
+    tower.freezeDurationBonus = newStats.freezeDurationBonus;
+    tower.bsodAoE = newStats.bsodAoE;
+    tower.bugExplodeDmg = newStats.bugExplodeDmg;
+    tower.bugExplodeRadius = newStats.bugExplodeRadius;
+    tower.bugContagion = newStats.bugContagion;
+    tower.disableGlitch = newStats.disableGlitch;
+    tower.disableAbilities = newStats.disableAbilities;
+    
     tower.level += 1;
 
     // Special logic for refund upgrade
-    if (upgradeId === "candy_cheap") {
+    if (upgrade.id === "candy_cheap") {
       setGold((prev) => prev + 40);
       spawnFloatingText(tower.x, tower.y - 35, `+40 ☕`, "#22c55e");
     }
@@ -743,8 +855,20 @@ export default function BratTDClient() {
             enemy.distanceTraveled += currentSpeed;
           }
 
+          // Check if standing in ability-disabling or glitch-disabling gas aura
+          let glitchDisabled = false;
+          let abilitiesDisabled = false;
+          towersRef.current.forEach((t) => {
+            if (t.type === "gas" && (t.disableGlitch || t.disableAbilities)) {
+              if (getDistance(enemy.x, enemy.y, t.x, t.y) <= t.range) {
+                if (t.disableGlitch) glitchDisabled = true;
+                if (t.disableAbilities) abilitiesDisabled = true;
+              }
+            }
+          });
+
           // Glitching effect for Infinix-brat
-          if (enemy.isGlitching) {
+          if (enemy.isGlitching && !glitchDisabled) {
             enemy.timeSinceGlitch = (enemy.timeSinceGlitch || 0) + 1;
             if (enemy.timeSinceGlitch >= 150) { // every ~2.5s
               enemy.timeSinceGlitch = 0;
@@ -773,7 +897,7 @@ export default function BratTDClient() {
           }
 
           // Spawning speed trail for Rachky-brat
-          if (enemy.isSpawningTrail && getPureRandom() < 0.15) {
+          if (enemy.isSpawningTrail && !abilitiesDisabled && getPureRandom() < 0.15) {
             speedTrailsRef.current.push({
               x: enemy.x,
               y: enemy.y,
@@ -804,9 +928,21 @@ export default function BratTDClient() {
           let speedDebuff = 1.0;
           enemiesRef.current.forEach((enemy) => {
             if (enemy.isSlowingTowers) {
-              const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-              if (dist <= 120) { // range of Gas Brat smell aura
-                speedDebuff = Math.min(speedDebuff, 0.6); // 40% slow
+              // check if enemy is inside an entropy gas tower that disables abilities
+              let abilitiesDisabled = false;
+              towersRef.current.forEach((t) => {
+                if (t.type === "gas" && t.disableAbilities) {
+                  if (getDistance(enemy.x, enemy.y, t.x, t.y) <= t.range) {
+                    abilitiesDisabled = true;
+                  }
+                }
+              });
+
+              if (!abilitiesDisabled) {
+                const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
+                if (dist <= 120) { // range of Gas Brat smell aura
+                  speedDebuff = Math.min(speedDebuff, 0.6); // 40% slow
+                }
               }
             }
           });
@@ -837,12 +973,23 @@ export default function BratTDClient() {
                     dmg *= 2.0;
                   }
 
+                  // Gacha chance (for gacha gas / jackpot)
+                  if (tower.gachaChance && getPureRandom() < tower.gachaChance) {
+                    dmg += tower.gachaDamageOverride || 150;
+                    spawnFloatingText(enemy.x, enemy.y - 15, "💥 ГАЧА!", "#c084fc");
+                  }
+
                   // Apply damage debuff if active on enemy
                   if (enemy.damageDebuff) dmg *= enemy.damageDebuff;
 
                   enemy.hp -= dmg;
                   enemy.gasSlowDuration = 30; // 0.5s slow inside gas
                   enemy.gasSlowFactor = tower.slowAmount || 0.15;
+
+                  // Apply gas damage debuff
+                  if (tower.damageDebuff) {
+                    enemy.damageDebuff = Math.max(enemy.damageDebuff || 1.0, tower.damageDebuff);
+                  }
 
                   // spawn green cloud particle on tick
                   if (getPureRandom() < 0.2) {
@@ -921,27 +1068,49 @@ export default function BratTDClient() {
                 freezeChance: tower.freezeChance,
                 gachaChance: tower.gachaChance,
                 copilotBug: tower.copilotBug,
+                ignoresArmor: tower.ignoresArmor,
+                alwaysDouble: tower.alwaysDouble,
+                critMultiplier: tower.critMultiplier,
+                slowDurationBonus: tower.slowDurationBonus,
+                slowFactorBonus: tower.slowFactorBonus,
+                explodeDmg: tower.explodeDmg,
+                gachaDamageOverride: tower.gachaDamageOverride,
+                freezeDurationBonus: tower.freezeDurationBonus,
+                bsodAoE: tower.bsodAoE,
+                bugExplodeDmg: tower.bugExplodeDmg,
+                bugExplodeRadius: tower.bugExplodeRadius,
+                bugContagion: tower.bugContagion,
                 angle,
                 lastTargetX: target.x,
                 lastTargetY: target.y
               };
 
-              // Two hits upgrade for hammer (every 3rd shot fires double)
-              if (tower.type === "hammer" && tower.twoHits) {
-                // track shot count
-                const shotCount = tower.shotCount || 0;
-                tower.shotCount = shotCount + 1;
-                
-                if ((shotCount + 1) % 3 === 0) {
-                  // Fire 2nd hammer slightly offset
+              // Hammer double projectile logic
+              if (tower.type === "hammer") {
+                if (tower.alwaysDouble) {
                   const offsetProj = {
                     ...newProj,
                     id: projId + "_2",
-                    angle: angle + 0.25, // angle offset
+                    angle: angle + 0.25,
                     x: tower.x + Math.cos(angle + Math.PI/2) * 8,
                     y: tower.y + Math.sin(angle + Math.PI/2) * 8
                   };
                   projectilesRef.current.push(offsetProj);
+                } else if (tower.twoHits) {
+                  // track shot count
+                  const shotCount = tower.shotCount || 0;
+                  tower.shotCount = shotCount + 1;
+                  
+                  if ((shotCount + 1) % 3 === 0) {
+                    const offsetProj = {
+                      ...newProj,
+                      id: projId + "_2",
+                      angle: angle + 0.25,
+                      x: tower.x + Math.cos(angle + Math.PI/2) * 8,
+                      y: tower.y + Math.sin(angle + Math.PI/2) * 8
+                    };
+                    projectilesRef.current.push(offsetProj);
+                  }
                 }
               }
 
@@ -982,23 +1151,27 @@ export default function BratTDClient() {
               }
 
               // Apply armor reductions
-              if (target.isArmored && proj.type === "hammer") {
-                dmg = Math.floor(dmg * 0.5); // cut by 50%
-              } else if (target.isSuperArmored && proj.type === "hammer") {
-                dmg = Math.floor(dmg * 0.25); // cut by 75%
+              const armorIgnored = proj.ignoresArmor || false;
+              if (!armorIgnored) {
+                if (target.isArmored && proj.type === "hammer") {
+                  dmg = Math.floor(dmg * 0.5); // cut by 50%
+                } else if (target.isSuperArmored && proj.type === "hammer") {
+                  dmg = Math.floor(dmg * 0.25); // cut by 75%
+                }
               }
 
               // Check Criticals (for hammer upgrade)
               let isCrit = false;
               if (proj.critChance && getPureRandom() < proj.critChance) {
-                dmg *= 3;
+                const mult = proj.critMultiplier || 3;
+                dmg *= mult;
                 isCrit = true;
                 playPdrSound(); // play sound on crit hit
               }
 
               // Check Gacha chance (for Infinix jackpot)
               if (proj.gachaChance && getPureRandom() < proj.gachaChance) {
-                dmg = 300;
+                dmg = proj.gachaDamageOverride || 300;
                 isCrit = true;
                 playPdrSound();
               }
@@ -1236,6 +1409,25 @@ export default function BratTDClient() {
           ctx.setLineDash([]); // reset
         }
       }
+
+      // --- Draw Hovered Tower Range ---
+      if (isMouseOnCanvas && !selectedShopTower) {
+        const hoveredTower = towersRef.current.find(
+          (t) => getDistance(mousePos.x, mousePos.y, t.x, t.y) < 20
+        );
+        if (hoveredTower && hoveredTower.id !== selectedPlacedTowerId) {
+          ctx.beginPath();
+          ctx.arc(hoveredTower.x, hoveredTower.y, hoveredTower.range, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(6, 182, 212, 0.04)";
+          ctx.strokeStyle = "rgba(6, 182, 212, 0.45)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.fill();
+          ctx.stroke();
+          ctx.setLineDash([]); // reset
+        }
+      }
+
 
       // --- Draw Coffee Tower Range Rings (always visible, light gold) ---
       towersRef.current.forEach((tower) => {
@@ -1701,45 +1893,104 @@ export default function BratTDClient() {
               >
                 Продати: +{Math.floor(
                   (TOWER_CONFIGS[selectedPlacedTower.type].cost +
-                    selectedPlacedTower.upgradesBought.reduce((acc, upId) => {
-                      const up = TOWER_CONFIGS[selectedPlacedTower.type].upgrades.find((u) => u.id === upId);
-                      return acc + (up ? up.cost : 0);
-                    }, 0)) * 0.7
+                    ((): number => {
+                      const baseConfig = TOWER_CONFIGS[selectedPlacedTower.type];
+                      let upCost = 0;
+                      for (let i = 0; i < selectedPlacedTower.path1Tier; i++) upCost += baseConfig.upgrades.path1[i].cost;
+                      for (let i = 0; i < selectedPlacedTower.path2Tier; i++) upCost += baseConfig.upgrades.path2[i].cost;
+                      for (let i = 0; i < selectedPlacedTower.path3Tier; i++) upCost += baseConfig.upgrades.path3[i].cost;
+                      return upCost;
+                    })()) * 0.7
                 )} ☕
               </button>
             </div>
 
-            <p className="micro-cap text-ink-mute mb-2">ДОСТУПНІ АПГРЕЙДИ</p>
-            <div className="flex flex-col gap-3">
-              {TOWER_CONFIGS[selectedPlacedTower.type].upgrades.map((upgrade) => {
-                const isBought = selectedPlacedTower.upgradesBought.includes(upgrade.id);
-                const canAfford = gold >= upgrade.cost;
+            <p className="micro-cap text-ink-mute mb-2">ПРОКАЧКА ЮНІТА</p>
+            <div className="flex flex-col gap-4">
+              {[0, 1, 2].map((pathIndex) => {
+                const baseConfig = TOWER_CONFIGS[selectedPlacedTower.type];
+                let pathName = "";
+                let currentTier = 0;
+                let pathUpgrades: Upgrade[] = [];
+                
+                if (pathIndex === 0) {
+                  pathName = "Шлях 1: Руйнівна Сила";
+                  currentTier = selectedPlacedTower.path1Tier;
+                  pathUpgrades = baseConfig.upgrades.path1;
+                } else if (pathIndex === 1) {
+                  pathName = "Шлях 2: Швидкість Атаки";
+                  currentTier = selectedPlacedTower.path2Tier;
+                  pathUpgrades = baseConfig.upgrades.path2;
+                } else {
+                  pathName = "Шлях 3: Особливі Ефекти";
+                  currentTier = selectedPlacedTower.path3Tier;
+                  pathUpgrades = baseConfig.upgrades.path3;
+                }
+
+                // Check if allowed under BTD6 rules
+                const isLocked = !checkUpgradeAllowed(
+                  selectedPlacedTower.path1Tier,
+                  selectedPlacedTower.path2Tier,
+                  selectedPlacedTower.path3Tier,
+                  pathIndex
+                );
+
+                const nextUpgrade = currentTier < 5 ? pathUpgrades[currentTier] : null;
+                const canAfford = nextUpgrade ? gold >= nextUpgrade.cost : false;
 
                 return (
-                  <button
-                    key={upgrade.id}
-                    disabled={isBought || !canAfford || gameStatus !== "playing" || isPaused}
-                    onClick={() => buyUpgrade(upgrade.id)}
-                    className={`w-full p-3 border rounded text-left transition-all ${
-                      isBought
-                        ? "border-green-600/50 bg-green-950/20 opacity-80 cursor-default"
-                        : canAfford
-                        ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night"
-                        : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm text-on-primary">
-                        {upgrade.name} {isBought && "✓"}
+                  <div key={pathIndex} className="border border-hairline-dark/60 rounded p-2.5 bg-canvas-night bg-opacity-40">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-on-primary-mute uppercase tracking-wider micro-cap">
+                        {pathName}
                       </span>
-                      {!isBought && (
-                        <span className="text-xs font-semibold text-yellow-500 font-[var(--font-display)]">
-                          ☕ {upgrade.cost}
-                        </span>
-                      )}
+                      {/* Dots indicator for purchased tiers */}
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((tier) => (
+                          <div
+                            key={tier}
+                            className={`w-2 h-2 rounded-full border ${
+                              tier <= currentTier
+                                ? "bg-cyan-500 border-cyan-400 shadow shadow-cyan-500"
+                                : "bg-black/40 border-hairline-dark"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-xs text-on-primary-mute leading-relaxed">{upgrade.description}</p>
-                  </button>
+
+                    {nextUpgrade ? (
+                      isLocked ? (
+                        <div className="p-2 border border-dashed border-red-950/50 bg-red-950/10 text-red-400 rounded text-center text-xs micro-cap">
+                          ЗАБЛОКОВАНО (Правило крос-пасингу BTD6)
+                        </div>
+                      ) : (
+                        <button
+                          disabled={!canAfford || gameStatus !== "playing" || isPaused}
+                          onClick={() => buyUpgrade(pathIndex)}
+                          className={`w-full p-2.5 border rounded text-left transition-all ${
+                            canAfford
+                              ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night hover:bg-opacity-80"
+                              : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-semibold text-xs text-on-primary">
+                              {nextUpgrade.name} (T{currentTier + 1})
+                            </span>
+                            <span className="text-xs font-semibold text-yellow-500 font-[var(--font-display)]">
+                              ☕ {nextUpgrade.cost}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-on-primary-mute leading-relaxed">{nextUpgrade.description}</p>
+                        </button>
+                      )
+                    ) : (
+                      <div className="p-2 border border-green-950/40 bg-green-950/10 text-green-400 rounded text-center text-xs micro-cap">
+                        МАКСИМУМ (Tier 5)
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

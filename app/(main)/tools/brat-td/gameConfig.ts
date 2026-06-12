@@ -32,6 +32,25 @@ export interface UpgradeStats {
   copilotBug?: boolean;
   slowAmount?: number;
   antiArmor?: boolean;
+  // BTD6-style additional stats to avoid type casting
+  ignoresArmor?: boolean;
+  alwaysDouble?: boolean;
+  critMultiplier?: number;
+  damageBuff?: number;
+  rangeBuff?: number;
+  ignoreArmorBuff?: number;
+  rangeBuffPercent?: number;
+  slowDurationBonus?: number;
+  slowFactorBonus?: number;
+  explodeDmg?: number;
+  gachaDamageOverride?: number;
+  freezeDurationBonus?: number;
+  bsodAoE?: boolean;
+  bugExplodeDmg?: number;
+  bugExplodeRadius?: number;
+  bugContagion?: boolean;
+  disableGlitch?: boolean;
+  disableAbilities?: boolean;
 }
 
 export interface Upgrade {
@@ -54,7 +73,11 @@ export interface TowerStats {
 }
 
 export interface TowerConfig extends TowerStats {
-  upgrades: Upgrade[];
+  upgrades: {
+    path1: Upgrade[];
+    path2: Upgrade[];
+    path3: Upgrade[];
+  };
 }
 
 export interface EnemyConfig {
@@ -85,34 +108,29 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.2,
     color: "#38bdf8", // Sky blue
     emoji: "🔨",
-    upgrades: [
-      {
-        id: "hammer_two_hits",
-        name: "Два удари",
-        description: "Кожен 3-й удар кидає два молотки одночасно.",
-        cost: 80,
-        effect: (stats) => ({ ...stats, twoHits: true })
-      },
-      {
-        id: "hammer_heavy",
-        name: "Важкий молоток",
-        description: "Суттєво збільшує шкоду (+25) та радіус (+20), але сповільнює атаку (+30% часу).",
-        cost: 120,
-        effect: (stats) => ({
-          ...stats,
-          damage: stats.damage + 25,
-          range: stats.range + 20,
-          fireRate: stats.fireRate * 1.3
-        })
-      },
-      {
-        id: "hammer_crit",
-        name: "Критичний ПОЧУВ",
-        description: "Дає 25% шанс завдати 3-кратну шкоду з характерним звуком.",
-        cost: 150,
-        effect: (stats) => ({ ...stats, critChance: 0.25 })
-      }
-    ]
+    upgrades: {
+      path1: [
+        { id: "hammer_sharp", name: "Гострий молоток", description: "Збільшує шкоду молотка на 5.", cost: 50, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
+        { id: "hammer_steel", name: "Сталеве гартування", description: "Збільшує шкоду молотка ще на 10.", cost: 90, effect: (s) => ({ ...s, damage: s.damage + 10 }) },
+        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, але атака на 25% повільніша.", cost: 180, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, fireRate: s.fireRate * 1.25 }) },
+        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45. Молотки повністю ігнорують броню в куртці.", cost: 350, effect: (s) => ({ ...s, damage: s.damage + 45, ignoresArmor: true }) },
+        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+130) та збільшений радіус (+35).", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 130, range: s.range + 35 }) }
+      ],
+      path2: [
+        { id: "hammer_fast", name: "Швидка рука", description: "Збільшує швидкість атаки на 15%.", cost: 60, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "hammer_espresso", name: "Еспресо-рефлекс", description: "Збільшує швидкість атаки ще на 30%.", cost: 100, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
+        { id: "hammer_two_hits", name: "Два удари", description: "Кожен 3-й удар кидає два молотки одночасно.", cost: 160, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "hammer_gatling", name: "Кулемет молотків", description: "Надшвидке кидання молотків (швидкість +55%).", cost: 400, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45 }) },
+        { id: "hammer_berserk", name: "Ентропійний Берсерк", description: "Кидає 2 молотки при кожному ударі, швидкість +75%.", cost: 1500, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.25, alwaysDouble: true }) }
+      ],
+      path3: [
+        { id: "hammer_long", name: "Дальній кидок", description: "Збільшує дальність кидка на 25px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px.", cost: 70, effect: (s) => ({ ...s, range: s.range + 35 }) },
+        { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "Дає 20% шанс завдати 3-кратну шкоду.", cost: 150, effect: (s) => ({ ...s, critChance: 0.20 }) },
+        { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту збільшується до 40%.", cost: 300, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40 }) },
+        { id: "hammer_legend", name: "Легенда без слів", description: "Шанс криту 60%, критичні удари наносять 6x шкоду.", cost: 1000, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6 }) }
+      ]
+    }
   },
   coffee: {
     name: "Nescafe Ritual",
@@ -123,33 +141,29 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 0,
     color: "#eab308", // Gold/yellow
     emoji: "☕",
-    upgrades: [
-      {
-        id: "coffee_no_sugar",
-        name: "Gold без цукру",
-        description: "Збільшує баф швидкості атаки сусідніх башт з +25% до +45%.",
-        cost: 120,
-        effect: (stats) => ({ ...stats, buffMultiplier: 0.45 })
-      },
-      {
-        id: "coffee_fusion",
-        name: "Термоядерна кава",
-        description: "Збільшує радіус дії бафу (+40px) та приносить +30 Nescafe Gold наприкінці кожної хвилі.",
-        cost: 160,
-        effect: (stats) => ({
-          ...stats,
-          range: stats.range + 40,
-          endOfWaveBonus: (stats.endOfWaveBonus || 0) + 30
-        })
-      },
-      {
-        id: "coffee_addiction",
-        name: "Кавова залежність",
-        description: "Баф швидкості атаки стає +75%. Вражаюче!",
-        cost: 200,
-        effect: (stats) => ({ ...stats, buffMultiplier: 0.75 })
-      }
-    ]
+    upgrades: {
+      path1: [
+        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +30%.", cost: 80, effect: (s) => ({ ...s, buffMultiplier: 0.30 }) },
+        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +45%.", cost: 120, effect: (s) => ({ ...s, buffMultiplier: 0.45 }) },
+        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +60%.", cost: 240, effect: (s) => ({ ...s, buffMultiplier: 0.60 }) },
+        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +85%.", cost: 500, effect: (s) => ({ ...s, buffMultiplier: 0.85 }) },
+        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +120%.", cost: 1500, effect: (s) => ({ ...s, buffMultiplier: 1.20 }) }
+      ],
+      path2: [
+        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 20px.", cost: 60, effect: (s) => ({ ...s, range: s.range + 20 }) },
+        { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +30px.", cost: 100, effect: (s) => ({ ...s, range: s.range + 30 }) },
+        { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +40 Gold наприкінці кожної хвилі.", cost: 200, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 40 }) },
+        { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +100 Gold наприкінці кожної хвилі.", cost: 450, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 100 }) },
+        { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +350 Gold наприкінці кожної хвилі.", cost: 1200, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 350 }) }
+      ],
+      path3: [
+        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +2 до шкоди.", cost: 90, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
+        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +5 до шкоди.", cost: 150, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5 }) },
+        { id: "coffee_roast", name: "Міцне обсмаження", description: "+10 шкоди та +15px дальності для веж поруч.", cost: 300, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 15 }) },
+        { id: "coffee_filter", name: "Анти-лаг фільтр", description: "Бафнуті вежі пробивають 30% броні ворогів.", cost: 550, effect: (s) => ({ ...s, ignoreArmorBuff: 0.3 }) },
+        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30 до шкоди та +25% дальності.", cost: 1400, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
+      ]
+    }
   },
   candy: {
     name: "Рачки Launcher",
@@ -160,95 +174,95 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.5,
     color: "#f97316", // Orange
     emoji: "🍬",
-    upgrades: [
-      {
-        id: "candy_cheap",
-        name: "Кишенькові рачки",
-        description: "Збільшує швидкість стрільби на 40% та повертає 40 Gold.",
-        cost: 70,
-        effect: (stats) => ({ ...stats, fireRate: stats.fireRate * 0.6 })
-      },
-      {
-        id: "candy_teacher",
-        name: "Дар викладачці",
-        description: "Вибухає при влучанні, сповільнюючи всіх братів у невеликому радіусі (60px).",
-        cost: 145,
-        effect: (stats) => ({ ...stats, isAoESlow: true })
-      },
-      {
-        id: "candy_time_dust",
-        name: "Пил часу",
-        description: "Сповільнені брати отримують на 30% більше шкоди від інших башт.",
-        cost: 180,
-        effect: (stats) => ({ ...stats, damageDebuff: 1.3 })
-      }
-    ]
+    upgrades: {
+      path1: [
+        { id: "candy_sweet", name: "Солодкий удар", description: "Шкода від цукерок +3.", cost: 50, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
+        { id: "candy_press", name: "Карамель-прес", description: "Шкода +7, сповільнення триває на 1 секунду довше.", cost: 90, effect: (s) => ({ ...s, damage: s.damage + 7, slowDurationBonus: (s.slowDurationBonus || 0) + 60 }) },
+        { id: "candy_dust", name: "Пил часу", description: "Сповільнені вороги отримують на 30% більше шкоди від усіх джерел.", cost: 170, effect: (s) => ({ ...s, damageDebuff: 1.3 }) },
+        { id: "candy_paralysis", name: "Цукровий параліч", description: "Сповільнення збільшується з 50% до 70%.", cost: 350, effect: (s) => ({ ...s, slowFactorBonus: 0.2 }) },
+        { id: "candy_stop", name: "Абсолютний стоп", description: "Сповільнення стає 85%, вороги отримують на 60% більше шкоди.", cost: 1100, effect: (s) => ({ ...s, slowFactorBonus: 0.35, damageDebuff: 1.6 }) }
+      ],
+      path2: [
+        { id: "candy_big", name: "Великі рачки", description: "Дальність стрільби цукерками +15px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 15 }) },
+        { id: "candy_dispense", name: "Швидкий викид", description: "Швидкість стрільби цукерками +25%.", cost: 80, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
+        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні, сповільнюючи ворогів у радіусі 60px.", cost: 220, effect: (s) => ({ ...s, isAoESlow: true }) },
+        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px та наносить 15 шкоди.", cost: 450, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15 }) },
+        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Цукерковий вибух у 150px наносить 80 шкоди та миттєво стопить натовп.", cost: 1300, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20 }) }
+      ],
+      path3: [
+        { id: "candy_sugar_cheap", name: "Дешевий цукор", description: "Апгрейд Candy Launcher стає дешевшим (повертає 30 Gold).", cost: 30, effect: (s) => s },
+        { id: "candy_cheap", name: "Кишеньковий запас", description: "Швидкість атаки +20%, повертає 40 Gold.", cost: 60, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.8 }) },
+        { id: "candy_bakery", name: "Свята цукерня", description: "Швидкість стрільби збільшується на 40%.", cost: 150, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.6 }) },
+        { id: "candy_vending", name: "Автомат рачків", description: "Стріляє цукерками на 60% швидше.", cost: 380, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.4 }) },
+        { id: "candy_conveyor", name: "Конвеєр Коростишева", description: "Неймовірна швидкість стрільби (кожні 0.3с), шкода +15.", cost: 1000, effect: (s) => ({ ...s, fireRate: 0.3, damage: s.damage + 15 }) }
+      ]
+    }
   },
   infinix: {
     name: "Infinix Tower",
     description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода.",
     cost: 200,
     range: 180,
-    damage: 30, // represents average/base
+    damage: 30,
     fireRate: 0.8,
     color: "#a855f7", // Purple
     emoji: "📱",
-    upgrades: [
-      {
-        id: "infinix_lag",
-        name: "Лаг 999 мс",
-        description: "Кожен імпульс має 15% шанс повністю заморозити ворога на 1 секунду.",
-        cost: 130,
-        effect: (stats) => ({ ...stats, freezeChance: 0.15 })
-      },
-      {
-        id: "infinix_gacha",
-        name: "Гача-зрив",
-        description: "5% шанс завдати колосальні 300 одиниць шкоди (Джекпот!).",
-        cost: 190,
-        effect: (stats) => ({ ...stats, gachaChance: 0.05 })
-      },
-      {
-        id: "infinix_copilot",
-        name: "Copilot Manager",
-        description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 50 шкоди навколо.",
-        cost: 230,
-        effect: (stats) => ({ ...stats, copilotBug: true })
-      }
-    ]
+    upgrades: {
+      path1: [
+        { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 5.", cost: 70, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
+        { id: "infinix_discharge", name: "Цифровий розряд", description: "Шкода +15.", cost: 120, effect: (s) => ({ ...s, damage: s.damage + 15 }) },
+        { id: "infinix_gacha", name: "Гача-зрив", description: "5% шанс завдати колосальні 300 одиниць шкоди (Джекпот!).", cost: 250, effect: (s) => ({ ...s, gachaChance: 0.05 }) },
+        { id: "infinix_jackpot", name: "Джекпот-адикт", description: "Шанс джекпоту збільшується до 12% на 350 шкоди.", cost: 500, effect: (s) => ({ ...s, gachaChance: 0.12, damage: s.damage + 10 }) },
+        { id: "infinix_pull", name: "5-Зірковий пул", description: "Шанс джекпоту 25%, шкода джекпоту стає 600.", cost: 1500, effect: (s) => ({ ...s, gachaChance: 0.25, gachaDamageOverride: 600 }) }
+      ],
+      path2: [
+        { id: "infinix_refresh90", name: "Частота 90Гц", description: "Збільшує швидкість імпульсу на 15%.", cost: 80, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "infinix_refresh120", name: "Частота 120Гц", description: "Швидкість стрільби +30%.", cost: 130, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
+        { id: "infinix_lag", name: "Лаг 999 мс", description: "Імпульси мають 15% шанс повністю заморозити ворога на 1 секунду.", cost: 230, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
+        { id: "infinix_freeze", name: "Критичний фриз", description: "Шанс заморозки 30%, тривалість збільшується до 2 секунд.", cost: 480, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60 }) },
+        { id: "infinix_bsod", name: "Синій екран (BSOD)", description: "45% шанс заморозити ворога на 3с. Заморожені вороги сповільнюють сусідів.", cost: 1400, effect: (s) => ({ ...s, freezeChance: 0.45, freezeDurationBonus: 120, bsodAoE: true }) }
+      ],
+      path3: [
+        { id: "infinix_4g", name: "Сигнал 4G", description: "Дальність стрільби вежі +25px.", cost: 50, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "infinix_5g", name: "Антена 5G", description: "Дальність вежі +40px.", cost: 90, effect: (s) => ({ ...s, range: s.range + 40 }) },
+        { id: "infinix_copilot", name: "Copilot Manager", description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 50 шкоди навколо.", cost: 280, effect: (s) => ({ ...s, copilotBug: true }) },
+        { id: "infinix_worm", name: "Мережевий черв", description: "Вибух багу наносить 90 шкоди в радіусі 100px.", cost: 550, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 90, bugExplodeRadius: 100 }) },
+        { id: "infinix_super", name: "Суперкомп'ютер", description: "Вибух наносить 250 шкоди, розповсюджуючи баг на сусідніх ворогів.", cost: 1600, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 250, bugExplodeRadius: 150, bugContagion: true }) }
+      ]
+    }
   },
   gas: {
     name: "Газова Аура",
     description: "AoE-хмара навколо себе. Постійно наносить шкоду та уповільнює на 15%.",
     cost: 175,
     range: 90,
-    damage: 12, // DPS
-    fireRate: 0.2, // Tick duration
+    damage: 12,
+    fireRate: 0.2,
     color: "#22c55e", // Green
     emoji: "💨",
-    upgrades: [
-      {
-        id: "gas_one_skin",
-        name: "Один Скін",
-        description: "Збільшує радіус дії аури (+40px).",
-        cost: 90,
-        effect: (stats) => ({ ...stats, range: stats.range + 40 })
-      },
-      {
-        id: "gas_stasis",
-        name: "Капсула Стазису",
-        description: "Уповільнення ворогів всередині аури збільшується до 40%.",
-        cost: 150,
-        effect: (stats) => ({ ...stats, slowAmount: 0.40 })
-      },
-      {
-        id: "gas_containment",
-        name: "Біологічне стримування",
-        description: "Аура завдає подвійну шкоду броньованим ворогам (Брати в Куртці та Гранітні).",
-        cost: 170,
-        effect: (stats) => ({ ...stats, antiArmor: true })
-      }
-    ]
+    upgrades: {
+      path1: [
+        { id: "gas_radius1", name: "Широка зона", description: "Збільшує радіус дії аури на 25px.", cost: 50, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "gas_radius2", name: "Один Скін", description: "Збільшує радіус дії аури на 40px.", cost: 90, effect: (s) => ({ ...s, range: s.range + 40 }) },
+        { id: "gas_double_cloud", name: "Подвійна хмара", description: "Радіус аури +40px, шкода +5.", cost: 180, effect: (s) => ({ ...s, range: s.range + 40, damage: s.damage + 5 }) },
+        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Радіус аури +50px, шкода +15.", cost: 450, effect: (s) => ({ ...s, range: s.range + 50, damage: s.damage + 15 }) },
+        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Велетенський радіус (+80px), шкода +60, ігнорує будь-яку броню.", cost: 1400, effect: (s) => ({ ...s, range: s.range + 80, damage: s.damage + 60, ignoresArmor: true }) }
+      ],
+      path2: [
+        { id: "gas_odor", name: "Різкий запах", description: "Збільшує шкоду аури на 3.", cost: 60, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
+        { id: "gas_stasis", name: "Капсула Стазису", description: "Уповільнення ворогів всередині аури збільшується до 40%.", cost: 100, effect: (s) => ({ ...s, slowAmount: 0.40 }) },
+        { id: "gas_acid", name: "Кислотний туман", description: "Шкода +10. Вороги всередині отримують на 25% більше шкоди від усіх джерел.", cost: 220, effect: (s) => ({ ...s, damage: s.damage + 10, damageDebuff: 1.25 }) },
+        { id: "gas_asphyxia", name: "Ядуха", description: "Шкода +25, уповільнення збільшується до 60%.", cost: 500, effect: (s) => ({ ...s, damage: s.damage + 25, slowAmount: 0.60 }) },
+        { id: "gas_weapon", name: "Біологічна зброя", description: "Шкода +80, уповільнення 80%, вороги отримують на 50% більше шкоди.", cost: 1500, effect: (s) => ({ ...s, damage: s.damage + 80, slowAmount: 0.80, damageDebuff: 1.50 }) }
+      ],
+      path3: [
+        { id: "gas_cheap_filter", name: "Дешевий фільтр", description: "Радіус аури +15px.", cost: 40, effect: (s) => ({ ...s, range: s.range + 15 }) },
+        { id: "gas_containment", name: "Біологічне стримування", description: "Аура завдає подвійну шкоду броньованим ворогам (Брати в Куртці та Гранітні).", cost: 80, effect: (s) => ({ ...s, antiArmor: true }) },
+        { id: "gas_glitch", name: "Глючний газ", description: "Infinix-брати втрачають можливість телепортуватися всередині аури.", cost: 200, effect: (s) => ({ ...s, disableGlitch: true }) },
+        { id: "gas_gacha", name: "Аура Гачі", description: "8% шанс нанести ворогам 150 додаткової шкоди при кожному тику.", cost: 480, effect: (s) => ({ ...s, gachaChance: 0.08, gachaDamageOverride: 150 }) },
+        { id: "gas_entropy", name: "Ентропійний колапс", description: "Повністю відключає спеціальні здібності ворогів в аурі. Шкода +35.", cost: 1300, effect: (s) => ({ ...s, damage: s.damage + 35, disableGlitch: true, disableAbilities: true }) }
+      ]
+    }
   }
 };
 
