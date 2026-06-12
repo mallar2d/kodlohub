@@ -34,6 +34,11 @@ const tools = [
     name: "МОЛОТОК",
     description: "Раз на годину — БАБАХ! Глобальний лідерборд йобнутих.",
   },
+  {
+    href: "/tools/brat-td",
+    name: "BRAT TD",
+    description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.",
+  },
 ];
 
 export default function ToolsPage() {
