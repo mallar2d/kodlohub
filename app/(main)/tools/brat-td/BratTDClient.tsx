@@ -66,6 +66,7 @@ interface PlacedTower {
   disableAbilities?: boolean;
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
+  hasCamoBuff?: boolean;
 }
 
 
@@ -145,6 +146,7 @@ interface Projectile {
   angle: number;
   lastTargetX: number;
   lastTargetY: number;
+  spinRotation?: number;
 }
 
 interface Particle {
@@ -214,6 +216,8 @@ export default function BratTDClient() {
   // Mouse hover details (for previewing placement)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isMouseOnCanvas, setIsMouseOnCanvas] = useState(false);
+  const [draggedTowerType, setDraggedTowerType] = useState<string | null>(null);
+  const [draggedTowerPos, setDraggedTowerPos] = useState<{ x: number; y: number } | null>(null);
 
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
@@ -421,9 +425,96 @@ export default function BratTDClient() {
       `Хвиля ${waveRef.current}: Братва проривається! Подро почув!`
     ];
     pushLog(waveQuotes[Math.min(waveQuotes.length - 1, Math.floor(getPureRandom() * waveQuotes.length))]);
+
+    if (waveRef.current === 5) {
+      pushLog("⚠️ Хвиля 5: З'явилися Камуфляжні вороги (🦹)! Вони невидимі для звичайних веж. Використовуйте Infinix або апгрейди: Молот T3P2 ('Орлине око'), Цукерки T2P3 ('Дар викладачці'), Аура T3P2 ('Біологічне стримування').");
+    } else if (waveRef.current === 7) {
+      pushLog("🔩 Хвиля 7: Свинцеві вороги (🔩)! Звичайні молотки не пробивають їх. Використовуйте Газ, Infinix, Цукерки, або Молот T1P4 ('Руйнівник граніту').");
+    } else if (waveRef.current === 10) {
+      pushLog("💗 Хвиля 10: Регенеративні вороги (💗)! Вони швидко відновлюють здоров'я. Потрібна висока швидкість атаки (напр. Молот T2) або уповільнення (Цукерки).");
+    }
   };
 
   // --- CLICK HANDLING (PLACEMENT & SELECTION) ---
+  const tryPlaceTower = (type: string, x: number, y: number): boolean => {
+    const config = TOWER_CONFIGS[type];
+    if (!config) return false;
+
+    // Validate gold
+    if (gold < config.cost) {
+      pushLog("Недостатньо Nescafe Gold!");
+      return false;
+    }
+
+    // Validate bounds
+    if (x < 24 || x > GAME_WIDTH - 24 || y < 24 || y > GAME_HEIGHT - 24) {
+      pushLog("Тут не можна ставити башти!");
+      return false;
+    }
+
+    // Validate collision with path
+    if (isPositionOnPath(x, y, 26)) {
+      pushLog("Не можна ставити башти на дорозі!");
+      return false;
+    }
+
+    // Validate collision with obstacles
+    const onObstacle = OBSTACLES.some((obs) => getDistance(x, y, obs.x, obs.y) < obs.radius + 18);
+    if (onObstacle) {
+      pushLog("Не можна будувати вежу на перешкоді!");
+      return false;
+    }
+
+    // Validate collision with existing towers
+    const isOverlap = towersRef.current.some((t) => getDistance(x, y, t.x, t.y) < 26);
+    if (isOverlap) {
+      pushLog("Занадто близько до іншої башти!");
+      return false;
+    }
+
+    // Create new tower
+    const newTower: PlacedTower = {
+      id: getPureId(),
+      x,
+      y,
+      type,
+      range: config.range,
+      damage: config.damage,
+      fireRate: config.fireRate,
+      emoji: config.emoji,
+      color: config.color,
+      name: config.name,
+      cooldown: 0,
+      upgradesBought: [],
+      path1Tier: 0,
+      path2Tier: 0,
+      path3Tier: 0,
+      level: 1,
+      totalKills: 0,
+      camoDetection: config.camoDetection || false,
+      pierce: config.pierce || 1
+    };
+
+    // Apply initial setup for buffs/aura
+    if (type === "coffee") {
+      newTower.buffMultiplier = 0.25;
+      newTower.endOfWaveBonus = 20;
+    } else if (type === "gas") {
+      newTower.slowAmount = 0.15;
+    }
+
+    towersRef.current.push(newTower);
+    setGold((prev) => prev - config.cost);
+    pushLog(`Створено юніт: ${config.name}!`);
+    
+    // Play sound!
+    playPdrSound();
+    
+    // Spawn feedback
+    spawnFloatingText(x, y - 20, `-${config.cost} ☕`, "#ef4444");
+    return true;
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (gameStatus !== "playing" || isPaused) return;
 
@@ -439,83 +530,10 @@ export default function BratTDClient() {
 
     // 1. Placing a new tower
     if (selectedShopTower) {
-      const config = TOWER_CONFIGS[selectedShopTower];
-      if (!config) return;
-
-      // Validate gold
-      if (gold < config.cost) {
-        pushLog("Недостатньо Nescafe Gold!");
+      const success = tryPlaceTower(selectedShopTower, clickX, clickY);
+      if (success) {
         setSelectedShopTower(null);
-        return;
       }
-
-      // Validate bounds
-      if (clickX < 24 || clickX > GAME_WIDTH - 24 || clickY < 24 || clickY > GAME_HEIGHT - 24) {
-        pushLog("Тут не можна ставити башти!");
-        return;
-      }
-
-      // Validate collision with path
-      if (isPositionOnPath(clickX, clickY, 26)) {
-        pushLog("Не можна ставити башти на дорозі!");
-        return;
-      }
-
-      // Validate collision with obstacles
-      const onObstacle = OBSTACLES.some((obs) => getDistance(clickX, clickY, obs.x, obs.y) < obs.radius + 18);
-      if (onObstacle) {
-        pushLog("Не можна будувати вежу на перешкоді!");
-        return;
-      }
-
-      // Validate collision with existing towers
-      const isOverlap = towersRef.current.some((t) => getDistance(clickX, clickY, t.x, t.y) < 26);
-      if (isOverlap) {
-        pushLog("Занадто близько до іншої башти!");
-        return;
-      }
-
-      // Create new tower
-      const newTower: PlacedTower = {
-        id: getPureId(),
-        x: clickX,
-        y: clickY,
-        type: selectedShopTower,
-        range: config.range,
-        damage: config.damage,
-        fireRate: config.fireRate,
-        emoji: config.emoji,
-        color: config.color,
-        name: config.name,
-        cooldown: 0,
-        upgradesBought: [],
-        path1Tier: 0,
-        path2Tier: 0,
-        path3Tier: 0,
-        level: 1,
-        totalKills: 0,
-        camoDetection: config.camoDetection || false,
-        pierce: config.pierce || 1
-      };
-
-      // Apply initial setup for buffs/aura
-      if (selectedShopTower === "coffee") {
-        newTower.buffMultiplier = 0.25;
-        newTower.endOfWaveBonus = 20;
-      } else if (selectedShopTower === "gas") {
-        newTower.slowAmount = 0.15;
-      }
-
-      towersRef.current.push(newTower);
-      setGold((prev) => prev - config.cost);
-      setSelectedShopTower(null);
-      pushLog(`Створено юніт: ${config.name}!`);
-      
-      // Play sound!
-      playPdrSound();
-      
-      // Spawn feedback
-      spawnFloatingText(clickX, clickY - 20, `-${config.cost} ☕`, "#ef4444");
       return;
     }
 
@@ -976,6 +994,7 @@ export default function BratTDClient() {
               }
             }
           });
+          tower.hasCamoBuff = hasCamoBuff;
 
           // Check if affected by Gas Brat debuff (slow attack rate)
           let speedDebuff = 1.0;
@@ -1120,12 +1139,14 @@ export default function BratTDClient() {
                 bsodAoE: tower.bsodAoE,
                 bugExplodeDmg: tower.bugExplodeDmg,
                 bugExplodeRadius: tower.bugExplodeRadius,
-                bugContagion: tower.bugContagion,
+                 bugContagion: tower.bugContagion,
                 angle,
                 lastTargetX: target.x,
                 lastTargetY: target.y,
                 pierce: tower.pierce || 1,
-                hitEnemyIds: []
+                hitEnemyIds: [],
+                camoDetection: isCamoCapable,
+                spinRotation: angle
               };
 
               // Hammer double projectile logic
@@ -1135,6 +1156,7 @@ export default function BratTDClient() {
                     ...newProj,
                     id: projId + "_2",
                     angle: angle + 0.25,
+                    spinRotation: angle + 0.25,
                     x: tower.x + Math.cos(angle + Math.PI/2) * 8,
                     y: tower.y + Math.sin(angle + Math.PI/2) * 8
                   };
@@ -1149,6 +1171,7 @@ export default function BratTDClient() {
                       ...newProj,
                       id: projId + "_2",
                       angle: angle + 0.25,
+                      spinRotation: angle + 0.25,
                       x: tower.x + Math.cos(angle + Math.PI/2) * 8,
                       y: tower.y + Math.sin(angle + Math.PI/2) * 8
                     };
@@ -1166,42 +1189,9 @@ export default function BratTDClient() {
         for (let i = projectilesRef.current.length - 1; i >= 0; i--) {
           const proj = projectilesRef.current[i];
           
-          // Find target
-          const target = enemiesRef.current.find((e) => e.id === proj.targetId);
-          let targetX = proj.lastTargetX;
-          let targetY = proj.lastTargetY;
-
-          if (target) {
-            targetX = target.x;
-            targetY = target.y;
-            proj.lastTargetX = target.x;
-            proj.lastTargetY = target.y;
-          }
-
-          // Move projectile towards target (or fly straight if targetId is empty)
-          let dx = 0;
-          let dy = 0;
-          let dist = 0;
-
-          if (proj.targetId && target) {
-            dx = target.x - proj.x;
-            dy = target.y - proj.y;
-            dist = getDistance(proj.x, proj.y, target.x, target.y);
-            proj.angle = Math.atan2(dy, dx);
-
-            // Move
-            if (dist <= proj.speed) {
-              proj.x = target.x;
-              proj.y = target.y;
-            } else {
-              proj.x += (dx / dist) * proj.speed;
-              proj.y += (dy / dist) * proj.speed;
-            }
-          } else {
-            // Straight flight
-            proj.x += Math.cos(proj.angle) * proj.speed;
-            proj.y += Math.sin(proj.angle) * proj.speed;
-          }
+          // Straight flight
+          proj.x += Math.cos(proj.angle) * proj.speed;
+          proj.y += Math.sin(proj.angle) * proj.speed;
 
           // Out of bounds check
           if (proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
@@ -1211,7 +1201,7 @@ export default function BratTDClient() {
 
           // Spinning effect for hammer
           if (proj.type === "hammer") {
-            proj.angle += 0.25;
+            proj.spinRotation = (proj.spinRotation ?? proj.angle) + 0.25;
           }
 
           // Collision detection with ALL enemies
@@ -1345,6 +1335,7 @@ export default function BratTDClient() {
                   proj.targetId = nextTarget.id;
                   proj.lastTargetX = nextTarget.x;
                   proj.lastTargetY = nextTarget.y;
+                  proj.angle = Math.atan2(nextTarget.y - proj.y, nextTarget.x - proj.x);
                 } else {
                   proj.targetId = "";
                 }
@@ -1600,18 +1591,21 @@ export default function BratTDClient() {
         }
       });
 
-      // --- Draw Shop Hover Preview ---
-      if (selectedShopTower && isMouseOnCanvas) {
-        const config = TOWER_CONFIGS[selectedShopTower];
+      // --- Draw Shop Hover or Drag Preview ---
+      const activePreviewType = selectedShopTower || draggedTowerType;
+      const previewPos = selectedShopTower && isMouseOnCanvas ? mousePos : (draggedTowerPos || null);
+
+      if (activePreviewType && previewPos) {
+        const config = TOWER_CONFIGS[activePreviewType];
         if (config) {
           // Range circle preview
           ctx.beginPath();
-          ctx.arc(mousePos.x, mousePos.y, config.range, 0, Math.PI * 2);
+          ctx.arc(previewPos.x, previewPos.y, config.range, 0, Math.PI * 2);
           
-          const onPath = isPositionOnPath(mousePos.x, mousePos.y, 26);
-          const onObstacle = OBSTACLES.some((obs) => getDistance(mousePos.x, mousePos.y, obs.x, obs.y) < obs.radius + 18);
-          const overlap = towersRef.current.some((t) => getDistance(mousePos.x, mousePos.y, t.x, t.y) < 26);
-          const invalid = onPath || onObstacle || overlap || mousePos.x < 24 || mousePos.x > GAME_WIDTH - 24 || mousePos.y < 24 || mousePos.y > GAME_HEIGHT - 24;
+          const onPath = isPositionOnPath(previewPos.x, previewPos.y, 26);
+          const onObstacle = OBSTACLES.some((obs) => getDistance(previewPos.x, previewPos.y, obs.x, obs.y) < obs.radius + 18);
+          const overlap = towersRef.current.some((t) => getDistance(previewPos.x, previewPos.y, t.x, t.y) < 26);
+          const invalid = onPath || onObstacle || overlap || previewPos.x < 24 || previewPos.x > GAME_WIDTH - 24 || previewPos.y < 24 || previewPos.y > GAME_HEIGHT - 24;
 
           ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.08)" : "rgba(34, 197, 94, 0.08)";
           ctx.strokeStyle = invalid ? "rgba(239, 68, 68, 0.3)" : "rgba(34, 197, 94, 0.3)";
@@ -1623,7 +1617,7 @@ export default function BratTDClient() {
 
           // Base representation preview
           ctx.beginPath();
-          ctx.arc(mousePos.x, mousePos.y, 18, 0, Math.PI * 2);
+          ctx.arc(previewPos.x, previewPos.y, 18, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
           ctx.strokeStyle = invalid ? "#ef4444" : "#22c55e";
           ctx.lineWidth = 2;
@@ -1634,7 +1628,7 @@ export default function BratTDClient() {
           ctx.font = "18px Arial";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(config.emoji, mousePos.x, mousePos.y);
+          ctx.fillText(config.emoji, previewPos.x, previewPos.y);
         }
       }
 
@@ -1728,7 +1722,7 @@ export default function BratTDClient() {
       projectilesRef.current.forEach((proj) => {
         ctx.save();
         ctx.translate(proj.x, proj.y);
-        ctx.rotate(proj.angle);
+        ctx.rotate(proj.spinRotation ?? proj.angle);
 
         ctx.font = "16px Arial";
         ctx.textAlign = "center";
@@ -1931,6 +1925,39 @@ export default function BratTDClient() {
             onMouseMove={handleCanvasMouseMove}
             onMouseEnter={() => setIsMouseOnCanvas(true)}
             onMouseLeave={() => setIsMouseOnCanvas(false)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!draggedTowerType) return;
+              const canvas = canvasRef.current;
+              if (!canvas) return;
+              const rect = canvas.getBoundingClientRect();
+              const scaleX = GAME_WIDTH / rect.width;
+              const scaleY = GAME_HEIGHT / rect.height;
+              const x = (e.clientX - rect.left) * scaleX;
+              const y = (e.clientY - rect.top) * scaleY;
+              setDraggedTowerPos({ x, y });
+            }}
+            onDragLeave={() => {
+              setDraggedTowerPos(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (gameStatus !== "playing" || isPaused) return;
+              const towerType = e.dataTransfer.getData("text/plain");
+              if (!towerType || !TOWER_CONFIGS[towerType]) return;
+              
+              const canvas = canvasRef.current;
+              if (!canvas) return;
+              const rect = canvas.getBoundingClientRect();
+              const scaleX = GAME_WIDTH / rect.width;
+              const scaleY = GAME_HEIGHT / rect.height;
+              const x = (e.clientX - rect.left) * scaleX;
+              const y = (e.clientY - rect.top) * scaleY;
+              
+              tryPlaceTower(towerType, x, y);
+              setDraggedTowerType(null);
+              setDraggedTowerPos(null);
+            }}
             className="w-full h-full cursor-crosshair block"
           />
 
@@ -2001,47 +2028,8 @@ export default function BratTDClient() {
 
       {/* RIGHT: Sidebar Shop & Upgrades */}
       <div className="flex flex-col gap-6">
-        {/* Tower Shop */}
-        <div className="card-dark p-4 border-hairline-dark">
-          <p className="micro-cap text-ink-mute mb-3">МАГАЗИН ПОДРО-ЮНІТІВ</p>
-          <div className="flex flex-col gap-3">
-            {Object.entries(TOWER_CONFIGS).map(([type, config]) => {
-              const canAfford = gold >= config.cost;
-              const isSelected = selectedShopTower === type;
-              return (
-                <button
-                  key={type}
-                  disabled={gameStatus !== "playing" || isPaused}
-                  onClick={() => {
-                    setSelectedShopTower(isSelected ? null : type);
-                    setSelectedPlacedTowerId(null);
-                  }}
-                  className={`w-full p-3 border rounded text-left transition-all ${
-                    isSelected
-                      ? "border-white bg-zinc-900 shadow-md shadow-white/5"
-                      : canAfford
-                      ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night-soft"
-                      : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold button-cap text-on-primary flex items-center gap-2">
-                      <span className="text-lg">{config.emoji}</span>
-                      {config.name}
-                    </span>
-                    <span className="text-sm font-semibold font-[var(--font-display)] text-yellow-500">
-                      ☕ {config.cost}
-                    </span>
-                  </div>
-                  <p className="text-xs text-on-primary-mute leading-relaxed">{config.description}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Upgrades Panel (appears when a placed tower is selected) */}
         {selectedPlacedTower ? (
+          // Upgrades Panel (appears when a placed tower is selected, replacing shop)
           <div className="card-dark p-4 border-hairline-dark bg-canvas-night-soft animate-slide-up">
             <div className="flex items-center justify-between border-b border-hairline-dark pb-3 mb-3">
               <div>
@@ -2051,23 +2039,69 @@ export default function BratTDClient() {
                 </h3>
                 <p className="text-xs text-ink-mute mt-0.5">Рівень: {selectedPlacedTower.level} | Убивств: {selectedPlacedTower.totalKills}</p>
               </div>
-              <button
-                onClick={sellSelectedTower}
-                className="px-3 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-200 rounded text-xs micro-cap"
-              >
-                Продати: +{Math.floor(
-                  (TOWER_CONFIGS[selectedPlacedTower.type].cost +
-                    ((): number => {
-                      const baseConfig = TOWER_CONFIGS[selectedPlacedTower.type];
-                      let upCost = 0;
-                      for (let i = 0; i < selectedPlacedTower.path1Tier; i++) upCost += baseConfig.upgrades.path1[i].cost;
-                      for (let i = 0; i < selectedPlacedTower.path2Tier; i++) upCost += baseConfig.upgrades.path2[i].cost;
-                      for (let i = 0; i < selectedPlacedTower.path3Tier; i++) upCost += baseConfig.upgrades.path3[i].cost;
-                      return upCost;
-                    })()) * 0.7
-                )} ☕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={sellSelectedTower}
+                  className="px-2.5 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-200 rounded text-xs micro-cap transition-colors"
+                >
+                  Продати: +{Math.floor(
+                    (TOWER_CONFIGS[selectedPlacedTower.type].cost +
+                      ((): number => {
+                        const baseConfig = TOWER_CONFIGS[selectedPlacedTower.type];
+                        let upCost = 0;
+                        for (let i = 0; i < selectedPlacedTower.path1Tier; i++) upCost += baseConfig.upgrades.path1[i].cost;
+                        for (let i = 0; i < selectedPlacedTower.path2Tier; i++) upCost += baseConfig.upgrades.path2[i].cost;
+                        for (let i = 0; i < selectedPlacedTower.path3Tier; i++) upCost += baseConfig.upgrades.path3[i].cost;
+                        return upCost;
+                      })()) * 0.7
+                  )} ☕
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedPlacedTowerId(null);
+                    setSelectedTower(null);
+                  }}
+                  className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 border border-hairline-dark text-on-primary rounded text-xs font-semibold transition-colors"
+                  title="Назад до магазину"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
+
+            {/* Detailed Stats Grid */}
+            {(() => {
+              const detectsCamo = selectedPlacedTower.camoDetection || selectedPlacedTower.hasCamoBuff;
+              const isLeadImmune = selectedPlacedTower.ignoresArmor || selectedPlacedTower.type === "candy" || selectedPlacedTower.type === "gas" || selectedPlacedTower.type === "infinix";
+              return (
+                <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/40 border border-hairline-dark/50 p-2.5 rounded mb-4">
+                  <div>
+                    <span className="text-ink-mute">Шкода:</span>{" "}
+                    <span className="text-on-primary font-semibold">{selectedPlacedTower.damage}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-mute">Дальність:</span>{" "}
+                    <span className="text-on-primary font-semibold">{selectedPlacedTower.range}px</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-mute">Пробиття (пірс):</span>{" "}
+                    <span className="text-on-primary font-semibold">{selectedPlacedTower.pierce || 1}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-mute">Камуфляж:</span>{" "}
+                    <span className={detectsCamo ? "text-green-400 font-semibold animate-pulse" : "text-red-400 font-semibold"}>
+                      {detectsCamo ? "Виявляє" : "Ні"}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-ink-mute">Свинець:</span>{" "}
+                    <span className={isLeadImmune ? "text-green-400 font-semibold" : "text-amber-500 font-semibold"}>
+                      {isLeadImmune ? "Пробиває свинцеві" : "Не пробиває"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <p className="micro-cap text-ink-mute mb-2">ПРОКАЧКА ЮНІТА</p>
             <div className="flex flex-col gap-4">
@@ -2160,8 +2194,59 @@ export default function BratTDClient() {
             </div>
           </div>
         ) : (
-          <div className="card-dark p-6 border-hairline-dark border-dashed text-center text-on-primary-mute text-sm bg-canvas-night-soft">
-            Клікніть на побудованого Подро-юніта, щоб подивитися характеристики чи апгрейднути його.
+          // Tower Shop (visible by default)
+          <div className="card-dark p-4 border-hairline-dark">
+            <p className="micro-cap text-ink-mute mb-3">МАГАЗИН ПОДРО-ЮНІТІВ</p>
+            <div className="flex flex-col gap-3">
+              {Object.entries(TOWER_CONFIGS).map(([type, config]) => {
+                const canAfford = gold >= config.cost;
+                const isSelected = selectedShopTower === type;
+                return (
+                  <button
+                    key={type}
+                    disabled={gameStatus !== "playing" || isPaused}
+                    draggable={gameStatus === "playing" && !isPaused && canAfford}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", type);
+                      e.dataTransfer.effectAllowed = "copy";
+                      setDraggedTowerType(type);
+                      setSelectedPlacedTowerId(null);
+                      setSelectedTower(null);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedTowerType(null);
+                      setDraggedTowerPos(null);
+                    }}
+                    onClick={() => {
+                      setSelectedShopTower(isSelected ? null : type);
+                      setSelectedPlacedTowerId(null);
+                      setSelectedTower(null);
+                    }}
+                    className={`w-full p-3 border rounded text-left transition-all ${
+                      isSelected
+                        ? "border-white bg-zinc-900 shadow-md shadow-white/5 cursor-grab"
+                        : canAfford
+                        ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night-soft cursor-grab"
+                        : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold button-cap text-on-primary flex items-center gap-2">
+                        <span className="text-lg">{config.emoji}</span>
+                        {config.name}
+                      </span>
+                      <span className="text-sm font-semibold font-[var(--font-display)] text-yellow-500">
+                        ☕ {config.cost}
+                      </span>
+                    </div>
+                    <p className="text-xs text-on-primary-mute leading-relaxed">{config.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 p-3 border border-hairline-dark border-dashed rounded text-center text-ink-mute text-xs bg-black/20">
+              💡 Клікніть на побудованого Подро-юніта, щоб подивитися характеристики чи апгрейднути його. Також ви можете перетягувати (drag-and-drop) вежі з магазину на поле!
+            </div>
           </div>
         )}
       </div>
