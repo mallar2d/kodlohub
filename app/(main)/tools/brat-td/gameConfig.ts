@@ -166,7 +166,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   coffee: {
     name: "Nescafe Ritual",
     description: "Підтримка. Не атакує, але збільшує швидкість атаки башт поруч та генерує пасивний дохід.",
-    cost: 330,
+    cost: 650,
     range: 110,
     damage: 0,
     fireRate: 0,
@@ -174,25 +174,25 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "☕",
     upgrades: {
       path1: [
-        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +20%.", cost: 220, effect: (s) => ({ ...s, buffMultiplier: 0.20 }) },
-        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +35%.", cost: 330, effect: (s) => ({ ...s, buffMultiplier: 0.35 }) },
-        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +50%.", cost: 660, effect: (s) => ({ ...s, buffMultiplier: 0.50 }) },
-        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +80%.", cost: 1320, effect: (s) => ({ ...s, buffMultiplier: 0.80 }) },
-        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +120%.", cost: 3300, effect: (s) => ({ ...s, buffMultiplier: 1.20 }) }
+        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +20%.", cost: 550, effect: (s) => ({ ...s, buffMultiplier: 0.20 }) },
+        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +35%.", cost: 825, effect: (s) => ({ ...s, buffMultiplier: 0.35 }) },
+        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +50%.", cost: 1650, effect: (s) => ({ ...s, buffMultiplier: 0.50 }) },
+        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +80%.", cost: 3300, effect: (s) => ({ ...s, buffMultiplier: 0.80 }) },
+        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +120%.", cost: 8250, effect: (s) => ({ ...s, buffMultiplier: 1.20 }) }
       ],
       path2: [
-        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 15px.", cost: 175, effect: (s) => ({ ...s, range: s.range + 15 }) },
-        { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +25px.", cost: 265, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +30 Gold наприкінці кожної хвилі.", cost: 530, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 30 }) },
-        { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +80 Gold наприкінці кожної хвилі.", cost: 1100, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
-        { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +300 Gold наприкінці кожної хвилі.", cost: 2640, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300 }) }
+        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 15px.", cost: 440, effect: (s) => ({ ...s, range: s.range + 15 }) },
+        { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +25px.", cost: 660, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +30 Gold наприкінці кожної хвилі.", cost: 1325, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 30 }) },
+        { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +80 Gold наприкінці кожної хвилі.", cost: 2750, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
+        { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +300 Gold наприкінці кожної хвилі.", cost: 6600, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300 }) }
       ],
       path3: [
-        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1 до шкоди.", cost: 220, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
-        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3 до шкоди.", cost: 385, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
-        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8 шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 770, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
-        { id: "coffee_filter", name: "Анти-лаг фільтр", description: "Бафнуті вежі пробивають 30% броні ворогів.", cost: 1320, effect: (s) => ({ ...s, ignoreArmorBuff: 0.3 }) },
-        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30 до шкоди та +25% дальності.", cost: 3080, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
+        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1 до шкоди.", cost: 550, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
+        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3 до шкоди.", cost: 960, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
+        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8 шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 1925, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
+        { id: "coffee_filter", name: "Анти-лаг фільтр", description: "Бафнуті вежі пробивають 30% броні ворогів.", cost: 3300, effect: (s) => ({ ...s, ignoreArmorBuff: 0.3 }) },
+        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30 до шкоди та +25% дальності.", cost: 7700, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
       ]
     }
   },
