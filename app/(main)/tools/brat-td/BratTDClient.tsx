@@ -32,6 +32,7 @@ interface PlacedTower {
   level: number;
   totalKills: number;
   pierce: number;
+  stunDuration?: number;
   // custom stats for upgrades
   twoHits?: boolean;
   critChance?: number;
@@ -108,6 +109,11 @@ interface ActiveEnemy {
   isCamo?: boolean;
   isRegen?: boolean;
   isLead?: boolean;
+  shieldHp?: number;
+  shieldRegenTimer?: number;
+  isPhantomCamo?: boolean;
+  isExploder?: boolean;
+  lastHitFrame?: number;
 }
 
 interface Projectile {
@@ -207,6 +213,7 @@ export default function BratTDClient() {
   const [gameSpeed, setGameSpeed] = useState<1 | 2>(1);
   const [isEndless, setIsEndless] = useState(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
+  const [score, setScore] = useState(0);
   
   const [selectedShopTower, setSelectedShopTower] = useState<string | null>(null);
   const [selectedPlacedTowerId, setSelectedPlacedTowerId] = useState<string | null>(null);
@@ -236,6 +243,12 @@ export default function BratTDClient() {
   const isPausedRef = useRef(false);
   const gameSpeedRef = useRef<1 | 2>(1);
   const isAutoStartRef = useRef(false);
+  const scoreRef = useRef(0);
+  const frameCountRef = useRef(0);
+  const screenShakeRef = useRef({ x: 0, y: 0, intensity: 0, duration: 0 });
+  const projectileTrailRef = useRef<{ x: number; y: number; color: string; alpha: number; size: number }[]>([]);
+  const explosionRingsRef = useRef<{ x: number; y: number; radius: number; maxRadius: number; color: string; life: number }[]>([]);
+  const waveAnnouncementRef = useRef<{ wave: number; frameStart: number } | null>(null);
 
   // Spawner tracking
   const spawnQueueRef = useRef<{ type: string; delay: number }[]>([]);
@@ -250,6 +263,7 @@ export default function BratTDClient() {
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   useEffect(() => { gameSpeedRef.current = gameSpeed; }, [gameSpeed]);
   useEffect(() => { isAutoStartRef.current = isAutoStart; }, [isAutoStart]);
+  useEffect(() => { scoreRef.current = score; }, [score]);
 
   // Audio helper
   const playPdrSound = () => {
@@ -326,7 +340,9 @@ export default function BratTDClient() {
     const emojiMap: Record<string, string> = {
       ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
       infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
-      camo: "🦹", regen: "💗", lead: "🔩"
+      camo: "🦹", regen: "💗", lead: "🔩",
+      phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
+      sniper: "🎯", chain: "⚡"
     };
     
     // Find closest pathIndex for spawned minion
@@ -368,7 +384,10 @@ export default function BratTDClient() {
       onDeath: baseConfig.onDeath,
       isCamo: baseConfig.isCamo,
       isRegen: baseConfig.isRegen,
-      isLead: baseConfig.isLead
+      isLead: baseConfig.isLead,
+      isPhantomCamo: baseConfig.isPhantomCamo,
+      isExploder: baseConfig.isExploder,
+      shieldHp: baseConfig.shieldHp
     };
     enemiesRef.current.push(newEnemy);
   };
@@ -388,6 +407,7 @@ export default function BratTDClient() {
     setGameStatus("playing");
     setIsPaused(false);
     setIsEndless(false);
+    setScore(0);
     setSelectedShopTower(null);
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
@@ -417,6 +437,7 @@ export default function BratTDClient() {
     spawnQueueRef.current = queue;
     spawnTimerRef.current = 0;
     setIsWaveActive(true);
+    waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
 
     const waveQuotes = [
       `Накат братви #${waveRef.current}! Вони йдуть за Nescafe!`,
@@ -501,6 +522,8 @@ export default function BratTDClient() {
       newTower.endOfWaveBonus = 20;
     } else if (type === "gas") {
       newTower.slowAmount = 0.15;
+    } else if (type === "chain") {
+      // Chain tower has innate chain (pierce=4 already set from config)
     }
 
     towersRef.current.push(newTower);
@@ -723,6 +746,7 @@ export default function BratTDClient() {
     let animationId: number;
 
     const updateGame = () => {
+      frameCountRef.current++;
       // If not playing or paused, skip physics updates
       if (gameStatusRef.current !== "playing" || isPausedRef.current) return;
 
@@ -744,7 +768,9 @@ export default function BratTDClient() {
                 const emojiMap: Record<string, string> = {
                   ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
                   infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
-                  camo: "🦹", regen: "💗", lead: "🔩"
+                  camo: "🦹", regen: "💗", lead: "🔩",
+                  phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
+                  sniper: "🎯", chain: "⚡"
                 };
 
                 const newEnemy: ActiveEnemy = {
@@ -775,7 +801,10 @@ export default function BratTDClient() {
                   onDeath: baseConfig.onDeath,
                   isCamo: baseConfig.isCamo,
                   isRegen: baseConfig.isRegen,
-                  isLead: baseConfig.isLead
+                  isLead: baseConfig.isLead,
+                  isPhantomCamo: baseConfig.isPhantomCamo,
+                  isExploder: baseConfig.isExploder,
+                  shieldHp: baseConfig.shieldHp
                 };
 
                 enemiesRef.current.push(newEnemy);
@@ -794,9 +823,10 @@ export default function BratTDClient() {
             });
 
             // Standard wave reward
-            const waveReward = 100 + waveRef.current * 10;
+            const waveReward = 100;
             const finalBonus = waveReward + bonusGold;
             setGold((prev) => prev + finalBonus);
+            setScore((prev) => prev + waveRef.current * 50);
 
             pushLog(`Накат братви відбито! Отримано +${finalBonus} ☕ Nescafe Gold.`);
             
@@ -839,6 +869,16 @@ export default function BratTDClient() {
           }))
           .filter((ft) => ft.life > 0);
 
+        // Projectile trails
+        projectileTrailRef.current = projectileTrailRef.current
+          .map(t => ({ ...t, alpha: t.alpha - 0.03, size: t.size * 0.95 }))
+          .filter(t => t.alpha > 0);
+
+        // Explosion rings
+        explosionRingsRef.current = explosionRingsRef.current
+          .map(r => ({ ...r, radius: r.radius + 3, life: r.life - 1 }))
+          .filter(r => r.life > 0);
+
         // --- 3. PROCESS ENEMIES ---
         for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
           const enemy = enemiesRef.current[i];
@@ -854,6 +894,17 @@ export default function BratTDClient() {
           }
           if (enemy.gasSlowDuration > 0) {
             enemy.gasSlowDuration--;
+          }
+
+          // Shield regeneration for shielded enemies
+          if (enemy.shieldHp !== undefined && enemy.shieldHp <= 0) {
+            if (enemy.shieldRegenTimer === undefined) enemy.shieldRegenTimer = 360;
+            enemy.shieldRegenTimer--;
+            if (enemy.shieldRegenTimer <= 0) {
+              enemy.shieldHp = 80; // Regenerate shield
+              enemy.shieldRegenTimer = undefined;
+              spawnFloatingText(enemy.x, enemy.y - 20, "🛡️ ЩИТ!", "#0ea5e9");
+            }
           }
 
           // Check if standing on speed trail (sweet pink candy dust)
@@ -1026,6 +1077,12 @@ export default function BratTDClient() {
             tower.cooldown = Math.max(0, tower.cooldown - cooldownSpeed);
           }
 
+          // Check if tower is stunned
+          if (tower.stunDuration && tower.stunDuration > 0) {
+            tower.stunDuration--;
+            return; // Skip this tower's attack
+          }
+
           // Coffee towers do not shoot
           if (tower.type === "coffee") return;
 
@@ -1042,6 +1099,13 @@ export default function BratTDClient() {
                 const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
                 if (dist <= tower.range) {
                   let dmg = tower.damage;
+
+                  // Shield absorption
+                  if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
+                    const absorbed = Math.min(enemy.shieldHp, dmg);
+                    enemy.shieldHp -= absorbed;
+                    dmg -= absorbed;
+                  }
                   
                   // Anti-armor upgrade (double damage to coat/granite)
                   if (tower.antiArmor && (enemy.isArmored || enemy.isSuperArmored)) {
@@ -1095,6 +1159,8 @@ export default function BratTDClient() {
             // Find enemies in range
             const targetsInRange = enemiesRef.current.filter((e) => {
               if (e.isCamo && !isCamoCapable) return false;
+              // Phantom camo requires higher level detection
+              if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
               return getDistance(tower.x, tower.y, e.x, e.y) <= tower.range;
             });
 
@@ -1181,6 +1247,20 @@ export default function BratTDClient() {
               }
 
               projectilesRef.current.push(newProj);
+
+              // Muzzle flash particles
+              for (let mi = 0; mi < 5; mi++) {
+                particlesRef.current.push({
+                  x: tower.x,
+                  y: tower.y,
+                  vx: Math.cos(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
+                  vy: Math.sin(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
+                  color: tower.color,
+                  size: Math.random() * 3 + 1,
+                  life: 8,
+                  maxLife: 8
+                });
+              }
             }
           }
         });
@@ -1192,6 +1272,19 @@ export default function BratTDClient() {
           // Straight flight
           proj.x += Math.cos(proj.angle) * proj.speed;
           proj.y += Math.sin(proj.angle) * proj.speed;
+
+          // Add trail point
+          projectileTrailRef.current.push({
+            x: proj.x,
+            y: proj.y,
+            color: proj.color,
+            alpha: 0.6,
+            size: 4
+          });
+          // Limit trail length
+          if (projectileTrailRef.current.length > 200) {
+            projectileTrailRef.current = projectileTrailRef.current.slice(-200);
+          }
 
           // Out of bounds check
           if (proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
@@ -1220,6 +1313,16 @@ export default function BratTDClient() {
 
               let dmg = proj.damage;
 
+              // Shield absorption
+              if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
+                const absorbed = Math.min(enemy.shieldHp, dmg);
+                enemy.shieldHp -= absorbed;
+                dmg -= absorbed;
+                if (absorbed > 0) {
+                  spawnFloatingText(enemy.x, enemy.y - 10, `🛡️ -${absorbed}`, "#0ea5e9");
+                }
+              }
+
               // Infinix random damage
               if (proj.type === "infinix") {
                 dmg = Math.floor(getPureRandom() * 51) + 5;
@@ -1228,6 +1331,8 @@ export default function BratTDClient() {
               // Lead armor hammer immunity
               if (enemy.isLead && proj.type === "hammer" && !proj.ignoresArmor) {
                 dmg = 0;
+                spawnFloatingText(enemy.x, enemy.y - 15, "IMMUNE 🔩", "#94a3b8");
+                spawnHitParticles(enemy.x, enemy.y, "#9ca3af", 5);
               }
 
               // Apply armor reductions
@@ -1264,6 +1369,12 @@ export default function BratTDClient() {
               // Apply damage
               const wasAlive = enemy.hp > 0;
               enemy.hp -= dmg;
+              enemy.lastHitFrame = frameCountRef.current;
+
+              // Damage numbers for normal hits
+              if (dmg > 0 && !isCrit) {
+                spawnFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 10, `-${dmg}`, "#ffffff");
+              }
 
               // Apply status effects
               if (proj.type === "candy") {
@@ -1352,6 +1463,7 @@ export default function BratTDClient() {
           if (enemy.hp <= 0) {
             // Reward gold
             setGold((prev) => prev + enemy.reward);
+            setScore((prev) => prev + 1);
             spawnFloatingText(enemy.x, enemy.y, `+${enemy.reward} ☕`, "#eab308");
 
             // Check Copilot Bug explosion
@@ -1392,6 +1504,30 @@ export default function BratTDClient() {
               enemy.onDeath(enemy.x, enemy.y, spawnEnemyCallback);
             }
 
+            // Exploder stun
+            if (enemy.isExploder) {
+              towersRef.current.forEach((t) => {
+                if (getDistance(enemy.x, enemy.y, t.x, t.y) <= 80) {
+                  t.stunDuration = 90; // 1.5 seconds at 60fps
+                }
+              });
+              spawnFloatingText(enemy.x, enemy.y - 20, "💥 ОГЛУШЕННЯ!", "#f97316");
+              spawnHitParticles(enemy.x, enemy.y, "#f97316", 20, "square");
+            }
+
+            // Screen shake on boss kill
+            if (enemy.type === "boss" || enemy.type === "megaboss") {
+              screenShakeRef.current = { x: 0, y: 0, intensity: enemy.type === "megaboss" ? 12 : 8, duration: 20 };
+            }
+
+            // Explosion ring on death
+            explosionRingsRef.current.push({
+              x: enemy.x, y: enemy.y,
+              radius: 5, maxRadius: 40,
+              color: enemy.borderColor || "#ef4444",
+              life: 20
+            });
+
             // Remove enemy from list
             enemiesRef.current.splice(i, 1);
           }
@@ -1406,21 +1542,33 @@ export default function BratTDClient() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      // Screen shake
+      const shake = screenShakeRef.current;
+      if (shake.duration > 0) {
+        shake.x = (Math.random() - 0.5) * shake.intensity;
+        shake.y = (Math.random() - 0.5) * shake.intensity;
+        shake.intensity *= 0.9;
+        shake.duration--;
+        ctx.save();
+        ctx.translate(shake.x, shake.y);
+      }
+
       // Clear screen
       ctx.fillStyle = "#000000"; // SpaceX dark night
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       // --- Draw Grid (Background vibe) ---
-      ctx.strokeStyle = "rgba(58, 58, 63, 0.2)"; // hairline dark
-      ctx.lineWidth = 1;
       const gridSize = 40;
-      for (let x = 0; x < GAME_WIDTH; x += gridSize) {
+      const gridOffset = (frameCountRef.current * 0.3) % gridSize;
+      ctx.strokeStyle = "rgba(58, 58, 63, 0.2)";
+      ctx.lineWidth = 1;
+      for (let x = -gridSize + gridOffset; x < GAME_WIDTH + gridSize; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, GAME_HEIGHT);
         ctx.stroke();
       }
-      for (let y = 0; y < GAME_HEIGHT; y += gridSize) {
+      for (let y = -gridSize + gridOffset; y < GAME_HEIGHT + gridSize; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(GAME_WIDTH, y);
@@ -1452,11 +1600,14 @@ export default function BratTDClient() {
       }
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#06b6d4"; // Cyan rail
+      ctx.lineDashOffset = -frameCountRef.current * 2;
+      ctx.setLineDash([8, 12]);
       
       // Glow settings
       ctx.shadowColor = "#06b6d4";
       ctx.shadowBlur = 8;
       ctx.stroke();
+      ctx.setLineDash([]);
       
       // Reset shadow for performance
       ctx.shadowBlur = 0;
@@ -1582,6 +1733,20 @@ export default function BratTDClient() {
           ctx.strokeStyle = "rgba(234, 179, 8, 0.1)";
           ctx.lineWidth = 1;
           ctx.stroke();
+
+          // Coffee steam particles
+          if (Math.random() < 0.15) {
+            particlesRef.current.push({
+              x: tower.x + (Math.random() - 0.5) * 10,
+              y: tower.y - 10,
+              vx: (Math.random() - 0.5) * 0.3,
+              vy: -Math.random() * 0.8 - 0.3,
+              color: "rgba(255, 255, 255, 0.3)",
+              size: Math.random() * 3 + 1,
+              life: 40,
+              maxLife: 40
+            });
+          }
         }
         if (tower.type === "gas") {
           ctx.beginPath();
@@ -1686,6 +1851,53 @@ export default function BratTDClient() {
         ctx.textBaseline = "middle";
         ctx.fillText(enemy.emoji, enemy.x, enemy.y);
 
+        // Status effect overlays
+        if (enemy.slowDuration > 0) {
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        if (enemy.freezeDuration > 0) {
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + 2, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(147, 197, 253, 0.7)";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          // Ice crystals
+          for (let ci = 0; ci < 3; ci++) {
+            const cAngle = frameCountRef.current * 0.05 + ci * (Math.PI * 2 / 3);
+            const cx = enemy.x + Math.cos(cAngle) * (enemy.radius + 6);
+            const cy = enemy.y + Math.sin(cAngle) * (enemy.radius + 6);
+            ctx.fillStyle = "#93c5fd";
+            ctx.fillRect(cx - 2, cy - 2, 4, 4);
+          }
+        }
+        if (enemy.gasSlowDuration > 0) {
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(34, 197, 94, 0.4)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        if (enemy.isCamo) {
+          ctx.globalAlpha = 0.4;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Hit flash
+        if (enemy.lastHitFrame && frameCountRef.current - enemy.lastHitFrame < 4) {
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+          ctx.fill();
+        }
+
         // Draw armor shield icon if armored
         if (enemy.isArmored || enemy.isSuperArmored) {
           ctx.fillStyle = "#38bdf8";
@@ -1716,6 +1928,25 @@ export default function BratTDClient() {
         const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
         ctx.fillStyle = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#eab308" : "#ef4444";
         ctx.fillRect(barX, barY, barW * hpRatio, barH);
+
+        // Shield bar
+        if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
+          const shieldRatio = enemy.shieldHp / 80;
+          ctx.fillStyle = "#1e3a5f";
+          ctx.fillRect(barX, barY - 5, barW, 3);
+          ctx.fillStyle = "#0ea5e9";
+          ctx.fillRect(barX, barY - 5, barW * shieldRatio, 3);
+        }
+      });
+
+      // --- Draw Projectile Trails ---
+      projectileTrailRef.current.forEach((t) => {
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = t.alpha;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
       });
 
       // --- Draw Projectiles ---
@@ -1748,6 +1979,17 @@ export default function BratTDClient() {
         ctx.globalAlpha = 1.0; // reset
       });
 
+      // --- Draw Explosion Rings ---
+      explosionRingsRef.current.forEach((r) => {
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = r.color;
+        ctx.globalAlpha = r.life / 30;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      });
+
       // --- Draw Floating Text ---
       floatingTextsRef.current.forEach((ft) => {
         ctx.save();
@@ -1759,6 +2001,36 @@ export default function BratTDClient() {
         ctx.fillText(ft.text, ft.x, ft.y);
         ctx.restore();
       });
+
+      // Wave announcement
+      if (waveAnnouncementRef.current) {
+        const wa = waveAnnouncementRef.current;
+        const elapsed = frameCountRef.current - wa.frameStart;
+        if (elapsed < 120) {
+          const alpha = elapsed < 15 ? elapsed / 15 : elapsed > 90 ? 1 - (elapsed - 90) / 30 : 1;
+          ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 36px var(--font-display)";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`WAVE ${wa.wave}`, GAME_WIDTH / 2, GAME_HEIGHT / 2);
+          ctx.globalAlpha = 1.0;
+        } else {
+          waveAnnouncementRef.current = null;
+        }
+      }
+
+      // Restore screen shake
+      if (screenShakeRef.current.duration > 0) {
+        ctx.restore();
+      }
+
+      // Vignette overlay
+      const vignette = ctx.createRadialGradient(GAME_WIDTH/2, GAME_HEIGHT/2, GAME_WIDTH*0.3, GAME_WIDTH/2, GAME_HEIGHT/2, GAME_WIDTH*0.7);
+      vignette.addColorStop(0, "rgba(0,0,0,0)");
+      vignette.addColorStop(1, "rgba(0,0,0,0.4)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     };
 
     // The core loop callback
@@ -1852,6 +2124,16 @@ export default function BratTDClient() {
                 <span className="text-xl">☕</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-yellow-500">
                   {gold}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="micro-cap text-ink-mute">Score</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xl">⭐</span>
+                <span className="text-xl font-bold font-[var(--font-display)] text-purple-400">
+                  {score}
                 </span>
               </div>
             </div>
@@ -1968,6 +2250,9 @@ export default function BratTDClient() {
               <p className="text-on-primary-mute mb-8 max-w-md text-sm">
                 Братва прорвала оборону Кодлохабу. Подро мовчав занадто довго. Спробуйте іншу тактику!
               </p>
+              <p className="text-yellow-400 font-bold text-lg mb-4">
+                Score: {score} | Хвиль пройдено: {wave - 1} | Вбивств: {score}
+              </p>
               <button
                 onClick={handleRestart}
                 className="btn-ghost text-red-400 hover:text-white"
@@ -1983,6 +2268,9 @@ export default function BratTDClient() {
               <h2 className="heading-hero text-yellow-500 mb-2">ПОДРО ПОЧУВ</h2>
               <p className="text-on-primary-mute mb-8 max-w-md text-sm">
                 Братва відбита! CodloHub survived another cringe incident. Ви можете грати нескінченно!
+              </p>
+              <p className="text-yellow-400 font-bold text-lg mb-4">
+                Фінальний Score: {score}
               </p>
               <div className="flex gap-4">
                 <button
@@ -2160,7 +2448,7 @@ export default function BratTDClient() {
                     {nextUpgrade ? (
                       isLocked ? (
                         <div className="p-2 border border-dashed border-red-950/50 bg-red-950/10 text-red-400 rounded text-center text-xs micro-cap">
-                          ЗАБЛОКОВАНО (Правило крос-пасингу BTD6)
+                          ЗАБЛОКОВАНО
                         </div>
                       ) : (
                         <button
