@@ -239,6 +239,20 @@ interface LeaderboardEntry {
   isGlobal?: boolean;
 }
 
+type DifficultyKey = "easy" | "normal" | "hard";
+
+const DIFFICULTY_CONFIG: Record<DifficultyKey, { label: string; description: string; lives: number; gold: number; hpMult: number; speedMult: number; rewardMult: number }> = {
+  easy: { label: "Легко", description: "+ресурси, м'якша братва", lives: 125, gold: 450, hpMult: 0.85, speedMult: 0.95, rewardMult: 1.1 },
+  normal: { label: "Нормально", description: "чесний Коростишів", lives: 100, gold: 350, hpMult: 1, speedMult: 1, rewardMult: 1 },
+  hard: { label: "Пекло", description: "братва без гальм", lives: 75, gold: 300, hpMult: 1.18, speedMult: 1.08, rewardMult: 0.92 }
+};
+
+const DEFAULT_SETTINGS = {
+  volume: 0.75,
+  screenShake: true,
+  particles: true
+};
+
 const LEADERBOARD_KEY = "brat_td_leaderboard";
 
 function getLocalLeaderboard(): LeaderboardEntry[] {
@@ -331,6 +345,8 @@ export default function BratTDClient() {
   const [isEndless, setIsEndless] = useState(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [score, setScore] = useState(0);
+  const [difficulty, setDifficulty] = useState<DifficultyKey>("normal");
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   
   const [selectedShopTower, setSelectedShopTower] = useState<string | null>(null);
   const [selectedPlacedTowerId, setSelectedPlacedTowerId] = useState<string | null>(null);
@@ -351,6 +367,8 @@ export default function BratTDClient() {
   const isMouseOnCanvasRef = useRef(false);
   const draggedTowerTypeRef = useRef<string | null>(null);
   const draggedTowerPosRef = useRef<{ x: number; y: number } | null>(null);
+  const difficultyRef = useRef<DifficultyKey>("normal");
+  const settingsRef = useRef(DEFAULT_SETTINGS);
 
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
@@ -396,6 +414,8 @@ export default function BratTDClient() {
   useEffect(() => { isMouseOnCanvasRef.current = isMouseOnCanvas; }, [isMouseOnCanvas]);
   useEffect(() => { draggedTowerTypeRef.current = draggedTowerType; }, [draggedTowerType]);
   useEffect(() => { draggedTowerPosRef.current = draggedTowerPos; }, [draggedTowerPos]);
+  useEffect(() => { difficultyRef.current = difficulty; }, [difficulty]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
 
   // Load leaderboard on mount (API + localStorage merge)
   useEffect(() => {
@@ -407,38 +427,10 @@ export default function BratTDClient() {
     load();
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameStatus !== "playing") return;
-      
-      const towerKeys = ["1", "2", "3", "4", "5", "6", "7"];
-      const towerTypes = Object.keys(TOWER_CONFIGS);
-      
-      if (towerKeys.includes(e.key)) {
-        const idx = parseInt(e.key) - 1;
-        if (idx < towerTypes.length) {
-          const type = towerTypes[idx];
-          setSelectedShopTower(selectedShopTower === type ? null : type);
-          setSelectedPlacedTowerId(null);
-          setSelectedTower(null);
-        }
-      } else if (e.key === "Escape") {
-        setSelectedShopTower(null);
-        setSelectedPlacedTowerId(null);
-        setSelectedTower(null);
-      } else if (e.key === "p" || e.key === "P") {
-        setIsPaused(prev => !prev);
-      }
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [gameStatus, selectedShopTower]);
-
   // Audio helper
   const playTowerSound = (towerType?: string) => {
     try {
+      if (settingsRef.current.volume <= 0) return;
       const sounds: Record<string, { file: string; volume: number }> = {
         hammer: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
         coffee: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.2 },
@@ -448,10 +440,15 @@ export default function BratTDClient() {
         sniper: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
         chain: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
         kladmen: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
+        bankomat: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.18 },
+        monolith: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.55 },
+        wave: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.22 },
+        crit: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
+        explosion: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 },
       };
       const sound = sounds[towerType ?? ""] ?? { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 };
       const audio = new Audio(sound.file);
-      audio.volume = sound.volume;
+      audio.volume = Math.min(1, sound.volume * settingsRef.current.volume);
       audio.play().catch(() => {});
     } catch {}
   };
@@ -460,6 +457,16 @@ export default function BratTDClient() {
   // Set status message with log
   const pushLog = (msg: string) => {
     setStatusMessage(msg);
+  };
+
+  const applyDifficultyToEnemy = <T extends { hp: number; maxHp?: number; speed: number; reward: number; damage: number }>(enemy: T): T => {
+    const config = DIFFICULTY_CONFIG[difficultyRef.current];
+    enemy.hp = Math.max(1, Math.floor(enemy.hp * config.hpMult));
+    if (enemy.maxHp !== undefined) enemy.maxHp = enemy.hp;
+    enemy.speed *= config.speedMult;
+    enemy.reward = Math.max(1, Math.floor(enemy.reward * config.rewardMult));
+    enemy.damage = Math.max(1, Math.floor(enemy.damage * (difficultyRef.current === "hard" ? 1.15 : difficultyRef.current === "easy" ? 0.85 : 1)));
+    return enemy;
   };
 
   // --- UTILS ---
@@ -492,6 +499,98 @@ export default function BratTDClient() {
     return tower.damage + (tower.coffeeDamageBonus || 0);
   };
 
+  const applyDamageDebuffCap = (current: number | undefined, incoming: number) => {
+    return Math.min(1.6, Math.max(current || 1.0, incoming));
+  };
+
+  const getExpectedDps = (tower: Pick<PlacedTower, "type" | "damage" | "fireRate" | "critChance" | "critMultiplier" | "gachaChance" | "gachaDamageOverride" | "alwaysDouble" | "twoHits">) => {
+    if (!tower.fireRate) return 0;
+    let dmg = tower.damage;
+    if (tower.critChance) dmg *= (1 - tower.critChance) + tower.critChance * (tower.critMultiplier || 3);
+    if (tower.gachaChance) dmg = dmg * (1 - tower.gachaChance) + (tower.gachaDamageOverride || 300) * tower.gachaChance;
+    const shotMult = tower.alwaysDouble ? 2 : tower.twoHits ? 4 / 3 : 1;
+    return (dmg * shotMult) / tower.fireRate;
+  };
+
+  const getUpgradePreview = (tower: PlacedTower, upgrade: Upgrade) => {
+    const next = upgrade.effect({
+      range: tower.range,
+      damage: tower.damage,
+      fireRate: tower.fireRate,
+      twoHits: tower.twoHits,
+      critChance: tower.critChance,
+      buffMultiplier: tower.buffMultiplier,
+      endOfWaveBonus: tower.endOfWaveBonus,
+      isAoESlow: tower.isAoESlow,
+      damageDebuff: tower.damageDebuff,
+      freezeChance: tower.freezeChance,
+      gachaChance: tower.gachaChance,
+      copilotBug: tower.copilotBug,
+      slowAmount: tower.slowAmount,
+      antiArmor: tower.antiArmor,
+      ignoresArmor: tower.ignoresArmor,
+      alwaysDouble: tower.alwaysDouble,
+      critMultiplier: tower.critMultiplier,
+      damageBuff: tower.damageBuff,
+      rangeBuff: tower.rangeBuff,
+      ignoreArmorBuff: tower.ignoreArmorBuff,
+      rangeBuffPercent: tower.rangeBuffPercent,
+      slowDurationBonus: tower.slowDurationBonus,
+      slowFactorBonus: tower.slowFactorBonus,
+      explodeDmg: tower.explodeDmg,
+      gachaDamageOverride: tower.gachaDamageOverride,
+      freezeDurationBonus: tower.freezeDurationBonus,
+      bsodAoE: tower.bsodAoE,
+      bugExplodeDmg: tower.bugExplodeDmg,
+      bugExplodeRadius: tower.bugExplodeRadius,
+      bugContagion: tower.bugContagion,
+      disableGlitch: tower.disableGlitch,
+      disableAbilities: tower.disableAbilities,
+      camoDetection: tower.camoDetection,
+      camoDetectionBuff: tower.camoDetectionBuff,
+      pierce: tower.pierce
+    });
+    const beforeDps = getExpectedDps({ ...tower, damage: getEffectiveTowerDamage(tower) });
+    const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage + (tower.coffeeDamageBonus || 0) });
+    return `DPS ${beforeDps.toFixed(1)}→${afterDps.toFixed(1)} | DMG ${tower.damage}→${next.damage} | RNG ${tower.range}→${next.range} | RATE ${tower.fireRate.toFixed(2)}→${next.fireRate.toFixed(2)} | P ${tower.pierce || 1}→${next.pierce || 1}`;
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameStatus !== "playing") return;
+
+      const key = e.key.toLowerCase();
+      if (["q", "w", "e"].includes(key) && selectedPlacedTowerId) {
+        e.preventDefault();
+        buyUpgrade({ q: 0, w: 1, e: 2 }[key] ?? 0);
+        return;
+      }
+
+      const towerKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+      const towerTypes = Object.keys(TOWER_CONFIGS);
+      
+      if (towerKeys.includes(e.key)) {
+        const idx = e.key === "0" ? 9 : parseInt(e.key) - 1;
+        if (idx < towerTypes.length) {
+          const type = towerTypes[idx];
+          setSelectedShopTower(selectedShopTower === type ? null : type);
+          setSelectedPlacedTowerId(null);
+          setSelectedTower(null);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedShopTower(null);
+        setSelectedPlacedTowerId(null);
+        setSelectedTower(null);
+      } else if (e.key === "p" || e.key === "P") {
+        setIsPaused(prev => !prev);
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameStatus, selectedShopTower, selectedPlacedTowerId]);
+
   // Spawn float text
   const spawnFloatingText = (x: number, y: number, text: string, color = "#ffffff") => {
     floatingTextsRef.current.push({
@@ -506,6 +605,7 @@ export default function BratTDClient() {
 
   // Spawn particles
   const spawnHitParticles = (x: number, y: number, color: string, count = 8, shape: "circle" | "square" = "circle") => {
+    if (!settingsRef.current.particles) return;
     for (let i = 0; i < count; i++) {
       const angle = getPureRandom() * Math.PI * 2;
       const speed = getPureRandom() * 2 + 1;
@@ -531,7 +631,7 @@ export default function BratTDClient() {
       infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
       camo: "🦹", regen: "💗", lead: "🔩",
       phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-      sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚"
+      sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿"
     };
     
     // Find closest pathIndex for spawned minion
@@ -581,11 +681,12 @@ export default function BratTDClient() {
       tier: baseConfig.tier,
       damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
     };
-    enemiesRef.current.push(newEnemy);
+    enemiesRef.current.push(applyDifficultyToEnemy(newEnemy));
   };
 
   // --- GAME INITIALIZATION & CONTROL ---
   const startGame = () => {
+    const selectedDifficulty = DIFFICULTY_CONFIG[difficultyRef.current];
     towersRef.current = [];
     enemiesRef.current = [];
     projectilesRef.current = [];
@@ -593,8 +694,10 @@ export default function BratTDClient() {
     floatingTextsRef.current = [];
     speedTrailsRef.current = [];
     minesRef.current = [];
-    setLives(100);
-    setGold(350);
+    setLives(selectedDifficulty.lives);
+    livesRef.current = selectedDifficulty.lives;
+    setGold(selectedDifficulty.gold);
+    goldRef.current = selectedDifficulty.gold;
     setWave(1);
     setIsWaveActive(false);
     setGameStatus("playing");
@@ -604,7 +707,7 @@ export default function BratTDClient() {
     setSelectedShopTower(null);
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
-    pushLog("Подро почув накати братви. Поставте першого Подро з Молотком!");
+    pushLog(`Складність: ${selectedDifficulty.label}. Подро почув накати братви. Поставте першого юніта!`);
   };
 
   const startNextWave = () => {
@@ -631,6 +734,7 @@ export default function BratTDClient() {
     spawnTimerRef.current = 0;
     setIsWaveActive(true);
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
+    playTowerSound("wave");
 
     const waveQuotes = [
       `Накат братви #${waveRef.current}! Вони йдуть за Nescafe!`,
@@ -791,6 +895,8 @@ export default function BratTDClient() {
     if (type === "coffee") {
       newTower.buffMultiplier = 0.05;
       newTower.endOfWaveBonus = 20;
+    } else if (type === "bankomat") {
+      newTower.endOfWaveBonus = 45;
     } else if (type === "gas") {
       newTower.slowAmount = 0.15;
     } else if (type === "chain") {
@@ -860,6 +966,7 @@ export default function BratTDClient() {
     if (clickedTower) {
       setSelectedPlacedTowerId(clickedTower.id);
       setSelectedTower(clickedTower);
+      if (typeof window !== "undefined" && window.innerWidth < 768) setIsPaused(true);
       pushLog(`Вибрано: ${clickedTower.name}. Убивств: ${clickedTower.totalKills}`);
     } else {
       setSelectedPlacedTowerId(null);
@@ -869,6 +976,20 @@ export default function BratTDClient() {
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     updateCanvasPointer(e.clientX, e.clientY);
+  };
+
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    updateCanvasPointer(touch.clientX, touch.clientY);
+  };
+
+  const handleCanvasTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.changedTouches[0];
+    if (!touch || gameStatus !== "playing" || isPaused || !selectedShopTower) return;
+    const point = updateCanvasPointer(touch.clientX, touch.clientY);
+    if (!point) return;
+    if (tryPlaceTower(selectedShopTower, point.x, point.y)) setSelectedShopTower(null);
   };
 
   // --- SELLING & UPGRADING TOWERS ---
@@ -1060,7 +1181,7 @@ export default function BratTDClient() {
                   infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
                   camo: "🦹", regen: "💗", lead: "🔩",
                   phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-                  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚"
+                  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿"
                 };
 
                 const newEnemy: ActiveEnemy = {
@@ -1100,7 +1221,7 @@ export default function BratTDClient() {
                   damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
                 };
 
-                enemiesRef.current.push(newEnemy);
+                enemiesRef.current.push(applyDifficultyToEnemy(newEnemy));
               }
             }
           } else if (enemiesRef.current.length === 0) {
@@ -1110,7 +1231,7 @@ export default function BratTDClient() {
             // Apply Nescafe Ritual end of wave bonuses
             let bonusGold = 0;
             towersRef.current.forEach((t) => {
-              if (t.type === "coffee" && t.endOfWaveBonus) {
+              if (t.endOfWaveBonus) {
                 bonusGold += t.endOfWaveBonus;
               }
             });
@@ -1226,6 +1347,7 @@ export default function BratTDClient() {
             if (standingOnTrail) {
               currentSpeed *= 1.4; // 40% speed boost
             }
+            currentSpeed = Math.max(currentSpeed, enemy.speed * 0.15); // soft cap: slows cannot go below 15% speed
           }
 
           // Move enemy along path segments
@@ -1301,7 +1423,7 @@ export default function BratTDClient() {
                   if (mine.slowAmount) e.gasSlowDuration = 60;
                   if (mine.freezeChance && getPureRandom() < mine.freezeChance) e.freezeDuration = mine.freezeDuration || 60;
                   if (mine.disableAbilities) { e.isGlitching = false; }
-                  if (mine.damageDebuff) e.damageDebuff = Math.max(e.damageDebuff || 1.0, mine.damageDebuff);
+                  if (mine.damageDebuff) e.damageDebuff = applyDamageDebuffCap(e.damageDebuff, mine.damageDebuff);
                   if (e.hp <= 0) {
                     const sourceTower = towersRef.current.find(t => t.id === mine.towerId);
                     if (sourceTower) sourceTower.totalKills++;
@@ -1311,7 +1433,8 @@ export default function BratTDClient() {
               
               // Remove mine
               minesRef.current.splice(mi, 1);
-              screenShakeRef.current = { x: 0, y: 0, intensity: 3, duration: 5 };
+              if (settingsRef.current.screenShake) screenShakeRef.current = { x: 0, y: 0, intensity: 3, duration: 5 };
+              playTowerSound("explosion");
             }
           }
 
@@ -1371,7 +1494,7 @@ export default function BratTDClient() {
         // Pre-calculate Nescafe Ritual buffs on nearby towers
         // For each tower, check if there's a Nescafe Ritual nearby
         const towers = towersRef.current;
-        const coffeeTowers = towers.filter((t) => t.type === "coffee");
+        const coffeeTowers = towers.filter((t) => t.type === "coffee" || t.type === "bankomat");
         
         towers.forEach((tower) => {
           // Find max coffee buff multiplier
@@ -1439,8 +1562,8 @@ export default function BratTDClient() {
             return; // Skip this tower's attack
           }
 
-          // Coffee towers do not shoot
-          if (tower.type === "coffee") return;
+          // Economy/support-only towers do not shoot
+          if (tower.type === "coffee" || tower.type === "bankomat") return;
 
           // Кладмен places mines on the path
           if (tower.type === "kladmen") {
@@ -1549,7 +1672,7 @@ export default function BratTDClient() {
 
                   // Apply gas damage debuff
                   if (tower.damageDebuff) {
-                    enemy.damageDebuff = Math.max(enemy.damageDebuff || 1.0, tower.damageDebuff);
+                    enemy.damageDebuff = applyDamageDebuffCap(enemy.damageDebuff, tower.damageDebuff);
                   }
 
                   // spawn green cloud particle on tick
@@ -1648,9 +1771,11 @@ export default function BratTDClient() {
                 spinRotation: angle
               };
 
-              // Hammer double projectile logic
-              if (tower.type === "hammer") {
-                if (tower.alwaysDouble) {
+              // Double-shot logic used by Hammer, Sniper and Monolith upgrades.
+              if (tower.alwaysDouble || tower.twoHits) {
+                const shotCount = tower.shotCount || 0;
+                if (tower.twoHits) tower.shotCount = shotCount + 1;
+                if (tower.alwaysDouble || (shotCount + 1) % 3 === 0) {
                   const offsetProj = {
                     ...newProj,
                     id: projId + "_2",
@@ -1660,22 +1785,6 @@ export default function BratTDClient() {
                     y: tower.y + Math.sin(angle + Math.PI/2) * 8
                   };
                   projectilesRef.current.push(offsetProj);
-                } else if (tower.twoHits) {
-                  // track shot count
-                  const shotCount = tower.shotCount || 0;
-                  tower.shotCount = shotCount + 1;
-                  
-                  if ((shotCount + 1) % 3 === 0) {
-                    const offsetProj = {
-                      ...newProj,
-                      id: projId + "_2",
-                      angle: angle + 0.25,
-                      spinRotation: angle + 0.25,
-                      x: tower.x + Math.cos(angle + Math.PI/2) * 8,
-                      y: tower.y + Math.sin(angle + Math.PI/2) * 8
-                    };
-                    projectilesRef.current.push(offsetProj);
-                  }
                 }
               }
 
@@ -1841,7 +1950,7 @@ export default function BratTDClient() {
                 enemy.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
                 
                 if (proj.damageDebuff) {
-                  enemy.damageDebuff = Math.max(enemy.damageDebuff || 1.0, proj.damageDebuff);
+                  enemy.damageDebuff = applyDamageDebuffCap(enemy.damageDebuff, proj.damageDebuff);
                 }
 
                 if (proj.isAoESlow) {
@@ -1852,7 +1961,7 @@ export default function BratTDClient() {
                       other.slowDuration = 90 + (proj.slowDurationBonus || 0);
                       other.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
                       if (proj.damageDebuff) {
-                        other.damageDebuff = Math.max(other.damageDebuff || 1.0, proj.damageDebuff);
+                        other.damageDebuff = applyDamageDebuffCap(other.damageDebuff, proj.damageDebuff);
                       }
                       if (proj.explodeDmg && other.id !== enemy.id) {
                         let splashDmg = proj.explodeDmg;
@@ -1893,7 +2002,7 @@ export default function BratTDClient() {
                 }
               }
 
-              if (proj.type === "chain") {
+              if (proj.type === "chain" || proj.type === "monolith") {
                 if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
                   enemy.freezeDuration = 30 + (proj.freezeDurationBonus || 0);
                   spawnFloatingText(enemy.x, enemy.y - 15, "⚡ СТАН", "#38bdf8");
@@ -1907,7 +2016,7 @@ export default function BratTDClient() {
                 }
               }
 
-              if (proj.type === "sniper" && proj.explodeDmg) {
+              if ((proj.type === "sniper" || proj.type === "monolith") && proj.explodeDmg) {
                 const explosionRadius = proj.explodeDmg >= 200 ? 120 : 50;
                 enemiesRef.current.forEach((other) => {
                   if (other.id === enemy.id || other.hp <= 0) return;
@@ -2035,7 +2144,7 @@ export default function BratTDClient() {
 
             // Screen shake on boss kill
             if (enemy.type === "boss" || enemy.type === "megaboss") {
-              screenShakeRef.current = { x: 0, y: 0, intensity: enemy.type === "megaboss" ? 12 : 8, duration: 20 };
+              if (settingsRef.current.screenShake) screenShakeRef.current = { x: 0, y: 0, intensity: enemy.type === "megaboss" ? 12 : 8, duration: 20 };
             }
 
             // Explosion ring on death
@@ -2873,6 +2982,8 @@ export default function BratTDClient() {
             height={GAME_HEIGHT}
             onClick={handleCanvasClick}
             onMouseMove={handleCanvasMouseMove}
+            onTouchMove={handleCanvasTouchMove}
+            onTouchEnd={handleCanvasTouchEnd}
             onMouseEnter={(e) => {
               isMouseOnCanvasRef.current = true;
               setIsMouseOnCanvas(true);
@@ -3024,6 +3135,23 @@ export default function BratTDClient() {
                 Захистіть Кодлохаб від хвиль Братви. Ставте Подро-юнітів, які кидатимуть молотки,
                 каву та святих рачків.
               </p>
+              <div className="grid grid-cols-3 gap-2 mb-4 w-full max-w-md">
+                {(Object.entries(DIFFICULTY_CONFIG) as [DifficultyKey, typeof DIFFICULTY_CONFIG[DifficultyKey]][]).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => setDifficulty(key)}
+                    className={`p-2 rounded border text-left transition-colors ${difficulty === key ? "border-cyan-400 bg-cyan-950/40" : "border-hairline-dark bg-black/30 hover:border-on-primary-mute"}`}
+                  >
+                    <span className="block text-xs font-bold text-on-primary">{cfg.label}</span>
+                    <span className="block text-[10px] text-ink-mute leading-tight">{cfg.description}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mb-5 max-w-md text-left bg-zinc-950/70 border border-hairline-dark rounded p-3 text-[11px] text-on-primary-mute leading-relaxed">
+                <p className="micro-cap text-cyan-400 mb-1">ШВИДКИЙ ТУТОРІАЛ</p>
+                <p>1-9: вибір башт. Q/W/E: апгрейди вибраної башти. P: пауза. ESC: скасувати.</p>
+                <p>Свинець не любить газ/Infinix/Candy/бронебійне. Камо треба бачити. Після 46 є 10 handcrafted post-game хвиль.</p>
+              </div>
               <button
                 onClick={startGame}
                 className="btn-ghost text-cyan-400 hover:text-white mb-6"
@@ -3053,7 +3181,7 @@ export default function BratTDClient() {
         {/* Wave Preview */}
         {gameStatus === "playing" && !isWaveActive && (() => {
           const nextWaveNum = wave;
-          if (nextWaveNum > 46) return null;
+          if (nextWaveNum > 56) return null;
           const nextSegments = getScaledWave(nextWaveNum);
           const uniqueTypes = [...new Set(nextSegments.map(s => s.type))];
           const emojiMap: Record<string, string> = {
@@ -3061,7 +3189,7 @@ export default function BratTDClient() {
             infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
             camo: "🦹", regen: "💗", lead: "🔩",
             phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-            healer: "💚", kladmen: "💣"
+            healer: "💚", kladmen: "💣", bankomat: "🏧", monolith: "🗿"
           };
           const totalEnemies = nextSegments.reduce((sum, s) => sum + s.count, 0);
           return (
@@ -3151,20 +3279,28 @@ export default function BratTDClient() {
             {/* Detailed Stats Grid */}
             {(() => {
               const detectsCamo = selectedPlacedTower.camoDetection || selectedPlacedTower.hasCamoBuff;
-              const isLeadImmune = selectedPlacedTower.ignoresArmor || selectedPlacedTower.type === "candy" || selectedPlacedTower.type === "gas" || selectedPlacedTower.type === "infinix";
+              const isLeadImmune = selectedPlacedTower.ignoresArmor || selectedPlacedTower.type !== "hammer";
+              const effectiveDamage = getEffectiveTowerDamage(selectedPlacedTower);
+              const effectiveRange = getEffectiveTowerRange(selectedPlacedTower);
+              const dps = getExpectedDps({ ...selectedPlacedTower, damage: effectiveDamage });
               return (
                 <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/40 border border-hairline-dark/50 p-2.5 rounded mb-4">
                   <div>
                     <span className="text-ink-mute">Шкода:</span>{" "}
-                    <span className="text-on-primary font-semibold">{selectedPlacedTower.damage}</span>
+                    <span className="text-on-primary font-semibold">{effectiveDamage}</span>
+                    {effectiveDamage !== selectedPlacedTower.damage && <span className="text-green-400"> (+{effectiveDamage - selectedPlacedTower.damage})</span>}
                   </div>
                   <div>
                     <span className="text-ink-mute">Дальність:</span>{" "}
-                    <span className="text-on-primary font-semibold">{selectedPlacedTower.range}px</span>
+                    <span className="text-on-primary font-semibold">{Math.round(effectiveRange)}px</span>
                   </div>
                   <div>
                     <span className="text-ink-mute">Пробиття (пірс):</span>{" "}
                     <span className="text-on-primary font-semibold">{selectedPlacedTower.pierce || 1}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-mute">DPS:</span>{" "}
+                    <span className="text-cyan-400 font-semibold">{dps.toFixed(1)}</span>
                   </div>
                   <div>
                     <span className="text-ink-mute">Камуфляж:</span>{" "}
@@ -3177,6 +3313,9 @@ export default function BratTDClient() {
                     <span className={isLeadImmune ? "text-green-400 font-semibold" : "text-amber-500 font-semibold"}>
                       {isLeadImmune ? "Пробиває свинцеві" : "Не пробиває"}
                     </span>
+                  </div>
+                  <div className="col-span-2 text-[10px] text-ink-mute border-t border-hairline-dark/50 pt-1">
+                    Hotkeys: Q/W/E купують шлях 1/2/3. На мобілці вибір башти ставить паузу.
                   </div>
                 </div>
               );
@@ -3260,6 +3399,7 @@ export default function BratTDClient() {
                             </span>
                           </div>
                           <p className="text-[11px] text-on-primary-mute leading-relaxed">{nextUpgrade.description}</p>
+                          <p className="mt-1 text-[10px] text-cyan-300/80 leading-tight">{getUpgradePreview(selectedPlacedTower, nextUpgrade)}</p>
                         </button>
                       )
                     ) : (
@@ -3363,6 +3503,38 @@ export default function BratTDClient() {
             </div>
           </div>
         )}
+
+        <div className="card-dark p-4 border-hairline-dark">
+          <p className="micro-cap text-ink-mute mb-3">НАЛАШТУВАННЯ</p>
+          <label className="block text-xs text-on-primary-mute mb-3">
+            Гучність: {Math.round(settings.volume * 100)}%
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings.volume}
+              onChange={(e) => setSettings((prev) => ({ ...prev, volume: Number(e.target.value) }))}
+              className="w-full mt-1"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-on-primary-mute mb-2">
+            <input
+              type="checkbox"
+              checked={settings.screenShake}
+              onChange={(e) => setSettings((prev) => ({ ...prev, screenShake: e.target.checked }))}
+            />
+            Screen shake
+          </label>
+          <label className="flex items-center gap-2 text-xs text-on-primary-mute">
+            <input
+              type="checkbox"
+              checked={settings.particles}
+              onChange={(e) => setSettings((prev) => ({ ...prev, particles: e.target.checked }))}
+            />
+            Частинки / вибухи
+          </label>
+        </div>
       </div>
     </div>
   );

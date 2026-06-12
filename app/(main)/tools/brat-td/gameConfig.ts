@@ -425,6 +425,75 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "45% оглушення, сповільнення 50%, вимикає здібності.", cost: 3850, effect: (s) => ({ ...s, freezeChance: 0.45, slowAmount: 0.50, freezeDurationBonus: 120, disableAbilities: true }) }
       ]
     }
+  },
+  bankomat: {
+    name: "Банкомат Nescafe",
+    description: "Економічна башта. Не атакує, але приносить Gold після хвилі. Ризикований greed-pick.",
+    cost: 500,
+    range: 70,
+    damage: 0,
+    fireRate: 0,
+    color: "#facc15",
+    emoji: "🏧",
+    pierce: 1,
+    upgrades: {
+      path1: [
+        { id: "bankomat_cashback", name: "Кешбек", description: "Дохід наприкінці хвилі +25.", cost: 320, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 25 }) },
+        { id: "bankomat_deposit", name: "Депозит", description: "Дохід +45.", cost: 720, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 45 }) },
+        { id: "bankomat_crypto", name: "Крипто Кодла", description: "Дохід +80.", cost: 1550, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
+        { id: "bankomat_tax", name: "Податкова Оптимізація", description: "Дохід +140.", cost: 3300, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 140 }) },
+        { id: "bankomat_tycoon", name: "Nescafe Capital", description: "Дохід +260 наприкінці хвилі.", cost: 7600, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 260 }) }
+      ],
+      path2: [
+        { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус +20px.", cost: 220, effect: (s) => ({ ...s, range: s.range + 20 }) },
+        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Вежі поруч отримують +2 шкоди.", cost: 520, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
+        { id: "bankomat_premium", name: "Преміум Пакет", description: "+5 шкоди та +10px дальності вежам поруч.", cost: 1250, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5, rangeBuff: (s.rangeBuff || 0) + 10 }) },
+        { id: "bankomat_black", name: "Чорна Картка", description: "+10 шкоди, +20px дальності.", cost: 2800, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 20 }) },
+        { id: "bankomat_platinum", name: "Platinum Gold", description: "+18 шкоди та 20% пробиття броні вежам поруч.", cost: 6200, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 18, ignoreArmorBuff: 0.2 }) }
+      ],
+      path3: [
+        { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 380, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
+        { id: "bankomat_range", name: "Мережа Терміналів", description: "Радіус +30px.", cost: 800, effect: (s) => ({ ...s, range: s.range + 30 }) },
+        { id: "bankomat_safe", name: "Сейф", description: "Дохід +35 і радіус +20px.", cost: 1500, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 35, range: s.range + 20 }) },
+        { id: "bankomat_audit", name: "Аудит Братви", description: "Вежі поруч отримують +15% дальності.", cost: 3100, effect: (s) => ({ ...s, rangeBuffPercent: 0.15 }) },
+        { id: "bankomat_bank", name: "Центробанк Подро", description: "+120 доходу, +25% дальності вежам поруч.", cost: 6900, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 120, rangeBuffPercent: 0.25 }) }
+      ]
+    }
+  },
+  monolith: {
+    name: "Коростишівський Моноліт",
+    description: "Дорогий anti-boss юніт. Повільний, але пробиває броню і свинець.",
+    cost: 900,
+    range: 185,
+    damage: 180,
+    fireRate: 4.0,
+    color: "#9ca3af",
+    emoji: "🗿",
+    camoDetection: false,
+    pierce: 1,
+    upgrades: {
+      path1: [
+        { id: "mono_chisel", name: "Гранітне Зубило", description: "Шкода +80.", cost: 520, effect: (s) => ({ ...s, damage: s.damage + 80 }) },
+        { id: "mono_core", name: "Ядро Кар'єру", description: "Шкода +140, ігнорує броню.", cost: 1200, effect: (s) => ({ ...s, damage: s.damage + 140, ignoresArmor: true }) },
+        { id: "mono_crack", name: "Тріщина Реальності", description: "Шкода +220, пірс +1.", cost: 2600, effect: (s) => ({ ...s, damage: s.damage + 220, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_quake", name: "Кар'єрний Удар", description: "Шкода +360, вибух 50px.", cost: 5400, effect: (s) => ({ ...s, damage: s.damage + 360, explodeDmg: 120 }) },
+        { id: "mono_judgement", name: "Суд Коростишева", description: "Шкода +700, вибух 120px, пірс +2.", cost: 11800, effect: (s) => ({ ...s, damage: s.damage + 700, explodeDmg: 220, pierce: (s.pierce || 1) + 2, ignoresArmor: true }) }
+      ],
+      path2: [
+        { id: "mono_oil", name: "Мастило Кар'єру", description: "Швидкість атаки +15%.", cost: 480, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "mono_loader", name: "Автонавантажувач", description: "Швидкість +20%.", cost: 1050, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
+        { id: "mono_double", name: "Два Валуа", description: "Кожен 3-й постріл подвійний.", cost: 2300, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "mono_factory", name: "Гранітний Завод", description: "Швидкість +35%.", cost: 4800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65 }) },
+        { id: "mono_industry", name: "Коростишівська Індустрія", description: "Швидкість +45%, пірс +2.", cost: 9900, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, pierce: (s.pierce || 1) + 2 }) }
+      ],
+      path3: [
+        { id: "mono_scope", name: "Кам'яне Око", description: "Дальність +35px.", cost: 420, effect: (s) => ({ ...s, range: s.range + 35 }) },
+        { id: "mono_camo", name: "Радар Кар'єру", description: "Виявляє камуфляж.", cost: 900, effect: (s) => ({ ...s, camoDetection: true }) },
+        { id: "mono_stun", name: "Гравітаційний Удар", description: "15% шанс оглушити на 1с.", cost: 2100, effect: (s) => ({ ...s, freezeChance: 0.15, freezeDurationBonus: 30 }) },
+        { id: "mono_emp", name: "Кам'яний EMP", description: "25% оглушення, вимикає здібності.", cost: 4600, effect: (s) => ({ ...s, freezeChance: 0.25, freezeDurationBonus: 60, disableAbilities: true }) },
+        { id: "mono_singularity", name: "Монолітна Сингулярність", description: "40% оглушення, +120 шкоди, камуфляж.", cost: 9600, effect: (s) => ({ ...s, freezeChance: 0.40, freezeDurationBonus: 120, damage: s.damage + 120, camoDetection: true, disableAbilities: true }) }
+      ]
+    }
   }
 };
 
@@ -1003,20 +1072,79 @@ export const WAVES: WaveSegment[][] = [
   ]
 ];
 
+export const POST_46_WAVES: WaveSegment[][] = [
+  [
+    { type: "phantom", count: 14, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "lead", count: 16, spawnDelay: 700, delayBeforeNext: 500 },
+    { type: "camo", count: 24, spawnDelay: 450 }
+  ],
+  [
+    { type: "shielded", count: 14, spawnDelay: 950, delayBeforeNext: 500 },
+    { type: "exploder", count: 12, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "gas_brat", count: 14, spawnDelay: 750 }
+  ],
+  [
+    { type: "jumper", count: 16, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "regen", count: 26, spawnDelay: 550, delayBeforeNext: 500 },
+    { type: "healer", count: 8, spawnDelay: 1100 }
+  ],
+  [
+    { type: "granite", count: 16, spawnDelay: 1200, delayBeforeNext: 500 },
+    { type: "coat", count: 18, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "boss", count: 2, spawnDelay: 2600 }
+  ],
+  [
+    { type: "megaboss", count: 1, spawnDelay: 4800, delayBeforeNext: 500 },
+    { type: "shielded", count: 16, spawnDelay: 900, delayBeforeNext: 500 },
+    { type: "phantom", count: 14, spawnDelay: 850 }
+  ],
+  [
+    { type: "rachky_brat", count: 26, spawnDelay: 500, delayBeforeNext: 400 },
+    { type: "fast", count: 36, spawnDelay: 300, delayBeforeNext: 400 },
+    { type: "jumper", count: 14, spawnDelay: 800 }
+  ],
+  [
+    { type: "lead", count: 22, spawnDelay: 650, delayBeforeNext: 400 },
+    { type: "granite", count: 18, spawnDelay: 1000, delayBeforeNext: 400 },
+    { type: "exploder", count: 12, spawnDelay: 900 }
+  ],
+  [
+    { type: "healer", count: 10, spawnDelay: 900, delayBeforeNext: 400 },
+    { type: "regen", count: 32, spawnDelay: 450, delayBeforeNext: 400 },
+    { type: "infinix_brat", count: 20, spawnDelay: 650 }
+  ],
+  [
+    { type: "boss", count: 3, spawnDelay: 2400, delayBeforeNext: 500 },
+    { type: "shielded", count: 18, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "phantom", count: 18, spawnDelay: 750, delayBeforeNext: 400 },
+    { type: "jumper", count: 16, spawnDelay: 750 }
+  ],
+  [
+    { type: "megaboss", count: 2, spawnDelay: 4500, delayBeforeNext: 500 },
+    { type: "granite", count: 20, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "lead", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
+    { type: "healer", count: 12, spawnDelay: 900 }
+  ]
+];
+
 export function getScaledWave(waveNumber: number): WaveSegment[] {
   if (waveNumber <= 46) {
     return WAVES[waveNumber - 1];
   }
 
-  // Endless mode after wave 46
-  const multiplier = Math.pow(1.06, waveNumber - 46);
+  if (waveNumber <= 56) {
+    return POST_46_WAVES[waveNumber - 47];
+  }
+
+  // Endless mode after the handcrafted post-game set.
+  const multiplier = Math.pow(1.06, waveNumber - 56);
 
   const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer"];
   const segments: WaveSegment[] = [];
 
   // Bosses every 5 waves
   if (waveNumber % 5 === 0) {
-    const bossCount = Math.floor((waveNumber - 46) / 8) + 1;
+    const bossCount = Math.floor((waveNumber - 56) / 8) + 1;
     segments.push({ type: "boss", count: bossCount, spawnDelay: 3500, delayBeforeNext: 2000 });
   }
 
@@ -1026,12 +1154,12 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
   }
 
   // 5-7 random segments (slower growth)
-  const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 46) / 4));
+  const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
   for (let i = 0; i < segmentCount; i++) {
     const randomType = types[Math.floor(Math.random() * types.length)];
     const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
     const count = Math.floor(baseCount * Math.sqrt(multiplier));
-    const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 46) * 0.05)));
+    const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 56) * 0.05)));
     segments.push({
       type: randomType,
       count: count > 0 ? count : 1,
@@ -1071,12 +1199,12 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
   }
 
   // Endless mode (after wave 46): additional scaling on top of tier
-  if (waveNumber > 46) {
-    const endlessMult = Math.pow(1.06, waveNumber - 46);
-    const endlessSpeed = Math.min(1.4, Math.pow(1.012, waveNumber - 46));
+  if (waveNumber > 56) {
+    const endlessMult = Math.pow(1.06, waveNumber - 56);
+    const endlessSpeed = Math.min(1.4, Math.pow(1.012, waveNumber - 56));
     hp = Math.floor(hp * endlessMult);
     speed = speed * endlessSpeed;
-    reward = Math.floor(reward * Math.pow(1.02, waveNumber - 46));
+    reward = Math.floor(reward * Math.pow(1.02, waveNumber - 56));
   }
 
   return {
