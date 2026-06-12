@@ -624,15 +624,14 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "ordinary", count: 18, spawnDelay: 1300 }
   ],
-  // Wave 2: Fast intro
+  // Wave 2: A few more ordinary
   [
-    { type: "ordinary", count: 15, spawnDelay: 1100, delayBeforeNext: 1200 },
-    { type: "fast", count: 10, spawnDelay: 800 }
+    { type: "ordinary", count: 22, spawnDelay: 1000 }
   ],
-  // Wave 3: Bigger rush
+  // Wave 3: Fast intro
   [
-    { type: "ordinary", count: 22, spawnDelay: 800, delayBeforeNext: 1000 },
-    { type: "fast", count: 15, spawnDelay: 600 }
+    { type: "ordinary", count: 18, spawnDelay: 1000, delayBeforeNext: 1500 },
+    { type: "fast", count: 6, spawnDelay: 900 }
   ],
   // === WAVE 4: HEAVY intro ===
   // Wave 4: First Heavy Brat
