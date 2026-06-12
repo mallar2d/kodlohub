@@ -2835,55 +2835,79 @@ export default function BratTDClient() {
           // Tower Shop (visible by default)
           <div className="card-dark p-4 border-hairline-dark">
             <p className="micro-cap text-ink-mute mb-3">МАГАЗИН ПОДРО-ЮНІТІВ</p>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
               {Object.entries(TOWER_CONFIGS).map(([type, config]) => {
                 const canAfford = gold >= config.cost;
                 const isSelected = selectedShopTower === type;
                 return (
-                  <button
-                    key={type}
-                    disabled={gameStatus !== "playing" || isPaused}
-                    draggable={gameStatus === "playing" && !isPaused && canAfford}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", type);
-                      e.dataTransfer.effectAllowed = "copy";
-                      setDraggedTowerType(type);
-                      setSelectedPlacedTowerId(null);
-                      setSelectedTower(null);
-                    }}
-                    onDragEnd={() => {
-                      setDraggedTowerType(null);
-                      setDraggedTowerPos(null);
-                    }}
-                    onClick={() => {
-                      setSelectedShopTower(isSelected ? null : type);
-                      setSelectedPlacedTowerId(null);
-                      setSelectedTower(null);
-                    }}
-                    className={`w-full p-3 border rounded text-left transition-all ${
-                      isSelected
-                        ? "border-white bg-zinc-900 shadow-md shadow-white/5 cursor-grab"
-                        : canAfford
-                        ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night-soft cursor-grab"
-                        : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold button-cap text-on-primary flex items-center gap-2">
-                        <span className="text-lg">{config.emoji}</span>
-                        {config.name}
+                  <div key={type} className="relative group">
+                    <button
+                      disabled={gameStatus !== "playing" || isPaused}
+                      draggable={gameStatus === "playing" && !isPaused && canAfford}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", type);
+                        e.dataTransfer.effectAllowed = "copy";
+                        setDraggedTowerType(type);
+                        setSelectedPlacedTowerId(null);
+                        setSelectedTower(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedTowerType(null);
+                        setDraggedTowerPos(null);
+                      }}
+                      onClick={() => {
+                        setSelectedShopTower(isSelected ? null : type);
+                        setSelectedPlacedTowerId(null);
+                        setSelectedTower(null);
+                      }}
+                      className={`w-full px-3 py-2 border rounded text-left transition-all flex items-center justify-between ${
+                        isSelected
+                          ? "border-white bg-zinc-900 shadow-md shadow-white/5 cursor-grab"
+                          : canAfford
+                          ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night-soft cursor-grab"
+                          : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 text-sm">
+                        <span>{config.emoji}</span>
+                        <span className="font-semibold text-on-primary">{config.name}</span>
                       </span>
-                      <span className="text-sm font-semibold font-[var(--font-display)] text-yellow-500">
+                      <span className="text-xs font-bold font-[var(--font-display)] text-yellow-500">
                         ☕ {config.cost}
                       </span>
+                    </button>
+                    {/* Tooltip on hover */}
+                    <div className="absolute z-50 left-0 right-0 bottom-full mb-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <div className="bg-zinc-900 border border-hairline-dark rounded p-3 shadow-xl text-xs">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-base">{config.emoji}</span>
+                          <span className="font-bold text-on-primary text-sm">{config.name}</span>
+                          <span className="text-yellow-500 font-bold">☕ {config.cost}</span>
+                        </div>
+                        <p className="text-on-primary-mute mb-2 leading-relaxed">{config.description}</p>
+                        <div className="grid grid-cols-2 gap-1 text-[11px]">
+                          {config.damage > 0 && (
+                            <div><span className="text-ink-mute">Шкода:</span> <span className="text-on-primary font-semibold">{config.damage}</span></div>
+                          )}
+                          {config.fireRate > 0 && (
+                            <div><span className="text-ink-mute">Швидкість:</span> <span className="text-on-primary font-semibold">{config.fireRate}с</span></div>
+                          )}
+                          <div><span className="text-ink-mute">Дальність:</span> <span className="text-on-primary font-semibold">{config.range}px</span></div>
+                          {config.pierce && config.pierce > 1 && (
+                            <div><span className="text-ink-mute">Пірс:</span> <span className="text-on-primary font-semibold">{config.pierce}</span></div>
+                          )}
+                          {config.camoDetection && (
+                            <div className="col-span-2"><span className="text-green-400">👁 Виявляє камуфляж</span></div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-on-primary-mute leading-relaxed">{config.description}</p>
-                  </button>
+                  </div>
                 );
               })}
             </div>
-            <div className="mt-4 p-3 border border-hairline-dark border-dashed rounded text-center text-ink-mute text-xs bg-black/20">
-              💡 Клікніть на побудованого Подро-юніта, щоб подивитися характеристики чи апгрейднути його. Також ви можете перетягувати (drag-and-drop) вежі з магазину на поле!
+            <div className="mt-3 p-2 border border-hairline-dark border-dashed rounded text-center text-ink-mute text-[11px] bg-black/20">
+              Наведіть для інфо · Клік для вибору · Drag-and-drop для будівництва
             </div>
           </div>
         )}
