@@ -1048,13 +1048,16 @@ export default function BratTDClient() {
               }
             });
 
-            // Standard wave reward
-            const waveReward = 100;
-            const finalBonus = waveReward + bonusGold;
-            setGold((prev) => prev + finalBonus);
+            // Wave clear bonus (coffee towers only)
+            const finalBonus = bonusGold;
+            if (finalBonus > 0) {
+              setGold((prev) => prev + finalBonus);
+            }
             setScore((prev) => prev + waveRef.current * 50);
 
-            pushLog(`Накат братви відбито! Отримано +${finalBonus} ☕ Nescafe Gold.`);
+            pushLog(finalBonus > 0
+              ? `Накат братви відбито! +${finalBonus} ☕ від кавових башень.`
+              : "Накат братви відбито!");
             
             // Check victory conditions (after wave 46)
             if (waveRef.current === 46 && !isEndless) {
@@ -2044,47 +2047,6 @@ export default function BratTDClient() {
         }
       });
 
-      // --- Draw Shop Hover or Drag Preview ---
-      const activePreviewType = selectedShopTower || draggedTowerType;
-      const previewPos = selectedShopTower && isMouseOnCanvas ? mousePos : (draggedTowerPos || null);
-
-      if (activePreviewType && previewPos) {
-        const config = TOWER_CONFIGS[activePreviewType];
-        if (config) {
-          // Range circle preview
-          ctx.beginPath();
-          ctx.arc(previewPos.x, previewPos.y, config.range, 0, Math.PI * 2);
-          
-          const onPath = isPositionOnPath(previewPos.x, previewPos.y, 26);
-          const onObstacle = OBSTACLES.some((obs) => getDistance(previewPos.x, previewPos.y, obs.x, obs.y) < obs.radius + 18);
-          const overlap = towersRef.current.some((t) => getDistance(previewPos.x, previewPos.y, t.x, t.y) < 26);
-          const invalid = onPath || onObstacle || overlap || previewPos.x < 24 || previewPos.x > GAME_WIDTH - 24 || previewPos.y < 24 || previewPos.y > GAME_HEIGHT - 24;
-
-          ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.08)" : "rgba(34, 197, 94, 0.08)";
-          ctx.strokeStyle = invalid ? "rgba(239, 68, 68, 0.3)" : "rgba(34, 197, 94, 0.3)";
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([5, 5]);
-          ctx.fill();
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Base representation preview
-          ctx.beginPath();
-          ctx.arc(previewPos.x, previewPos.y, 18, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-          ctx.strokeStyle = invalid ? "#ef4444" : "#22c55e";
-          ctx.lineWidth = 2;
-          ctx.fill();
-          ctx.stroke();
-
-          // Draw emoji preview
-          ctx.font = "18px Arial";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(config.emoji, previewPos.x, previewPos.y);
-        }
-      }
-
       // --- Draw Towers ---
       towersRef.current.forEach((tower) => {
         // Base ring
@@ -2163,6 +2125,71 @@ export default function BratTDClient() {
           ctx.fillText("👁", tower.x + 14, tower.y - 18);
         }
       });
+
+      // --- Draw Shop Hover or Drag Preview (on top of towers) ---
+      const activePreviewType = selectedShopTower || draggedTowerType;
+      const previewPos = selectedShopTower && isMouseOnCanvas ? mousePos : (draggedTowerPos || null);
+
+      if (activePreviewType && previewPos && previewPos.x > 0 && previewPos.y > 0) {
+        const config = TOWER_CONFIGS[activePreviewType];
+        if (config) {
+          const onPath = isPositionOnPath(previewPos.x, previewPos.y, 26);
+          const onObstacle = OBSTACLES.some((obs) => getDistance(previewPos.x, previewPos.y, obs.x, obs.y) < obs.radius + 18);
+          const overlap = towersRef.current.some((t) => getDistance(previewPos.x, previewPos.y, t.x, t.y) < 26);
+          const outOfBounds = previewPos.x < 24 || previewPos.x > GAME_WIDTH - 24 || previewPos.y < 24 || previewPos.y > GAME_HEIGHT - 24;
+          const invalid = onPath || onObstacle || overlap || outOfBounds;
+
+          // Range circle preview (full range)
+          ctx.beginPath();
+          ctx.arc(previewPos.x, previewPos.y, config.range, 0, Math.PI * 2);
+          ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.06)" : "rgba(34, 197, 94, 0.06)";
+          ctx.strokeStyle = invalid ? "rgba(239, 68, 68, 0.35)" : "rgba(34, 197, 94, 0.35)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 6]);
+          ctx.fill();
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Tower base preview circle
+          ctx.beginPath();
+          ctx.arc(previewPos.x, previewPos.y, 18, 0, Math.PI * 2);
+          ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)";
+          ctx.strokeStyle = invalid ? "#ef4444" : "#22c55e";
+          ctx.lineWidth = 2;
+          ctx.fill();
+          ctx.stroke();
+
+          // Tower emoji
+          ctx.font = "20px Arial";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#ffffff";
+          ctx.globalAlpha = 0.8;
+          ctx.fillText(config.emoji, previewPos.x, previewPos.y);
+          ctx.globalAlpha = 1.0;
+
+          // Tower name above
+          ctx.font = "bold 10px Arial";
+          ctx.fillStyle = invalid ? "#ef4444" : "#22c55e";
+          ctx.fillText(config.name, previewPos.x, previewPos.y - 28);
+
+          // Status text below
+          if (invalid) {
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "bold 9px Arial";
+            let reason = "";
+            if (onPath) reason = "На дорозі!";
+            else if (onObstacle) reason = "Перешкода!";
+            else if (overlap) reason = "Занадто близько!";
+            else if (outOfBounds) reason = "За межами!";
+            ctx.fillText(reason, previewPos.x, previewPos.y + 28);
+          } else {
+            ctx.fillStyle = "rgba(34, 197, 94, 0.7)";
+            ctx.font = "9px Arial";
+            ctx.fillText(`☕ ${config.cost}`, previewPos.x, previewPos.y + 28);
+          }
+        }
+      }
 
       // --- Draw Enemies ---
       enemiesRef.current.forEach((enemy) => {
