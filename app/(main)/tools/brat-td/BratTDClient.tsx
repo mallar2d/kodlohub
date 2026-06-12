@@ -447,12 +447,20 @@ export default function BratTDClient() {
     ];
     pushLog(waveQuotes[Math.min(waveQuotes.length - 1, Math.floor(getPureRandom() * waveQuotes.length))]);
 
-    if (waveRef.current === 5) {
-      pushLog("⚠️ Хвиля 5: З'явилися Камуфляжні вороги (🦹)! Вони невидимі для звичайних веж. Використовуйте Infinix або апгрейди: Молот T3P2 ('Орлине око'), Цукерки T2P3 ('Дар викладачці'), Аура T3P2 ('Біологічне стримування').");
-    } else if (waveRef.current === 7) {
-      pushLog("🔩 Хвиля 7: Свинцеві вороги (🔩)! Звичайні молотки не пробивають їх. Використовуйте Газ, Infinix, Цукерки, або Молот T1P4 ('Руйнівник граніту').");
-    } else if (waveRef.current === 10) {
-      pushLog("💗 Хвиля 10: Регенеративні вороги (💗)! Вони швидко відновлюють здоров'я. Потрібна висока швидкість атаки (напр. Молот T2) або уповільнення (Цукерки).");
+    if (waveRef.current === 12) {
+      pushLog("⚠️ Хвиля 12: З'явилися Камуфляжні вороги (🦹)! Вони невидимі для звичайних веж. Використовуйте Infinix або апгрейди: Молот T3P2 ('Орлине око'), Цукерки T2P3 ('Дар викладачці'), Аура T3P2 ('Біологічне стримування').");
+    } else if (waveRef.current === 16) {
+      pushLog("🔩 Хвиля 16: Свинцеві вороги (🔩)! Звичайні молотки не пробивають їх. Використовуйте Газ, Infinix, Цукерки, або Молот T1P4 ('Руйнівник граніту').");
+    } else if (waveRef.current === 24) {
+      pushLog("💗 Хвиля 24: Регенеративні вороги (💗)! Вони швидко відновлюють здоров'я. Потрібна висока швидкість атаки (напр. Молот T2) або уповільнення (Цукерки).");
+    } else if (waveRef.current === 20) {
+      pushLog("👾 Хвиля 20: Інфінікс-Брати (👾)! Вони лагають реальність і телепортуються вперед.");
+    } else if (waveRef.current === 28) {
+      pushLog("🍬 Хвиля 28: Рачкові та Газові Брати (🍬💨)! Вони прискорюють союзників та уповільнюють ваші башні.");
+    } else if (waveRef.current === 32) {
+      pushLog("🗿 Хвиля 32: Гранітні, Фантоми та Вибухові Брати! Граніт має 75% броню, Фантоми невидимі навіть для сканерів.");
+    } else if (waveRef.current === 36) {
+      pushLog("🦘🛡️ Хвиля 36: Стрибуни та Щитові Брати! Стрибуни телепортуються на 100px, Щитові мають регенеруючий щит.");
     }
   };
 
@@ -830,8 +838,8 @@ export default function BratTDClient() {
 
             pushLog(`Накат братви відбито! Отримано +${finalBonus} ☕ Nescafe Gold.`);
             
-            // Check victory conditions (after wave 22)
-            if (waveRef.current === 22 && !isEndless) {
+            // Check victory conditions (after wave 40)
+            if (waveRef.current === 40 && !isEndless) {
               setGameStatus("victory");
             } else {
               setWave((prev) => prev + 1);
@@ -2108,7 +2116,7 @@ export default function BratTDClient() {
   const handleEndless = () => {
     setIsEndless(true);
     setGameStatus("playing");
-    setWave(23);
+    setWave(41);
     pushLog("Почалася нескінченна гра! Вороги стають сильнішими з кожною хвилею.");
   };
 

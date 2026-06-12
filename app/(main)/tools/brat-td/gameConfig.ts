@@ -595,176 +595,309 @@ export interface WaveSegment {
 }
 
 export const WAVES: WaveSegment[][] = [
-  // Wave 1: Intro to Ordinary Brats
+  // === WAVE 1-3: ordinary + fast only ===
+  // Wave 1: Intro
   [
-    { type: "ordinary", count: 20, spawnDelay: 1200 }
+    { type: "ordinary", count: 18, spawnDelay: 1300 }
   ],
-  // Wave 2: Ordinary and Fast Brats
+  // Wave 2: Fast intro
   [
-    { type: "ordinary", count: 15, spawnDelay: 1000, delayBeforeNext: 1500 },
-    { type: "fast", count: 10, spawnDelay: 700 }
+    { type: "ordinary", count: 15, spawnDelay: 1100, delayBeforeNext: 1200 },
+    { type: "fast", count: 10, spawnDelay: 800 }
   ],
-  // Wave 3: Faster rushes
+  // Wave 3: Bigger rush
   [
-    { type: "ordinary", count: 25, spawnDelay: 700, delayBeforeNext: 1000 },
+    { type: "ordinary", count: 22, spawnDelay: 800, delayBeforeNext: 1000 },
+    { type: "fast", count: 15, spawnDelay: 600 }
+  ],
+  // === WAVE 4: HEAVY intro ===
+  // Wave 4: First Heavy Brat
+  [
+    { type: "ordinary", count: 18, spawnDelay: 1000, delayBeforeNext: 1200 },
+    { type: "heavy", count: 5, spawnDelay: 3000 }
+  ],
+  // Wave 5: Heavy + fast pressure
+  [
+    { type: "fast", count: 20, spawnDelay: 500, delayBeforeNext: 1000 },
+    { type: "heavy", count: 6, spawnDelay: 2800 }
+  ],
+  // Wave 6: Mixed
+  [
+    { type: "ordinary", count: 20, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "fast", count: 15, spawnDelay: 600, delayBeforeNext: 800 },
+    { type: "heavy", count: 5, spawnDelay: 2500 }
+  ],
+  // Wave 7: Heavy wall
+  [
+    { type: "ordinary", count: 15, spawnDelay: 900, delayBeforeNext: 1200 },
+    { type: "heavy", count: 10, spawnDelay: 2200 }
+  ],
+  // === WAVE 8: COAT (armored) intro ===
+  // Wave 8: First Coat
+  [
+    { type: "ordinary", count: 18, spawnDelay: 900, delayBeforeNext: 1200 },
+    { type: "coat", count: 8, spawnDelay: 1800 }
+  ],
+  // Wave 9: Coat + heavy
+  [
+    { type: "heavy", count: 8, spawnDelay: 2000, delayBeforeNext: 1000 },
+    { type: "coat", count: 10, spawnDelay: 1500 }
+  ],
+  // Wave 10: Armored rush
+  [
+    { type: "fast", count: 20, spawnDelay: 500, delayBeforeNext: 800 },
+    { type: "coat", count: 12, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "ordinary", count: 15, spawnDelay: 800 }
+  ],
+  // Wave 11: Heavy armor
+  [
+    { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "coat", count: 12, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "fast", count: 18, spawnDelay: 500 }
   ],
-  // Wave 4: First Heavy Brat testing DPS
+  // === WAVE 12: CAMO intro ===
+  // Wave 12: First Camo
   [
-    { type: "ordinary", count: 15, spawnDelay: 900, delayBeforeNext: 1000 },
-    { type: "heavy", count: 8, spawnDelay: 2500 }
+    { type: "camo", count: 8, spawnDelay: 1500, delayBeforeNext: 1200 },
+    { type: "fast", count: 20, spawnDelay: 500 }
   ],
-  // Wave 5: Introducing Camo Brats!
+  // Wave 13: Camo + ordinary
   [
-    { type: "camo", count: 10, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "fast", count: 20, spawnDelay: 400 }
+    { type: "ordinary", count: 20, spawnDelay: 800, delayBeforeNext: 1000 },
+    { type: "camo", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "fast", count: 15, spawnDelay: 500 }
   ],
-  // Wave 6: Heavy Coat armored rush
+  // Wave 14: Camo + heavy
   [
-    { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 1000 },
-    { type: "ordinary", count: 15, spawnDelay: 700 }
+    { type: "camo", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "heavy", count: 8, spawnDelay: 2200, delayBeforeNext: 800 },
+    { type: "ordinary", count: 15, spawnDelay: 800 }
   ],
-  // Wave 7: Introducing Lead Brats!
+  // Wave 15: Camo pressure
   [
-    { type: "lead", count: 12, spawnDelay: 1500, delayBeforeNext: 1000 },
+    { type: "camo", count: 18, spawnDelay: 900, delayBeforeNext: 1000 },
+    { type: "coat", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "fast", count: 20, spawnDelay: 450 }
+  ],
+  // === WAVE 16: LEAD intro ===
+  // Wave 16: First Lead
+  [
+    { type: "lead", count: 8, spawnDelay: 2000, delayBeforeNext: 1200 },
+    { type: "ordinary", count: 20, spawnDelay: 800 }
+  ],
+  // Wave 17: Lead + camo
+  [
+    { type: "camo", count: 12, spawnDelay: 1100, delayBeforeNext: 1000 },
+    { type: "lead", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
+    { type: "fast", count: 18, spawnDelay: 500 }
+  ],
+  // Wave 18: Lead + heavy + coat
+  [
+    { type: "lead", count: 10, spawnDelay: 1600, delayBeforeNext: 1000 },
+    { type: "heavy", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "coat", count: 10, spawnDelay: 1400 }
+  ],
+  // Wave 19: Mixed armor
+  [
+    { type: "lead", count: 12, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "coat", count: 12, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "fast", count: 20, spawnDelay: 450 }
+  ],
+  // === WAVE 20: INFINIX_BRAT (glitching) intro ===
+  // Wave 20: First Infinix Brat
+  [
+    { type: "infinix_brat", count: 8, spawnDelay: 1500, delayBeforeNext: 1200 },
+    { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "fast", count: 18, spawnDelay: 500 }
+  ],
+  // Wave 21: Infinix + camo
+  [
+    { type: "infinix_brat", count: 10, spawnDelay: 1300, delayBeforeNext: 1000 },
+    { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "lead", count: 8, spawnDelay: 1800 }
+  ],
+  // Wave 22: Infinix + heavy
+  [
+    { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "ordinary", count: 20, spawnDelay: 700 }
   ],
-  // Wave 8: Mixed Camo and Lead
+  // Wave 23: Glitch chaos
   [
-    { type: "camo", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
-    { type: "lead", count: 10, spawnDelay: 1200 }
+    { type: "infinix_brat", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "camo", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
+    { type: "lead", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "fast", count: 20, spawnDelay: 450 }
   ],
-  // Wave 9: Infinix glitchers support rush
+  // === WAVE 24: REGEN intro ===
+  // Wave 24: First Regen
   [
-    { type: "infinix_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "coat", count: 12, spawnDelay: 900, delayBeforeNext: 800 },
-    { type: "fast", count: 15, spawnDelay: 400 }
+    { type: "regen", count: 10, spawnDelay: 1300, delayBeforeNext: 1200 },
+    { type: "fast", count: 20, spawnDelay: 500 }
   ],
-  // Wave 10: Introducing Regen Brats!
+  // Wave 25: Regen + camo
   [
-    { type: "regen", count: 15, spawnDelay: 1000, delayBeforeNext: 1000 },
-    { type: "fast", count: 18, spawnDelay: 500 }
+    { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 1000 },
+    { type: "regen", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
+    { type: "coat", count: 10, spawnDelay: 1400 }
   ],
-  // Wave 11: Support swarm (trails & tower slows)
+  // Wave 26: Regen + infinix
   [
-    { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 800 },
-    { type: "gas_brat", count: 18, spawnDelay: 900 }
+    { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "regen", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "lead", count: 10, spawnDelay: 1500 }
   ],
-  // Wave 12: Granite blockers
+  // Wave 27: Regen wall
   [
-    { type: "granite", count: 12, spawnDelay: 1800, delayBeforeNext: 1000 },
-    { type: "heavy", count: 15, spawnDelay: 1200 }
+    { type: "regen", count: 20, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
+    { type: "camo", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "infinix_brat", count: 10, spawnDelay: 1200 }
   ],
-  // Wave 13: Camo-Regen rush with Phantom intro
+  // === WAVE 28: RACHKY + GAS (support) intro ===
+  // Wave 28: First support enemies
   [
-    { type: "camo", count: 25, spawnDelay: 700, delayBeforeNext: 800 },
-    { type: "regen", count: 18, spawnDelay: 900, delayBeforeNext: 500 },
-    { type: "phantom", count: 8, spawnDelay: 1200 }
+    { type: "rachky_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 1000 },
+    { type: "gas_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "fast", count: 20, spawnDelay: 450 }
   ],
-  // Wave 14: Lead and Infinix glitchers
+  // Wave 29: Support + armor
   [
-    { type: "lead", count: 18, spawnDelay: 900, delayBeforeNext: 800 },
-    { type: "infinix_brat", count: 18, spawnDelay: 800 }
+    { type: "coat", count: 12, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "gas_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "lead", count: 10, spawnDelay: 1500 }
   ],
-  // Wave 15: Triple mixed rush with Exploder intro
+  // Wave 30: Support + regen
   [
-    { type: "regen", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
-    { type: "granite", count: 12, spawnDelay: 1200, delayBeforeNext: 500 },
-    { type: "fast", count: 25, spawnDelay: 350, delayBeforeNext: 500 },
-    { type: "exploder", count: 6, spawnDelay: 1500 }
+    { type: "regen", count: 18, spawnDelay: 900, delayBeforeNext: 800 },
+    { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
+    { type: "infinix_brat", count: 12, spawnDelay: 1100 }
   ],
-  // Wave 16: The Boss and granite support
+  // Wave 31: Support chaos
   [
-    { type: "boss", count: 1, spawnDelay: 4000, delayBeforeNext: 2000 },
-    { type: "granite", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
-    { type: "coat", count: 15, spawnDelay: 700 }
+    { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "camo", count: 18, spawnDelay: 800, delayBeforeNext: 600 },
+    { type: "lead", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "regen", count: 15, spawnDelay: 900 }
   ],
-  // Wave 17: Camo-Lead-Regen rush with Phantom
+  // === WAVE 32: GRANITE + PHANTOM + EXPLODER intro ===
+  // Wave 32: First Granite + Phantom + Exploder
   [
-    { type: "camo", count: 30, spawnDelay: 500, delayBeforeNext: 500 },
-    { type: "lead", count: 18, spawnDelay: 900, delayBeforeNext: 500 },
-    { type: "regen", count: 18, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "phantom", count: 10, spawnDelay: 1000 }
+    { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 1000 },
+    { type: "phantom", count: 6, spawnDelay: 1500, delayBeforeNext: 1000 },
+    { type: "exploder", count: 5, spawnDelay: 1800 }
   ],
-  // Wave 18: Digital chaos with Jumper intro
+  // Wave 33: Granite wall + camo
   [
-    { type: "infinix_brat", count: 25, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "rachky_brat", count: 25, spawnDelay: 500, delayBeforeNext: 500 },
-    { type: "gas_brat", count: 25, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "jumper", count: 8, spawnDelay: 1500 }
+    { type: "granite", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
+    { type: "camo", count: 18, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "phantom", count: 8, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "fast", count: 25, spawnDelay: 400 }
   ],
-  // Wave 19: High-health regen & granite wall with Shielded intro
+  // Wave 34: Exploder + regen
   [
-    { type: "granite", count: 18, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "regen", count: 18, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "camo", count: 18, spawnDelay: 500, delayBeforeNext: 500 },
-    { type: "shielded", count: 8, spawnDelay: 1500 }
+    { type: "exploder", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "regen", count: 20, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "infinix_brat", count: 12, spawnDelay: 1100 }
   ],
-  // Wave 20: Double bosses + Megaboss intro
+  // Wave 35: Granite + phantom + lead
   [
-    { type: "boss", count: 2, spawnDelay: 3000, delayBeforeNext: 1000 },
-    { type: "heavy", count: 20, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "shielded", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
-    { type: "megaboss", count: 1, spawnDelay: 5000 }
+    { type: "granite", count: 12, spawnDelay: 1600, delayBeforeNext: 800 },
+    { type: "phantom", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "lead", count: 15, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "exploder", count: 6, spawnDelay: 1600, delayBeforeNext: 800 },
+    { type: "coat", count: 12, spawnDelay: 1300 }
   ],
-  // Wave 21: Camo-Regen-Lead-Phantom-Exploder swarm
+  // === WAVE 36: JUMPER + SHIELDED intro ===
+  // Wave 36: First Jumper + Shielded
   [
-    { type: "camo", count: 35, spawnDelay: 350, delayBeforeNext: 500 },
-    { type: "regen", count: 35, spawnDelay: 400, delayBeforeNext: 500 },
-    { type: "lead", count: 25, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "phantom", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "exploder", count: 10, spawnDelay: 1200 }
+    { type: "jumper", count: 6, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "shielded", count: 6, spawnDelay: 1800, delayBeforeNext: 1000 },
+    { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "regen", count: 15, spawnDelay: 900 }
   ],
-  // Wave 22: The Ultimate Final Wave!
+  // Wave 37: Jumper + camo + phantom
   [
-    { type: "boss", count: 4, spawnDelay: 2500, delayBeforeNext: 1000 },
-    { type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 500 },
-    { type: "granite", count: 25, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "infinix_brat", count: 25, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "camo", count: 30, spawnDelay: 400, delayBeforeNext: 500 },
-    { type: "lead", count: 30, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "regen", count: 30, spawnDelay: 500, delayBeforeNext: 500 },
-    { type: "shielded", count: 12, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "jumper", count: 12, spawnDelay: 1000 }
+    { type: "jumper", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "phantom", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
+    { type: "camo", count: 20, spawnDelay: 700, delayBeforeNext: 800 },
+    { type: "shielded", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "fast", count: 25, spawnDelay: 400 }
+  ],
+  // Wave 38: Shielded wall + support
+  [
+    { type: "shielded", count: 12, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "jumper", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "exploder", count: 8, spawnDelay: 1400 }
+  ],
+  // Wave 39: Everything mixed - penultimate
+  [
+    { type: "granite", count: 15, spawnDelay: 1400, delayBeforeNext: 600 },
+    { type: "infinix_brat", count: 18, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "phantom", count: 15, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "shielded", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "jumper", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "regen", count: 20, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "lead", count: 15, spawnDelay: 1100 }
+  ],
+  // === WAVE 40: THE ULTIMATE FINAL WAVE ===
+  // Wave 40: Boss + Megaboss + everything
+  [
+    { type: "boss", count: 3, spawnDelay: 3000, delayBeforeNext: 1500 },
+    { type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 1000 },
+    { type: "granite", count: 20, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "infinix_brat", count: 20, spawnDelay: 800, delayBeforeNext: 600 },
+    { type: "camo", count: 25, spawnDelay: 500, delayBeforeNext: 500 },
+    { type: "lead", count: 20, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "regen", count: 25, spawnDelay: 600, delayBeforeNext: 500 },
+    { type: "phantom", count: 15, spawnDelay: 900, delayBeforeNext: 500 },
+    { type: "exploder", count: 10, spawnDelay: 1200, delayBeforeNext: 500 },
+    { type: "shielded", count: 15, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "jumper", count: 15, spawnDelay: 1000 }
   ]
 ];
 
 export function getScaledWave(waveNumber: number): WaveSegment[] {
-  // WaveNumber is 1-indexed. If it's <= 22, return static wave
-  if (waveNumber <= 22) {
+  if (waveNumber <= 40) {
     return WAVES[waveNumber - 1];
   }
 
-  // Endless mode: Procedurally scale Wave 22 with a multiplier
-  const multiplier = Math.pow(1.15, waveNumber - 22);
+  // Endless mode after wave 40
+  const multiplier = Math.pow(1.12, waveNumber - 40);
 
-  // We can construct a randomized segment list based on wave number
   const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded"];
   const segments: WaveSegment[] = [];
 
-  // Always add some boss(es) in multiples of 3 waves
+  // Bosses every 3 waves
   if (waveNumber % 3 === 0) {
-    const bossCount = Math.floor((waveNumber - 3) / 3);
-    segments.push({ type: "boss", count: bossCount, spawnDelay: 4000, delayBeforeNext: 2000 });
+    const bossCount = Math.floor((waveNumber - 3) / 5);
+    segments.push({ type: "boss", count: bossCount, spawnDelay: 3500, delayBeforeNext: 2000 });
   }
 
-  // Add megaboss every 10 waves
-  if (waveNumber % 10 === 0) {
+  // Megaboss every 8 waves
+  if (waveNumber % 8 === 0) {
     segments.push({ type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 2000 });
   }
 
-  // Add 4-6 random segments of increasing difficulty
-  const segmentCount = 4 + Math.min(6, Math.floor((waveNumber - 22) / 3));
+  // 5-8 random segments
+  const segmentCount = 5 + Math.min(8, Math.floor((waveNumber - 40) / 3));
   for (let i = 0; i < segmentCount; i++) {
     const randomType = types[Math.floor(Math.random() * types.length)];
-    const baseCount = randomType === "granite" || randomType === "heavy" ? 3 : 8;
+    const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
     const count = Math.floor(baseCount * Math.sqrt(multiplier));
-    const delay = Math.max(200, Math.floor(1000 / (1 + (waveNumber - 22) * 0.1)));
+    const delay = Math.max(200, Math.floor(1000 / (1 + (waveNumber - 40) * 0.08)));
     segments.push({
       type: randomType,
       count: count > 0 ? count : 1,
       spawnDelay: delay,
-      delayBeforeNext: 1000
+      delayBeforeNext: 800
     });
   }
 
@@ -774,15 +907,15 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
 export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyConfig {
   const base = ENEMY_CONFIGS[type];
   if (!base) return ENEMY_CONFIGS.ordinary;
-  if (waveNumber <= 22) return base;
+  if (waveNumber <= 40) return base;
 
-  const multiplier = Math.pow(1.25, waveNumber - 22);
-  const speedMultiplier = Math.min(1.8, Math.pow(1.04, waveNumber - 22));
+  const multiplier = Math.pow(1.20, waveNumber - 40);
+  const speedMultiplier = Math.min(1.8, Math.pow(1.03, waveNumber - 40));
 
   return {
     ...base,
     hp: Math.floor(base.hp * multiplier),
     speed: base.speed * speedMultiplier,
-    reward: Math.floor(base.reward * Math.pow(1.03, waveNumber - 22))
+    reward: Math.floor(base.reward * Math.pow(1.02, waveNumber - 40))
   };
 }
