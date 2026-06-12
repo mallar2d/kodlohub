@@ -71,6 +71,7 @@ export interface UpgradeStats {
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
   pierce?: number;
+  tackCount?: number;
 }
 
 export interface Upgrade {
@@ -92,6 +93,7 @@ export interface TowerStats {
   emoji: string;
   camoDetection?: boolean;
   pierce?: number;
+  tackCount?: number;
 }
 
 export interface TowerConfig extends TowerStats {
@@ -291,35 +293,37 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     }
   },
   gas: {
-    name: "Газова Аура",
-    description: "AoE-хмара навколо себе. Постійно наносить шкоду та уповільнює на 15%.",
-    cost: 385,
-    range: 90,
-    damage: 12,
-    fireRate: 0.4,
+    name: "Газовий Tack Shooter",
+    description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
+    cost: 360,
+    range: 82,
+    damage: 4,
+    fireRate: 0.9,
     color: "#22c55e", // Green
     emoji: "💨",
+    pierce: 1,
+    tackCount: 6,
     upgrades: {
       path1: [
-        { id: "gas_radius1", name: "Токсичний концентрат", description: "Шкода аури +6.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 6 }) },
-        { id: "gas_radius2", name: "Їдкий туман", description: "Шкода +10, швидкість тиків +10%.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, fireRate: s.fireRate * 0.90 }) },
-        { id: "gas_double_cloud", name: "Отруйна хмара", description: "Шкода +16. Вороги в аурі не регенерують.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 16, antiArmor: true }) },
-        { id: "gas_cyclone", name: "Коростишівський циклон", description: "Шкода +25, швидкість тиків +15%. Вбивство в аурі вибухає (50 шкоди, 60px).", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 25, fireRate: s.fireRate * 0.85, explodeDmg: 50 }) },
-        { id: "gas_doomsday", name: "Екологічна катастрофа", description: "Шкода +55, ігнорує броню, 10% шанс на додаткові 60 шкоди при тику.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 55, ignoresArmor: true, gachaChance: 0.10, gachaDamageOverride: 60 }) }
+        { id: "gas_sharp", name: "Їдкі Шипи", description: "Шкода шипів +3.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
+        { id: "gas_more", name: "Більше Форсунок", description: "+2 газові шипи за залп.", cost: 300, effect: (s) => ({ ...s, tackCount: (s.tackCount || 6) + 2 }) },
+        { id: "gas_corrosive", name: "Корозійний Газ", description: "Шкода +8, шипи краще беруть броню.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 8, antiArmor: true }) },
+        { id: "gas_blade", name: "Газові Леза", description: "Шкода +14, пірс +1, +2 шипи.", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1, tackCount: (s.tackCount || 6) + 2 }) },
+        { id: "gas_inferno", name: "Токсичне Кільце", description: "Шкода +28, пірс +2, +4 шипи, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 28, pierce: (s.pierce || 1) + 2, tackCount: (s.tackCount || 6) + 4, ignoresArmor: true }) }
       ],
       path2: [
-        { id: "gas_odor", name: "Різкий запах", description: "Збільшує шкоду аури на 3.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
-        { id: "gas_stasis", name: "Капсула Стазису", description: "Уповільнення ворогів всередині аури збільшується до 40%.", cost: 330, effect: (s) => ({ ...s, slowAmount: 0.40 }) },
-        { id: "gas_acid", name: "Кислотний туман", description: "Шкода +10. Вороги всередині отримують на 25% більше шкоди від усіх джерел.", cost: 850, effect: (s) => ({ ...s, damage: s.damage + 10, damageDebuff: 1.25 }) },
-        { id: "gas_asphyxia", name: "Ядуха", description: "Шкода +25, уповільнення збільшується до 60%.", cost: 1980, effect: (s) => ({ ...s, damage: s.damage + 25, slowAmount: 0.60 }) },
-        { id: "gas_weapon", name: "Біологічна зброя", description: "Шкода +80, уповільнення 80%, вороги отримують на 50% більше шкоди.", cost: 6270, effect: (s) => ({ ...s, damage: s.damage + 80, slowAmount: 0.80, damageDebuff: 1.50 }) }
+        { id: "gas_fast", name: "Швидкий Клапан", description: "Швидкість стрільби +18%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
+        { id: "gas_stasis", name: "Капсула Стазису", description: "Шипи сповільнюють на 35%.", cost: 330, effect: (s) => ({ ...s, slowAmount: 0.35 }) },
+        { id: "gas_acid", name: "Кислотні Шипи", description: "Швидкість +25%, вороги отримують на 20% більше шкоди.", cost: 850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, damageDebuff: 1.20 }) },
+        { id: "gas_asphyxia", name: "Ядуха", description: "Швидкість +35%, сповільнення 55%.", cost: 1980, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65, slowAmount: 0.55 }) },
+        { id: "gas_weapon", name: "Біологічний Ротор", description: "Швидкість +45%, сповільнення 70%, +2 шипи.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, slowAmount: 0.70, tackCount: (s.tackCount || 6) + 2, damageDebuff: 1.35 }) }
       ],
       path3: [
-        { id: "gas_cheap_filter", name: "Дешевий фільтр", description: "Радіус аури +15px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 15 }) },
-        { id: "gas_containment", name: "Біологічне стримування", description: "Аура завдає подвійну шкоду броньованим ворогам та виявляє камуфляж.", cost: 260, effect: (s) => ({ ...s, antiArmor: true, camoDetection: true }) },
-        { id: "gas_glitch", name: "Глючний газ", description: "Infinix-брати втрачають можливість телепортуватися всередині аури.", cost: 770, effect: (s) => ({ ...s, disableGlitch: true }) },
-        { id: "gas_gacha", name: "Аура Гачі", description: "8% шанс нанести ворогам 150 додаткової шкоди при кожному тику.", cost: 1900, effect: (s) => ({ ...s, gachaChance: 0.08, gachaDamageOverride: 150 }) },
-        { id: "gas_entropy", name: "Ентропійний колапс", description: "Повністю відключає спеціальні здібності ворогів в аурі. Шкода +35.", cost: 5150, effect: (s) => ({ ...s, damage: s.damage + 35, disableGlitch: true, disableAbilities: true }) }
+        { id: "gas_range", name: "Довгі Сопла", description: "Дальність +18px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 18 }) },
+        { id: "gas_scanner", name: "Біо-Сканер", description: "Виявляє камуфляж, дальність +12px.", cost: 260, effect: (s) => ({ ...s, camoDetection: true, range: s.range + 12 }) },
+        { id: "gas_glitch", name: "Глючний Газ", description: "Шипи вимикають телепорти ворогів при влучанні.", cost: 770, effect: (s) => ({ ...s, disableGlitch: true }) },
+        { id: "gas_gacha", name: "Гача-Форсунка", description: "6% шанс на 80 додаткової шкоди при влучанні.", cost: 1900, effect: (s) => ({ ...s, gachaChance: 0.06, gachaDamageOverride: 80 }) },
+        { id: "gas_entropy", name: "Ентропійний Ротор", description: "Шипи вимикають здібності, +12 шкоди, +4 шипи.", cost: 5150, effect: (s) => ({ ...s, damage: s.damage + 12, tackCount: (s.tackCount || 6) + 4, disableGlitch: true, disableAbilities: true }) }
       ]
     }
   },

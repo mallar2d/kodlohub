@@ -47,6 +47,7 @@ interface PlacedTower {
   copilotBug?: boolean;
   antiArmor?: boolean;
   shotCount?: number;
+  tackCount?: number;
   // BTD6 upgrades stats
   ignoresArmor?: boolean;
   armorPierce?: number;
@@ -104,6 +105,7 @@ interface ActiveEnemy {
   gasSlowDuration: number; // in frames
   gasSlowFactor?: number;
   damageDebuff?: number; // multiplier
+  abilitiesDisabledDuration?: number; // in frames
   hasCopilotBug?: boolean;
   bugExplodeDmg?: number;
   bugExplodeRadius?: number;
@@ -157,7 +159,9 @@ interface Projectile {
   gachaDamageOverride?: number;
   freezeDurationBonus?: number;
   bsodAoE?: boolean;
+  disableGlitch?: boolean;
   disableAbilities?: boolean;
+  antiArmor?: boolean;
   bugExplodeDmg?: number;
   bugExplodeRadius?: number;
   bugContagion?: boolean;
@@ -169,6 +173,8 @@ interface Projectile {
   lastTargetX: number;
   lastTargetY: number;
   spinRotation?: number;
+  travelDistance?: number;
+  maxDistance?: number;
 }
 
 interface Particle {
@@ -550,7 +556,8 @@ export default function BratTDClient() {
       disableAbilities: tower.disableAbilities,
       camoDetection: tower.camoDetection,
       camoDetectionBuff: tower.camoDetectionBuff,
-      pierce: tower.pierce
+      pierce: tower.pierce,
+      tackCount: tower.tackCount
     });
     const beforeDps = getExpectedDps({ ...tower, damage: getEffectiveTowerDamage(tower) });
     const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage + (tower.coffeeDamageBonus || 0) });
@@ -894,6 +901,7 @@ export default function BratTDClient() {
       totalKills: 0,
       camoDetection: config.camoDetection || false,
       pierce: config.pierce || 1,
+      tackCount: config.tackCount,
       targetingMode: "first",
     };
 
@@ -1143,6 +1151,7 @@ export default function BratTDClient() {
     tower.camoDetection = newStats.camoDetection;
     tower.camoDetectionBuff = newStats.camoDetectionBuff;
     tower.pierce = newStats.pierce || 1;
+    tower.tackCount = newStats.tackCount;
     
     tower.level += 1;
 
@@ -1210,6 +1219,7 @@ export default function BratTDClient() {
                   slowDuration: 0,
                   freezeDuration: 0,
                   gasSlowDuration: 0,
+                  abilitiesDisabledDuration: 0,
                   isArmored: baseConfig.isArmored,
                   isSuperArmored: baseConfig.isSuperArmored,
                   isGlitching: baseConfig.isGlitching,
@@ -1323,6 +1333,9 @@ export default function BratTDClient() {
           }
           if (enemy.gasSlowDuration > 0) {
             enemy.gasSlowDuration--;
+          }
+          if ((enemy.abilitiesDisabledDuration || 0) > 0) {
+            enemy.abilitiesDisabledDuration = (enemy.abilitiesDisabledDuration || 0) - 1;
           }
 
           // Shield regeneration for shielded enemies
@@ -1451,20 +1464,8 @@ export default function BratTDClient() {
             }
           }
 
-          // Check if standing in ability-disabling or glitch-disabling gas aura
-          let glitchDisabled = false;
-          let abilitiesDisabled = false;
-          towersRef.current.forEach((t) => {
-            if (t.type === "gas" && (t.disableGlitch || t.disableAbilities)) {
-              if (getDistance(enemy.x, enemy.y, t.x, t.y) <= getEffectiveTowerRange(t)) {
-                if (t.disableGlitch) glitchDisabled = true;
-                if (t.disableAbilities) abilitiesDisabled = true;
-              }
-            }
-          });
-
           // Glitching effect for Infinix-brat
-          if (enemy.isGlitching && !glitchDisabled) {
+          if (enemy.isGlitching && !((enemy.abilitiesDisabledDuration || 0) > 0)) {
             enemy.timeSinceGlitch = (enemy.timeSinceGlitch || 0) + 1;
             if (enemy.timeSinceGlitch >= 150) { // every ~2.5s
               enemy.timeSinceGlitch = 0;
@@ -1493,7 +1494,7 @@ export default function BratTDClient() {
           }
 
           // Spawning speed trail for Rachky-brat
-          if (enemy.isSpawningTrail && !abilitiesDisabled && getPureRandom() < 0.15) {
+          if (enemy.isSpawningTrail && !((enemy.abilitiesDisabledDuration || 0) > 0) && getPureRandom() < 0.15) {
             speedTrailsRef.current.push({
               x: enemy.x,
               y: enemy.y,
@@ -1543,21 +1544,9 @@ export default function BratTDClient() {
           let speedDebuff = 1.0;
           enemiesRef.current.forEach((enemy) => {
             if (enemy.isSlowingTowers) {
-              // check if enemy is inside an entropy gas tower that disables abilities
-              let abilitiesDisabled = false;
-              towersRef.current.forEach((t) => {
-                if (t.type === "gas" && t.disableAbilities) {
-                  if (getDistance(enemy.x, enemy.y, t.x, t.y) <= getEffectiveTowerRange(t)) {
-                    abilitiesDisabled = true;
-                  }
-                }
-              });
-
-              if (!abilitiesDisabled) {
-                const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-                if (dist <= 120) { // range of Gas Brat smell aura
-                  speedDebuff = Math.min(speedDebuff, 0.6); // 40% slow
-                }
+              const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
+              if (dist <= 120) { // range of Gas Brat smell aura
+                speedDebuff = Math.min(speedDebuff, 0.6); // 40% slow
               }
             }
           });
@@ -1638,75 +1627,46 @@ export default function BratTDClient() {
 
           const isCamoCapable = tower.camoDetection || hasCamoBuff;
 
-          // Gas towers do AoE tick damage inside the update loop directly (no projectiles)
+          // Gas is a tack-shooter analog: short radial bursts, no passive aura damage.
           if (tower.type === "gas") {
             if (tower.cooldown <= 0) {
-              tower.cooldown = tower.fireRate * 60; // reset
+              tower.cooldown = tower.fireRate * 60;
               const effectiveRange = getEffectiveTowerRange(tower);
               const effectiveDamage = getEffectiveTowerDamage(tower);
-               
-              // Damage all enemies in range
-              enemiesRef.current.forEach((enemy) => {
-                if (enemy.isCamo && !isCamoCapable) return;
-                const dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-                if (dist <= effectiveRange) {
-                  let dmg = effectiveDamage;
-
-                  // Shield absorption
-                  if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
-                    const absorbed = Math.min(enemy.shieldHp, dmg);
-                    enemy.shieldHp -= absorbed;
-                    dmg -= absorbed;
-                  }
-                  
-                  // Anti-armor upgrade (double damage to coat/granite)
-                  if (tower.antiArmor && (enemy.isArmored || enemy.isSuperArmored)) {
-                    dmg *= 2.0;
-                  }
-
-                  // Gacha chance (for gacha gas / jackpot)
-                  if (tower.gachaChance && getPureRandom() < tower.gachaChance) {
-                    dmg += tower.gachaDamageOverride || 150;
-                    spawnFloatingText(enemy.x, enemy.y - 15, "💥 ГАЧА!", "#c084fc");
-                  }
-
-                  // Apply damage debuff if active on enemy
-                  if (enemy.damageDebuff) dmg *= enemy.damageDebuff;
-
-                  // Apply tier damage reduction
-                  if (enemy.damageReduce && enemy.damageReduce > 0) {
-                    dmg = Math.floor(dmg * (1 - enemy.damageReduce));
-                  }
-
-                  const wasAlive = enemy.hp > 0;
-                  enemy.hp -= dmg;
-                  enemy.gasSlowDuration = 30; // 0.5s slow inside gas
-                  enemy.gasSlowFactor = tower.slowAmount || 0.15;
-
-                  // Apply gas damage debuff
-                  if (tower.damageDebuff) {
-                    enemy.damageDebuff = applyDamageDebuffCap(enemy.damageDebuff, tower.damageDebuff);
-                  }
-
-                  // spawn green cloud particle on tick
-                  if (getPureRandom() < 0.2) {
-                    particlesRef.current.push({
-                      x: enemy.x + (getPureRandom() - 0.5) * 10,
-                      y: enemy.y + (getPureRandom() - 0.5) * 10,
-                      vx: (getPureRandom() - 0.5) * 0.5,
-                      vy: (getPureRandom() - 0.5) * 0.5,
-                      color: "rgba(34, 197, 94, 0.4)",
-                      size: getPureRandom() * 6 + 4,
-                      life: 20,
-                      maxLife: 20
-                    });
-                  }
-
-                  if (wasAlive && enemy.hp <= 0) {
-                    tower.totalKills++;
-                  }
-                }
-              });
+              const tackCount = tower.tackCount || 6;
+              for (let ti = 0; ti < tackCount; ti++) {
+                const angle = (Math.PI * 2 * ti) / tackCount + frameCountRef.current * 0.01;
+                projectilesRef.current.push({
+                  id: `${getPureId()}_${ti}`,
+                  type: "gas",
+                  x: tower.x,
+                  y: tower.y,
+                  targetId: "",
+                  speed: 6,
+                  damage: effectiveDamage,
+                  emoji: tower.emoji,
+                  color: tower.color,
+                  damageDebuff: tower.damageDebuff,
+                  freezeChance: tower.freezeChance,
+                  slowAmount: tower.slowAmount || 0.15,
+                  gachaChance: tower.gachaChance,
+                  gachaDamageOverride: tower.gachaDamageOverride,
+                  ignoresArmor: tower.ignoresArmor,
+                  armorPierce: tower.coffeeIgnoreArmorBuff,
+                  antiArmor: tower.antiArmor,
+                  disableGlitch: tower.disableGlitch,
+                  disableAbilities: tower.disableAbilities,
+                  pierce: tower.pierce || 1,
+                  hitEnemyIds: [],
+                  camoDetection: isCamoCapable,
+                  angle,
+                  lastTargetX: tower.x + Math.cos(angle) * effectiveRange,
+                  lastTargetY: tower.y + Math.sin(angle) * effectiveRange,
+                  spinRotation: angle,
+                  travelDistance: 0,
+                  maxDistance: effectiveRange
+                });
+              }
             }
             return;
           }
@@ -1847,6 +1807,7 @@ export default function BratTDClient() {
           // Flight
           proj.x += Math.cos(proj.angle) * proj.speed;
           proj.y += Math.sin(proj.angle) * proj.speed;
+          proj.travelDistance = (proj.travelDistance || 0) + proj.speed;
 
           // Add trail point
           projectileTrailRef.current.push({
@@ -1862,7 +1823,7 @@ export default function BratTDClient() {
           }
 
           // Out of bounds check
-          if (proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
+          if ((proj.maxDistance && proj.travelDistance > proj.maxDistance) || proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
             projectilesRef.current.splice(i, 1);
             continue;
           }
@@ -1901,6 +1862,10 @@ export default function BratTDClient() {
               // Infinix random damage
               if (proj.type === "infinix") {
                 dmg = Math.max(5, Math.floor(proj.damage * (0.5 + getPureRandom())));
+              }
+
+              if (proj.type === "gas" && proj.antiArmor && (enemy.isArmored || enemy.isSuperArmored) && dmg > 0) {
+                dmg = Math.floor(dmg * 1.5);
               }
 
               // Lead armor hammer immunity
@@ -1990,6 +1955,20 @@ export default function BratTDClient() {
                     }
                   });
                   spawnHitParticles(enemy.x, enemy.y, "#f97316", 12);
+                }
+              }
+
+              if (proj.type === "gas") {
+                enemy.gasSlowDuration = Math.max(enemy.gasSlowDuration, 45);
+                enemy.gasSlowFactor = Math.max(enemy.gasSlowFactor || 0, proj.slowAmount || 0.15);
+                if (proj.damageDebuff) {
+                  enemy.damageDebuff = applyDamageDebuffCap(enemy.damageDebuff, proj.damageDebuff);
+                }
+                if (proj.disableAbilities) {
+                  enemy.abilitiesDisabledDuration = Math.max(enemy.abilitiesDisabledDuration || 0, 180);
+                }
+                if (proj.disableGlitch) {
+                  enemy.isGlitching = false;
                 }
               }
 
