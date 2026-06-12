@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 import Avatar from "@/components/ui/Avatar";
-import { questions, Question } from "./questions";
+import { questions, Question, SingleChoiceQuestion, MatchingQuestion, ThreeChoiceQuestion } from "./questions";
 
 type LeaderboardRow = {
   user_id: string;
@@ -56,6 +56,69 @@ function getRankTitle(score: number): string {
   return "ГОЛОВНИЙ ПОДРО (LEGEND)";
 }
 
+type ActiveSingleChoice = {
+  originalQuestion: SingleChoiceQuestion;
+  shuffledOptions: { text: string; originalIndex: number }[];
+};
+
+type ActiveMatching = {
+  originalQuestion: MatchingQuestion;
+  shuffledLeft: { text: string; originalIndex: number }[];
+  shuffledRight: { text: string; originalIndex: number }[];
+};
+
+type ActiveThreeChoice = {
+  originalQuestion: ThreeChoiceQuestion;
+  shuffledOptions: { text: string; originalIndex: number }[];
+};
+
+type ActiveQuestion = ActiveSingleChoice | ActiveMatching | ActiveThreeChoice;
+
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function prepareQuizQuestions(): ActiveQuestion[] {
+  const shuffledQuestions = shuffleArray(questions);
+  return shuffledQuestions.map((q) => {
+    if (q.type === "single-choice") {
+      const shuffledOptions = shuffleArray(
+        q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }))
+      );
+      return {
+        originalQuestion: q,
+        shuffledOptions,
+      };
+    } else if (q.type === "three-choice") {
+      const shuffledOptions = shuffleArray(
+        q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }))
+      );
+      return {
+        originalQuestion: q,
+        shuffledOptions,
+      };
+    } else {
+      // q.type === "matching"
+      const shuffledLeft = shuffleArray(
+        q.leftItems.map((item, idx) => ({ text: item, originalIndex: idx }))
+      );
+      const shuffledRight = shuffleArray(
+        q.rightItems.map((item, idx) => ({ text: item, originalIndex: idx }))
+      );
+      return {
+        originalQuestion: q,
+        shuffledLeft,
+        shuffledRight,
+      };
+    }
+  });
+}
+
 export default function NmtClient() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -72,6 +135,7 @@ export default function NmtClient() {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<ActiveQuestion[]>([]);
 
   // Result details after completion
   const [finalRawScore, setFinalRawScore] = useState(0);
@@ -126,6 +190,7 @@ export default function NmtClient() {
     setAnswers({});
     setCurrentIdx(0);
     setTimeElapsed(0);
+    setQuizQuestions(prepareQuizQuestions());
     setScreen("quiz");
     setTimerActive(true);
     toast(practice ? "Почалося тренування!" : "Офіційне проходження почалося. Хай щастить!", "success");
@@ -254,7 +319,7 @@ export default function NmtClient() {
   };
 
   const nextQuestion = () => {
-    if (currentIdx < questions.length - 1) {
+    if (currentIdx < quizQuestions.length - 1) {
       setCurrentIdx((prev) => prev + 1);
     } else {
       submitResults();
@@ -267,24 +332,27 @@ export default function NmtClient() {
     }
   };
 
-  const currentQuestion = questions[currentIdx];
-  const totalQuestions = questions.length;
-  const progressPercent = Math.round(((currentIdx + 1) / totalQuestions) * 100);
+  const activeQuestion = quizQuestions[currentIdx];
+  const currentQuestion = activeQuestion?.originalQuestion;
+  const totalQuestions = quizQuestions.length;
+  const progressPercent = totalQuestions > 0 ? Math.round(((currentIdx + 1) / totalQuestions) * 100) : 0;
 
   // Render different question components
-  const renderQuestionBody = (q: Question) => {
+  const renderQuestionBody = (activeQ: ActiveQuestion) => {
+    if (!activeQ) return null;
+    const q = activeQ.originalQuestion;
     const userAns = answers[q.id];
 
-    if (q.type === "single-choice") {
+    if (q.type === "single-choice" && "shuffledOptions" in activeQ) {
       return (
         <div className="flex flex-col gap-3 mt-6">
-          {q.options.map((opt, oIdx) => {
+          {activeQ.shuffledOptions.map((optObj, oIdx) => {
             const letter = ["А", "Б", "В", "Г"][oIdx];
-            const isSelected = userAns === oIdx;
+            const isSelected = userAns === optObj.originalIndex;
             return (
               <button
                 key={oIdx}
-                onClick={() => handleSingleChoice(q.id, oIdx)}
+                onClick={() => handleSingleChoice(q.id, optObj.originalIndex)}
                 className={`w-full text-left p-4 rounded border transition-all duration-200 cursor-pointer flex items-center gap-4 ${
                   isSelected
                     ? "bg-canvas-night-soft border-on-primary text-on-primary"
@@ -296,7 +364,7 @@ export default function NmtClient() {
                 }`}>
                   {letter}
                 </span>
-                <span className="caption leading-relaxed">{opt}</span>
+                <span className="caption leading-relaxed">{optObj.text}</span>
               </button>
             );
           })}
@@ -304,7 +372,7 @@ export default function NmtClient() {
       );
     }
 
-    if (q.type === "matching") {
+    if (q.type === "matching" && "shuffledLeft" in activeQ) {
       const letters = ["А", "Б", "В", "Г", "Д"];
       const currentMatch = (Array.isArray(userAns) ? userAns : [-1, -1, -1, -1]) as number[];
 
@@ -324,15 +392,16 @@ export default function NmtClient() {
                 </tr>
               </thead>
               <tbody>
-                {q.leftItems.map((leftItem, leftIdx) => (
+                {activeQ.shuffledLeft.map((leftItemObj, leftIdx) => (
                   <tr key={leftIdx} className="border-b border-hairline-dark/50 hover:bg-canvas-night-soft/30">
-                    <td className="p-3 caption text-on-primary-mute">{leftItem}</td>
+                    <td className="p-3 caption text-on-primary-mute">{leftItemObj.text}</td>
                     {letters.map((_, rightIdx) => {
-                      const isChecked = currentMatch[leftIdx] === rightIdx;
+                      const rightItemObj = activeQ.shuffledRight[rightIdx];
+                      const isChecked = currentMatch[leftItemObj.originalIndex] === rightItemObj.originalIndex;
                       return (
                         <td key={rightIdx} className="p-3 text-center">
                           <button
-                            onClick={() => handleMatching(q.id, leftIdx, rightIdx)}
+                            onClick={() => handleMatching(q.id, leftItemObj.originalIndex, rightItemObj.originalIndex)}
                             className={`w-8 h-8 rounded border flex items-center justify-center mx-auto transition-colors cursor-pointer ${
                               isChecked
                                 ? "bg-on-primary text-canvas-night border-on-primary"
@@ -354,16 +423,17 @@ export default function NmtClient() {
 
           {/* Mobile List Layout */}
           <div className="flex flex-col gap-4 sm:hidden">
-            {q.leftItems.map((leftItem, leftIdx) => (
+            {activeQ.shuffledLeft.map((leftItemObj, leftIdx) => (
               <div key={leftIdx} className="p-4 rounded border border-hairline-dark bg-canvas-night/40">
-                <p className="text-sm font-bold text-on-primary mb-3">{leftItem}</p>
+                <p className="text-sm font-bold text-on-primary mb-3">{leftItemObj.text}</p>
                 <div className="flex flex-wrap gap-2">
                   {letters.map((letter, rightIdx) => {
-                    const isChecked = currentMatch[leftIdx] === rightIdx;
+                    const rightItemObj = activeQ.shuffledRight[rightIdx];
+                    const isChecked = currentMatch[leftItemObj.originalIndex] === rightItemObj.originalIndex;
                     return (
                       <button
                         key={rightIdx}
-                        onClick={() => handleMatching(q.id, leftIdx, rightIdx)}
+                        onClick={() => handleMatching(q.id, leftItemObj.originalIndex, rightItemObj.originalIndex)}
                         className={`px-3 py-2 rounded border text-xs font-bold transition-colors cursor-pointer ${
                           isChecked
                             ? "bg-on-primary text-canvas-night border-on-primary"
@@ -383,10 +453,10 @@ export default function NmtClient() {
           <div className="card-dark p-4 border-dashed">
             <p className="micro-cap text-ink-mute mb-2">ВАРІАНТИ ДЛЯ ВІДПОВІДНОСТІ:</p>
             <ul className="flex flex-col gap-1.5 text-xs text-on-primary-mute">
-              {q.rightItems.map((rightItem, rIdx) => (
+              {activeQ.shuffledRight.map((rightItemObj, rIdx) => (
                 <li key={rIdx} className="flex gap-2">
                   <span className="font-[var(--font-display)] font-black text-on-primary">{letters[rIdx]}.</span>
-                  <span>{rightItem}</span>
+                  <span>{rightItemObj.text}</span>
                 </li>
               ))}
             </ul>
@@ -395,17 +465,17 @@ export default function NmtClient() {
       );
     }
 
-    if (q.type === "three-choice") {
+    if (q.type === "three-choice" && "shuffledOptions" in activeQ) {
       const selected = (Array.isArray(userAns) ? userAns : []) as number[];
       return (
         <div className="mt-6 flex flex-col gap-3">
           <p className="text-xs text-ink-mute italic mb-2">Оберіть рівно 3 правильні варіанти із 7:</p>
-          {q.options.map((opt, oIdx) => {
-            const isSelected = selected.includes(oIdx);
+          {activeQ.shuffledOptions.map((optObj, oIdx) => {
+            const isSelected = selected.includes(optObj.originalIndex);
             return (
               <button
                 key={oIdx}
-                onClick={() => handleThreeChoice(q.id, oIdx)}
+                onClick={() => handleThreeChoice(q.id, optObj.originalIndex)}
                 className={`w-full text-left p-4 rounded border transition-all duration-200 cursor-pointer flex items-center gap-4 ${
                   isSelected
                     ? "bg-canvas-night-soft border-on-primary text-on-primary"
@@ -417,7 +487,7 @@ export default function NmtClient() {
                 }`}>
                   {isSelected ? "✓" : ""}
                 </span>
-                <span className="caption leading-relaxed">{opt}</span>
+                <span className="caption leading-relaxed">{optObj.text}</span>
               </button>
             );
           })}
@@ -643,11 +713,11 @@ export default function NmtClient() {
 
             {/* Question Text */}
             <h3 className="heading-sub text-lg sm:text-xl text-on-primary font-normal leading-relaxed">
-              {currentQuestion.text}
+              {currentQuestion?.text}
             </h3>
 
             {/* Question Body */}
-            {renderQuestionBody(currentQuestion)}
+            {renderQuestionBody(activeQuestion)}
 
             {/* Footer Buttons */}
             <div className="flex justify-between items-center border-t border-hairline-dark pt-6 mt-8">
@@ -666,7 +736,7 @@ export default function NmtClient() {
               <button
                 onClick={nextQuestion}
                 className={`button-cap px-8 py-2.5 rounded border transition-colors cursor-pointer ${
-                  isQuestionAnswered(currentQuestion)
+                  currentQuestion && isQuestionAnswered(currentQuestion)
                     ? "bg-on-primary text-canvas-night border-on-primary hover:opacity-90"
                     : "border-hairline-dark text-ink-mute hover:border-on-primary-mute hover:text-on-primary"
                 }`}
@@ -747,7 +817,7 @@ export default function NmtClient() {
             <div className="flex flex-col gap-6 animate-slide-up">
               <h3 className="heading-sub text-lg text-on-primary px-2">АНАЛІЗ ВІДПОВІДЕЙ:</h3>
 
-              {questions.map((q, idx) => {
+              {(quizQuestions.length > 0 ? quizQuestions.map(aq => aq.originalQuestion) : questions).map((q, idx) => {
                 const userAns = answers[q.id];
 
                 // Determine correctness for display
