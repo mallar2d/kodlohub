@@ -861,6 +861,7 @@ export default function BratTDClient() {
 
   // --- CLICK HANDLING (PLACEMENT & SELECTION) ---
   const tryPlaceTower = (type: string, x: number, y: number): boolean => {
+    if (isPausedRef.current) return false;
     const config = TOWER_CONFIGS[type];
     if (!config) return false;
 
@@ -1026,6 +1027,7 @@ export default function BratTDClient() {
 
   // --- SELLING & UPGRADING TOWERS ---
   const sellSelectedTower = () => {
+    if (isPausedRef.current) return;
     if (!selectedPlacedTowerId) return;
     const towerIdx = towersRef.current.findIndex((t) => t.id === selectedPlacedTowerId);
     if (towerIdx === -1) return;
@@ -1056,6 +1058,7 @@ export default function BratTDClient() {
   };
 
   const buyUpgrade = (pathIndex: number) => {
+    if (isPausedRef.current) return;
     if (!selectedPlacedTowerId) return;
     const tower = towersRef.current.find((t) => t.id === selectedPlacedTowerId);
     if (!tower) return;
