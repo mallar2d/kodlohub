@@ -117,6 +117,7 @@ interface ActiveEnemy {
   isArmored?: boolean;
   isSuperArmored?: boolean;
   isGlitching?: boolean;
+  glitchDistance?: number;
   timeSinceGlitch?: number;
   isSlowingTowers?: boolean;
   isSpawningTrail?: boolean;
@@ -265,6 +266,30 @@ const DEFAULT_SETTINGS = {
 const EARLY_WAVE_BONUSES = [78, 65, 52, 39, 26, 26, 26, 26];
 
 const LEADERBOARD_KEY = "brat_td_leaderboard";
+const SETTINGS_KEY = "brat_td_settings";
+
+function loadSettings() {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw);
+    return {
+      volume: typeof parsed.volume === "number" ? Math.max(0, Math.min(1, parsed.volume)) : DEFAULT_SETTINGS.volume,
+      screenShake: typeof parsed.screenShake === "boolean" ? parsed.screenShake : DEFAULT_SETTINGS.screenShake,
+      particles: typeof parsed.particles === "boolean" ? parsed.particles : DEFAULT_SETTINGS.particles
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(settings: typeof DEFAULT_SETTINGS) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {}
+}
 
 function getLocalLeaderboard(): LeaderboardEntry[] {
   if (typeof window === "undefined") return [];
@@ -352,12 +377,12 @@ export default function BratTDClient() {
   const [isWaveActive, setIsWaveActive] = useState(false);
   const [gameStatus, setGameStatus] = useState<"idle" | "playing" | "gameover" | "victory">("idle");
   const [isPaused, setIsPaused] = useState(false);
-  const [gameSpeed, setGameSpeed] = useState<1 | 2>(1);
+  const [gameSpeed, setGameSpeed] = useState<1 | 2 | 3>(1);
   const [isEndless, setIsEndless] = useState(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [score, setScore] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyKey>("normal");
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<typeof DEFAULT_SETTINGS>(loadSettings);
   
   const [selectedShopTower, setSelectedShopTower] = useState<string | null>(null);
   const [selectedPlacedTowerId, setSelectedPlacedTowerId] = useState<string | null>(null);
@@ -397,7 +422,7 @@ export default function BratTDClient() {
   const isWaveActiveRef = useRef(false);
   const gameStatusRef = useRef<"idle" | "playing" | "gameover" | "victory">("idle");
   const isPausedRef = useRef(false);
-  const gameSpeedRef = useRef<1 | 2>(1);
+  const gameSpeedRef = useRef<1 | 2 | 3>(1);
   const isAutoStartRef = useRef(false);
   const scoreRef = useRef(0);
   const frameCountRef = useRef(0);
@@ -426,7 +451,7 @@ export default function BratTDClient() {
   useEffect(() => { draggedTowerTypeRef.current = draggedTowerType; }, [draggedTowerType]);
   useEffect(() => { draggedTowerPosRef.current = draggedTowerPos; }, [draggedTowerPos]);
   useEffect(() => { difficultyRef.current = difficulty; }, [difficulty]);
-  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { settingsRef.current = settings; saveSettings(settings); }, [settings]);
 
   // Load leaderboard on mount (API + localStorage merge)
   useEffect(() => {
@@ -564,6 +589,18 @@ export default function BratTDClient() {
         return;
       }
 
+      if (e.key === " " && !isWaveActive) {
+        e.preventDefault();
+        startNextWave();
+        return;
+      }
+
+      if ((e.key === "Delete" || e.key === "x" || e.key === "X") && selectedPlacedTowerId) {
+        e.preventDefault();
+        sellSelectedTower();
+        return;
+      }
+
       const towerKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
       const towerTypes = Object.keys(TOWER_CONFIGS);
       
@@ -586,7 +623,7 @@ export default function BratTDClient() {
     
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [gameStatus, selectedShopTower, selectedPlacedTowerId]);
+  }, [gameStatus, selectedShopTower, selectedPlacedTowerId, isWaveActive]);
 
   // Spawn float text
   const spawnFloatingText = (x: number, y: number, text: string, color = "#ffffff") => {
@@ -657,6 +694,7 @@ export default function BratTDClient() {
       isArmored: baseConfig.isArmored,
       isSuperArmored: baseConfig.isSuperArmored,
       isGlitching: baseConfig.isGlitching,
+      glitchDistance: baseConfig.glitchDistance,
       isSlowingTowers: baseConfig.isSlowingTowers,
       isSpawningTrail: baseConfig.isSpawningTrail,
       onDeath: baseConfig.onDeath,
@@ -1130,6 +1168,7 @@ export default function BratTDClient() {
                   isArmored: baseConfig.isArmored,
                   isSuperArmored: baseConfig.isSuperArmored,
                   isGlitching: baseConfig.isGlitching,
+                  glitchDistance: baseConfig.glitchDistance,
                   isSlowingTowers: baseConfig.isSlowingTowers,
                   isSpawningTrail: baseConfig.isSpawningTrail,
                   onDeath: baseConfig.onDeath,
@@ -1378,7 +1417,7 @@ export default function BratTDClient() {
               enemy.timeSinceGlitch = 0;
               
               // Teleport forward along path
-              let warpRemaining = 45;
+              let warpRemaining = enemy.glitchDistance || 45;
               while (warpRemaining > 0 && enemy.pathIndex < PATH.length) {
                 const target = PATH[enemy.pathIndex];
                 const wdist = getDistance(enemy.x, enemy.y, target.x, target.y);
@@ -1415,7 +1454,7 @@ export default function BratTDClient() {
         // Pre-calculate Nescafe Ritual buffs on nearby towers
         // For each tower, check if there's a Nescafe Ritual nearby
         const towers = towersRef.current;
-        const coffeeTowers = towers.filter((t) => t.type === "coffee" || t.type === "bankomat");
+        const coffeeTowers = towers.filter((t) => t.type === "coffee");
         
         towers.forEach((tower) => {
           // Find max coffee buff multiplier
@@ -1472,7 +1511,7 @@ export default function BratTDClient() {
           }
 
           // Economy/support-only towers do not shoot
-          if (tower.type === "coffee" || tower.type === "bankomat") return;
+          if (tower.type === "coffee") return;
 
           // Кладмен places mines on the path
           if (tower.type === "kladmen") {
@@ -2761,10 +2800,12 @@ export default function BratTDClient() {
 
   const handleSubmitScore = async () => {
     const name = playerName.trim() || "Анонім";
+    // Victory = current wave (e.g. 46), game over = waves survived (wave - 1)
+    const finalWave = gameStatusRef.current === "victory" ? wave : wave - 1;
     // Always save locally
-    addToLocalLeaderboard(name, score, wave - 1);
+    addToLocalLeaderboard(name, score, finalWave);
     // Try to save globally (works if authenticated)
-    await submitGlobalScore(name, score, wave - 1);
+    await submitGlobalScore(name, score, finalWave);
     // Reload merged leaderboard
     const local = getLocalLeaderboard();
     const global = await fetchGlobalLeaderboard();
@@ -2840,7 +2881,7 @@ export default function BratTDClient() {
                   {isPaused ? "Продовжити" : "Пауза"}
                 </button>
                 <button
-                  onClick={() => setGameSpeed((prev) => (prev === 1 ? 2 : 1))}
+                  onClick={() => setGameSpeed((prev) => (prev === 1 ? 2 : prev === 2 ? 3 : 1))}
                   className="px-4 py-2 border border-hairline-dark rounded hover:bg-canvas-night-soft text-sm font-bold text-cyan-400 micro-cap"
                 >
                   Швидкість: {gameSpeed}x
@@ -3052,7 +3093,7 @@ export default function BratTDClient() {
               </div>
               <div className="mb-5 max-w-md text-left bg-zinc-950/70 border border-hairline-dark rounded p-3 text-[11px] text-on-primary-mute leading-relaxed">
                 <p className="micro-cap text-cyan-400 mb-1">ШВИДКИЙ ТУТОРІАЛ</p>
-                <p>1-9: вибір башт. Q/W/E: апгрейди вибраної башти. P: пауза. ESC: скасувати.</p>
+                <p>1-0: вибір башт. Q/W/E: апгрейди вибраної башти. Space: старт хвилі. Delete/X: продаж. P: пауза. ESC: скасувати.</p>
                 <p>Свинець не любить газ/Infinix/Candy/бронебійне. Камо треба бачити. Після 46 є 10 handcrafted post-game хвиль.</p>
               </div>
               <button
