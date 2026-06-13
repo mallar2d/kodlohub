@@ -11,7 +11,10 @@ import {
   GAME_HEIGHT,
   PathPoint,
   Upgrade,
-  OBSTACLES
+  OBSTACLES,
+  EMOJI_MAP,
+  SOUND_MAP,
+  getWaveQuote
 } from "./gameConfig";
 
 interface PlacedTower {
@@ -439,22 +442,7 @@ export default function BratTDClient() {
   const playTowerSound = (towerType?: string) => {
     try {
       if (settingsRef.current.volume <= 0) return;
-      const sounds: Record<string, { file: string; volume: number }> = {
-        hammer: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
-        coffee: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.2 },
-        candy: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.3 },
-        infinix: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
-        gas: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.15 },
-        sniper: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
-        chain: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
-        kladmen: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
-        bankomat: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.18 },
-        monolith: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.55 },
-        wave: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.22 },
-        crit: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
-        explosion: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 },
-      };
-      const sound = sounds[towerType ?? ""] ?? { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 };
+      const sound = SOUND_MAP[towerType ?? ""] ?? { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 };
       const audio = new Audio(sound.file);
       audio.volume = Math.min(1, sound.volume * settingsRef.current.volume);
       audio.play().catch(() => {});
@@ -635,14 +623,6 @@ export default function BratTDClient() {
   // Spawns enemy from death actions (e.g. boss minions)
   const spawnEnemyCallback = (type: string, x: number, y: number) => {
     const baseConfig = getEnemyStatsForWave(type, waveRef.current);
-    const emojiMap: Record<string, string> = {
-      ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-      infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
-      camo: "🦹", regen: "💗", lead: "🔩",
-      phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-      sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿"
-    };
-    
     // Find closest pathIndex for spawned minion
     let closestIndex = 0;
     let minDist = Infinity;
@@ -668,7 +648,7 @@ export default function BratTDClient() {
       borderColor: baseConfig.borderColor,
       radius: baseConfig.radius,
       name: baseConfig.name,
-      emoji: emojiMap[type] || "😐",
+      emoji: EMOJI_MAP[type] || "😐",
       pathIndex: Math.max(1, closestIndex),
       distanceTraveled: 0,
       slowDuration: 0,
@@ -749,72 +729,7 @@ export default function BratTDClient() {
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
     playTowerSound("wave");
 
-    const waveQuotes = [
-      `Накат братви #${waveRef.current}! Вони йдуть за Nescafe!`,
-      `Хвиля ${waveRef.current}: Братва проривається! Подро почув!`,
-      `Хвиля ${waveRef.current}: Рачки активовано, викладачі в шоці!`,
-      `Хвиля ${waveRef.current}: Infinix-брати почали лагати реальність.`,
-      `Хвиля ${waveRef.current}: Коростишівський граніт тремтить від страху.`,
-      `Хвиля ${waveRef.current}: Подро мовчить, але молотки говорять за нього.`,
-      `Хвиля ${waveRef.current}: Братва вийшла з під'їзду. Серйозні обличчя.`,
-      `Хвиля ${waveRef.current}: Nescafe Gold закінчується! Тримай оборону!`,
-      `Хвиля ${waveRef.current}: Хтось викликав таксі, але прийшла братва.`,
-      `Хвиля ${waveRef.current}: Молотки летять, рачки святять, кава парує.`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, вийди!". Подро: "Ні".`,
-      `Хвиля ${waveRef.current}: Сьогодні братва в формі. Тренувались у підвалі.`,
-      `Хвиля ${waveRef.current}: Викладачка дала ДЗ, а братва — дубинку.`,
-      `Хвиля ${waveRef.current}: Братва знайшла новий маршрут через двір.`,
-      `Хвиля ${waveRef.current}: Подро: "Я їх чув. Вони гучніші за мою тишу."`,
-      `Хвиля ${waveRef.current}: Газова аура працює. Братва кашляє, але йде.`,
-      `Хвиля ${waveRef.current}: Снайпер дрімає, але очі відкриті.`,
-      `Хвиля ${waveRef.current}: Ланцюгова башня шокує братву. Буквально.`,
-      `Хвиля ${waveRef.current}: Братва: "Де Подро?" Подро: "Тут." *кидає молоток*`,
-      `Хвиля ${waveRef.current}: Сьогодні день відкритих дверей. Братва запрошується.`,
-      `Хвиля ${waveRef.current}: Братва: "Ми з повагою." Подро: "Я з молотком."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, давай поговоримо." Подро: *throw*`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є аргументи." Подро: "У мене є молот."`,
-      `Хвиля ${waveRef.current}: Nescafe Gold — валюта майбутнього. Братва згодна.`,
-      `Хвиля ${waveRef.current}: Братва: "Ми не здамось!" Подро: "Ок." *ще один молоток*`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, ти нас не зупиниш!" Подро: *triple crit*`,
-      `Хвиля ${waveRef.current}: Рачки летять, братва падає. Класика.`,
-      `Хвиля ${waveRef.current}: Братва: "Що це за звуки?" Подро: "PDR Production."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми прийшли з миром." Подро: "А я з молотком."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, вийди з хати!" Подро: "Ні, я граю в TD."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є план!" Подро: "У мене є 4 башні."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас оточили!" Подро: "Я вас бачу."`,
-      `Хвиля ${waveRef.current}: Братва: "Здаємося!" Подро: "Занадто пізно."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, поясни!" Подро: *throw* *throw* *throw*`,
-      `Хвиля ${waveRef.current}: Братва: "Ми не боїмось!" Подро: "А ви повинні."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є броня!" Подро: "У мене є кава."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми швидкі!" Подро: "А я точний."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, ти сам?" Подро: "Ні, зі мною 10 башень."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас знайдемо!" Подро: "Я вас чекаю."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є секрет!" Подро: "У мене є апгрейди."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми не здамось!" Подро: "Тоді тримай молоток."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, поясни ситуацію!" Подро: "Молот. Рачки. Кава."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми прийшли за Nescafe!" Подро: "А я за перемогою."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є числа!" Подро: "У мене є DPS."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас перехитримо!" Подро: "Спробуйте."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, здаємося!" Подро: "Пізно. Молоток уже летить."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є стратегія!" Подро: "У мене є гача-пул."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас не боїмось!" Подро: "Ви повинні."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, вийди з хати!" Подро: "Ні, у мене 200 FPS."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми прийшли з повагою." Подро: "А я з бронебійним."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є план Б!" Подро: "У мене є план Молоток."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, ти нас не зупиниш!" Подро: "Ок, тримай BSOD."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас оточили!" Подро: "Я вас бачу через 5G."`,
-      `Хвиля ${waveRef.current}: Братва: "Здаємося!" Подро: "Ні. Я хочу score."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, поясни!" Подро: "Все просто: молоток + кава = перемога."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми не боїмось!" Подро: "А ви повинні. У мене Тесла."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є броня!" Подро: "У мене є Коростишівський Еліксир."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми швидкі!" Подро: "А я з ЕМП-імпульсом."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, ти сам?" Подро: "Ні, зі мною Петр Хоменко."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми вас знайдемо!" Подро: "Я вас бачу через волхак."`,
-      `Хвиля ${waveRef.current}: Братва: "У нас є секрет!" Подро: "У мене є One Shot One Kill."`,
-      `Хвиля ${waveRef.current}: Братва: "Ми не здамось!" Подро: "Тоді тримай Тактичний Ядерний."`,
-      `Хвиля ${waveRef.current}: Братва: "Подро, поясни ситуацію!" Подро: "Сингулярність. Просто дивись."`,
-    ];
-    pushLog(waveQuotes[Math.floor(getPureRandom() * waveQuotes.length)]);
+    pushLog(getWaveQuote(waveRef.current));
 
     if (waveRef.current === 16) {
       pushLog("🔩 Хвиля 16: Свинцеві вороги (🔩)! Звичайні молотки не пробивають їх. Використовуйте Газ, Infinix, Цукерки, або Молот T1P4 ('Руйнівник граніту').");
@@ -1191,14 +1106,6 @@ export default function BratTDClient() {
               if (nextSpawn.type) {
                 // Actually spawn the enemy
                 const baseConfig = getEnemyStatsForWave(nextSpawn.type, waveRef.current);
-                const emojiMap: Record<string, string> = {
-                  ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-                  infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
-                  camo: "🦹", regen: "💗", lead: "🔩",
-                  phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-                  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿"
-                };
-
                 const newEnemy: ActiveEnemy = {
                   id: getPureId(),
                   type: nextSpawn.type,
@@ -1213,7 +1120,7 @@ export default function BratTDClient() {
                   borderColor: baseConfig.borderColor,
                   radius: baseConfig.radius,
                   name: baseConfig.name,
-                  emoji: emojiMap[nextSpawn.type] || "😐",
+                  emoji: EMOJI_MAP[nextSpawn.type] || "😐",
                   pathIndex: 1,
                   distanceTraveled: 0,
                   slowDuration: 0,
@@ -3180,20 +3087,13 @@ export default function BratTDClient() {
           if (nextWaveNum > 56) return null;
           const nextSegments = getScaledWave(nextWaveNum);
           const uniqueTypes = [...new Set(nextSegments.map(s => s.type))];
-          const emojiMap: Record<string, string> = {
-            ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-            infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
-            camo: "🦹", regen: "💗", lead: "🔩",
-            phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-            healer: "💚", kladmen: "💣", bankomat: "🏧", monolith: "🗿"
-          };
           const totalEnemies = nextSegments.reduce((sum, s) => sum + s.count, 0);
           return (
             <div className="card-dark p-3 border-hairline-dark flex items-center gap-3 text-sm">
               <span className="micro-cap text-ink-mute">Наступна хвиля:</span>
               <span className="flex items-center gap-1">
                 {uniqueTypes.map(t => (
-                  <span key={t} className="text-base" title={t}>{emojiMap[t] || "?"}</span>
+                  <span key={t} className="text-base" title={t}>{EMOJI_MAP[t] || "?"}</span>
                 ))}
               </span>
               <span className="text-ink-mute text-xs">({totalEnemies} ворогів)</span>
