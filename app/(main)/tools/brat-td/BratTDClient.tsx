@@ -17,6 +17,7 @@ import {
   SOUND_MAP,
   getWaveQuote
 } from "./gameConfig";
+import type { EnemyModifier } from "./gameConfig";
 
 interface PlacedTower {
   id: string;
@@ -154,7 +155,7 @@ interface ActiveEnemy {
   timeSinceGlitch?: number;
   isSlowingTowers?: boolean;
   isSpawningTrail?: boolean;
-  onDeath?: (x: number, y: number, spawnCallback: (type: string, rx: number, ry: number) => void) => void;
+  onDeath?: (x: number, y: number, spawnCallback: (type: string, rx: number, ry: number, modifiers?: EnemyModifier[]) => void) => void;
   isCamo?: boolean;
   isRegen?: boolean;
   isLead?: boolean;
@@ -504,7 +505,7 @@ export default function BratTDClient() {
   const waveAnnouncementRef = useRef<{ wave: number; frameStart: number } | null>(null);
 
   // Spawner tracking
-  const spawnQueueRef = useRef<{ type: string; delay: number }[]>([]);
+  const spawnQueueRef = useRef<{ type: string; delay: number; modifiers?: EnemyModifier[] }[]>([]);
   const spawnTimerRef = useRef<number>(0);
   const waveTotalEnemiesRef = useRef<number>(0);
   const waveTotalHpRef = useRef<number>(0);
@@ -717,8 +718,8 @@ export default function BratTDClient() {
   };
 
   // Spawns enemy from death actions (e.g. boss minions)
-  const spawnEnemyCallback = (type: string, x: number, y: number) => {
-    const baseConfig = getEnemyStatsForWave(type, waveRef.current);
+  const spawnEnemyCallback = (type: string, x: number, y: number, modifiers?: EnemyModifier[]) => {
+    const baseConfig = getEnemyStatsForWave(type, waveRef.current, modifiers);
     // Find closest pathIndex for spawned minion
     let closestIndex = 0;
     let minDist = Infinity;
@@ -806,12 +807,13 @@ export default function BratTDClient() {
     const segments = getScaledWave(waveRef.current);
     
     // Build spawn queue
-    const queue: { type: string; delay: number }[] = [];
+    const queue: { type: string; delay: number; modifiers?: EnemyModifier[] }[] = [];
     segments.forEach((seg) => {
       for (let i = 0; i < seg.count; i++) {
         queue.push({
           type: seg.type,
-          delay: seg.spawnDelay
+          delay: seg.spawnDelay,
+          modifiers: seg.modifiers
         });
       }
       if (seg.delayBeforeNext) {
@@ -824,7 +826,7 @@ export default function BratTDClient() {
     spawnTimerRef.current = 0;
     const totalEnemies = segments.reduce((sum, s) => sum + s.count, 0);
     waveTotalEnemiesRef.current = totalEnemies;
-    waveTotalHpRef.current = segments.reduce((sum, s) => sum + getEnemyStatsForWave(s.type, waveRef.current).hp * s.count, 0);
+    waveTotalHpRef.current = segments.reduce((sum, s) => sum + getEnemyStatsForWave(s.type, waveRef.current, s.modifiers).hp * s.count, 0);
     setIsWaveActive(true);
     isWaveActiveRef.current = true;
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
@@ -1220,7 +1222,7 @@ export default function BratTDClient() {
               
               if (nextSpawn.type) {
                 // Actually spawn the enemy
-                const baseConfig = getEnemyStatsForWave(nextSpawn.type, waveRef.current);
+                const baseConfig = getEnemyStatsForWave(nextSpawn.type, waveRef.current, nextSpawn.modifiers);
                 const newEnemy: ActiveEnemy = {
                   id: getPureId(),
                   type: nextSpawn.type,
@@ -3447,19 +3449,20 @@ export default function BratTDClient() {
           const nextSegments = getScaledWave(nextWaveNum);
           const counts: Record<string, number> = {};
           let totalHp = 0;
+          const segmentStats = nextSegments.map((s) => getEnemyStatsForWave(s.type, nextWaveNum, s.modifiers));
           nextSegments.forEach((s) => {
-            const stats = getEnemyStatsForWave(s.type, nextWaveNum);
+            const stats = getEnemyStatsForWave(s.type, nextWaveNum, s.modifiers);
             counts[s.type] = (counts[s.type] || 0) + s.count;
             totalHp += stats.hp * s.count;
           });
           const types = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
           const totalEnemies = Object.values(counts).reduce((a, b) => a + b, 0);
-          const hasCamo = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isCamo);
-          const hasPhantom = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isPhantomCamo);
-          const hasLead = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isLead);
-          const hasArmor = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isArmored || getEnemyStatsForWave(t, nextWaveNum).isSuperArmored);
-          const hasRegen = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isRegen);
-          const hasHealer = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isHealer);
+          const hasCamo = segmentStats.some((stats) => stats.isCamo);
+          const hasPhantom = segmentStats.some((stats) => stats.isPhantomCamo);
+          const hasLead = segmentStats.some((stats) => stats.isLead);
+          const hasArmor = segmentStats.some((stats) => stats.isArmored || stats.isSuperArmored);
+          const hasRegen = segmentStats.some((stats) => stats.isRegen);
+          const hasHealer = segmentStats.some((stats) => stats.isHealer);
           return (
             <div className="card-dark p-3 border-hairline-dark text-sm">
               <div className="flex items-center gap-3 mb-2">
