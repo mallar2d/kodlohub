@@ -1139,21 +1139,25 @@ function getWaveScaling(waveNumber: number, type: string): { countMult: number; 
   const armored = ["coat", "heavy", "lead"];
   const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer"];
 
+  // Early waves should have large spacing between enemies; later waves tighten up.
+  const swarmDelay = waveNumber <= 5 ? 1.15 : waveNumber <= 10 ? 1.0 : waveNumber <= 25 ? 0.7 : 0.55;
+  const specialDelay = waveNumber <= 5 ? 1.1 : waveNumber <= 10 ? 1.0 : waveNumber <= 25 ? 0.8 : 0.65;
+  const armoredDelay = waveNumber <= 10 ? 1.0 : waveNumber <= 25 ? 0.9 : 0.75;
+  const miniBossDelay = waveNumber <= 10 ? 1.0 : 0.9;
+
   if (swarm.includes(type)) {
-    // Wave 1: 0.87x, Wave 5: 1.13x, Wave 10: 1.45x, Wave 20: 2.1x, Wave 40: 3.4x
-    return { countMult: 0.8 + waveNumber * 0.065, delayMult: 0.6 };
+    return { countMult: 1.4 + waveNumber * 0.045, delayMult: swarmDelay };
   }
   if (massSpecial.includes(type)) {
-    // Wave 1: ~1.0x, Wave 10: 1.3x, Wave 40: 2.2x
-    return { countMult: 0.95 + waveNumber * 0.035, delayMult: 0.75 };
+    return { countMult: 1.15 + waveNumber * 0.03, delayMult: specialDelay };
   }
   if (armored.includes(type)) {
-    // Wave 1: ~1.0x, Wave 10: 1.2x, Wave 40: 1.8x
-    return { countMult: 1.0 + waveNumber * 0.02, delayMult: 0.85 };
+    return { countMult: 1.05 + waveNumber * 0.02, delayMult: armoredDelay };
   }
   if (miniBoss.includes(type)) {
-    return { countMult: 1.0 + waveNumber * 0.008, delayMult: 0.9 };
+    return { countMult: 1.0 + waveNumber * 0.008, delayMult: miniBossDelay };
   }
+  // boss / megaboss: keep counts rare
   return { countMult: 1.0, delayMult: 1.0 };
 }
 
