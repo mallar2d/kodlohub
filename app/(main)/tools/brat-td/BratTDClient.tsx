@@ -200,6 +200,8 @@ interface FloatingText {
   color: string;
   life: number;
   maxLife: number;
+  size?: number;
+  font?: string;
 }
 
 interface SpeedTrail {
@@ -399,6 +401,7 @@ export default function BratTDClient() {
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
 
   const selectedShopTowerRef = useRef<string | null>(null);
+  const hoveredShopTowerRef = useRef<string | null>(null);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const isMouseOnCanvasRef = useRef(false);
   const draggedTowerTypeRef = useRef<string | null>(null);
@@ -434,6 +437,8 @@ export default function BratTDClient() {
   // Spawner tracking
   const spawnQueueRef = useRef<{ type: string; delay: number }[]>([]);
   const spawnTimerRef = useRef<number>(0);
+  const waveTotalEnemiesRef = useRef<number>(0);
+  const waveTotalHpRef = useRef<number>(0);
 
   // Keep refs in sync with state
   useEffect(() => { livesRef.current = lives; }, [lives]);
@@ -626,14 +631,16 @@ export default function BratTDClient() {
   }, [gameStatus, selectedShopTower, selectedPlacedTowerId, isWaveActive]);
 
   // Spawn float text
-  const spawnFloatingText = (x: number, y: number, text: string, color = "#ffffff") => {
+  const spawnFloatingText = (x: number, y: number, text: string, color = "#ffffff", size = 12, font = "Arial") => {
     floatingTextsRef.current.push({
       x,
       y,
       text,
       color,
       life: 45,
-      maxLife: 45
+      maxLife: 45,
+      size,
+      font
     });
   };
 
@@ -762,6 +769,9 @@ export default function BratTDClient() {
 
     spawnQueueRef.current = queue;
     spawnTimerRef.current = 0;
+    const totalEnemies = segments.reduce((sum, s) => sum + s.count, 0);
+    waveTotalEnemiesRef.current = totalEnemies;
+    waveTotalHpRef.current = segments.reduce((sum, s) => sum + getEnemyStatsForWave(s.type, waveRef.current).hp * s.count, 0);
     setIsWaveActive(true);
     isWaveActiveRef.current = true;
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
@@ -1116,6 +1126,13 @@ export default function BratTDClient() {
 
     pushLog(`Апгрейд куплено: ${upgrade.name}!`);
     spawnFloatingText(tower.x, tower.y - 20, `-${upgrade.cost} ☕`, "#ef4444");
+    spawnHitParticles(tower.x, tower.y, "#facc15", 16, "square");
+    explosionRingsRef.current.push({
+      x: tower.x, y: tower.y,
+      radius: 10, maxRadius: tower.range,
+      color: "#facc15",
+      life: 30
+    });
     playPdrSound();
     setSelectedTower({ ...tower });
   };
@@ -1863,9 +1880,22 @@ export default function BratTDClient() {
               enemy.hp -= dmg;
               enemy.lastHitFrame = frameCountRef.current;
 
-              // Damage numbers for normal hits
-              if (dmg > 0 && !isCrit) {
-                spawnFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 10, `-${dmg}`, "#ffffff");
+              // Damage numbers
+              const typeColors: Record<string, string> = {
+                hammer: "#ffffff",
+                candy: "#f472b6",
+                infinix: "#c084fc",
+                gas: "#4ade80",
+                sniper: "#facc15",
+                chain: "#38bdf8",
+                kladmen: "#fb923c",
+                bankomat: "#a1a1aa",
+                monolith: "#f87171"
+              };
+              if (dmg > 0) {
+                const color = isCrit ? "#f43f5e" : (typeColors[proj.type] || "#ffffff");
+                const size = isCrit ? 15 : 11;
+                spawnFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 10 - (isCrit ? 12 : 0), `-${dmg}`, color, size);
               }
 
               // Apply status effects
@@ -2496,6 +2526,23 @@ export default function BratTDClient() {
         }
       }
 
+      // --- Draw Shop Hover Range Preview (when just hovering shop item) ---
+      if (!activePreviewType && hoveredShopTowerRef.current && isMouseOnCanvasRef.current) {
+        const hoverConfig = TOWER_CONFIGS[hoveredShopTowerRef.current];
+        if (hoverConfig) {
+          const pos = mousePosRef.current;
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, hoverConfig.range, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(6, 182, 212, 0.05)";
+          ctx.strokeStyle = "rgba(6, 182, 212, 0.4)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.fill();
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
       // --- Draw Enemies ---
       enemiesRef.current.forEach((enemy) => {
         // Draw glitched lag shadow if freezing/glitching
@@ -2696,7 +2743,7 @@ export default function BratTDClient() {
         const opacity = ft.life / ft.maxLife;
         ctx.globalAlpha = opacity;
         ctx.fillStyle = ft.color;
-        ctx.font = "bold 11px var(--font-body)";
+        ctx.font = `bold ${ft.size || 11}px ${ft.font || "var(--font-body)"}`;
         ctx.textAlign = "center";
         ctx.fillText(ft.text, ft.x, ft.y);
         ctx.restore();
@@ -2859,7 +2906,7 @@ export default function BratTDClient() {
               </div>
             </div>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-[140px]">
               <span className="micro-cap text-ink-mute">Накат Братви (Хвиля)</span>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xl">🌊</span>
@@ -2867,6 +2914,26 @@ export default function BratTDClient() {
                   {wave} {isEndless && <span className="text-xs text-purple-400 font-normal">Endless</span>}
                 </span>
               </div>
+              {isWaveActive && (
+                <div className="mt-1 w-full">
+                  {(() => {
+                    const remainingEnemies = enemiesRef.current.length + spawnQueueRef.current.filter((s) => s.type).length;
+                    const remainingHp = enemiesRef.current.reduce((sum, e) => sum + e.hp, 0);
+                    const enemyPct = waveTotalEnemiesRef.current > 0 ? Math.max(0, Math.min(100, (remainingEnemies / waveTotalEnemiesRef.current) * 100)) : 0;
+                    const hpPct = waveTotalHpRef.current > 0 ? Math.max(0, Math.min(100, (remainingHp / waveTotalHpRef.current) * 100)) : 0;
+                    return (
+                      <div className="space-y-1">
+                        <div className="w-28 h-1.5 bg-zinc-800 rounded overflow-hidden">
+                          <div className="h-full bg-cyan-500 transition-all duration-150" style={{ width: `${100 - enemyPct}%` }} />
+                        </div>
+                        <div className="text-[10px] text-ink-mute font-mono">
+                          {remainingEnemies}/{waveTotalEnemiesRef.current} • {Math.round(remainingHp / 1000)}к HP
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
@@ -3127,17 +3194,43 @@ export default function BratTDClient() {
           const nextWaveNum = wave;
           if (nextWaveNum > 56) return null;
           const nextSegments = getScaledWave(nextWaveNum);
-          const uniqueTypes = [...new Set(nextSegments.map(s => s.type))];
-          const totalEnemies = nextSegments.reduce((sum, s) => sum + s.count, 0);
+          const counts: Record<string, number> = {};
+          let totalHp = 0;
+          nextSegments.forEach((s) => {
+            const stats = getEnemyStatsForWave(s.type, nextWaveNum);
+            counts[s.type] = (counts[s.type] || 0) + s.count;
+            totalHp += stats.hp * s.count;
+          });
+          const types = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+          const totalEnemies = Object.values(counts).reduce((a, b) => a + b, 0);
+          const hasCamo = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isCamo);
+          const hasPhantom = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isPhantomCamo);
+          const hasLead = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isLead);
+          const hasArmor = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isArmored || getEnemyStatsForWave(t, nextWaveNum).isSuperArmored);
+          const hasRegen = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isRegen);
+          const hasHealer = types.some((t) => getEnemyStatsForWave(t, nextWaveNum).isHealer);
           return (
-            <div className="card-dark p-3 border-hairline-dark flex items-center gap-3 text-sm">
-              <span className="micro-cap text-ink-mute">Наступна хвиля:</span>
-              <span className="flex items-center gap-1">
-                {uniqueTypes.map(t => (
-                  <span key={t} className="text-base" title={t}>{EMOJI_MAP[t] || "?"}</span>
+            <div className="card-dark p-3 border-hairline-dark text-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="micro-cap text-ink-mute">Наступна хвиля {nextWaveNum}:</span>
+                <span className="text-ink-mute text-xs">{totalEnemies} ворогів • {Math.round(totalHp / 1000)}к HP</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {types.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black/40 border border-hairline-dark rounded text-xs" title={t}>
+                    <span className="text-base">{EMOJI_MAP[t] || "?"}</span>
+                    <span className="font-mono text-on-primary">{counts[t]}</span>
+                  </span>
                 ))}
-              </span>
-              <span className="text-ink-mute text-xs">({totalEnemies} ворогів)</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {hasCamo && <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-950/60 text-purple-300 border border-purple-800">CAMO</span>}
+                {hasPhantom && <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-950/60 text-indigo-300 border border-indigo-800">PHANTOM</span>}
+                {hasLead && <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-800 text-gray-300 border border-gray-600">LEAD</span>}
+                {hasArmor && <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-300 border border-amber-800">ARMOR</span>}
+                {hasRegen && <span className="px-1.5 py-0.5 rounded text-[10px] bg-pink-950/60 text-pink-300 border border-pink-800">REGEN</span>}
+                {hasHealer && <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-950/60 text-green-300 border border-green-800">HEALER</span>}
+              </div>
             </div>
           );
         })()}
@@ -3378,6 +3471,8 @@ export default function BratTDClient() {
                         setDraggedTowerType(null);
                         setDraggedTowerPos(null);
                       }}
+                      onMouseEnter={() => { hoveredShopTowerRef.current = type; }}
+                      onMouseLeave={() => { hoveredShopTowerRef.current = null; }}
                       onClick={() => {
                         const nextSelected = isSelected ? null : type;
                         selectedShopTowerRef.current = nextSelected;
