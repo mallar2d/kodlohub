@@ -76,6 +76,17 @@ interface PlacedTower {
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
   maxMines?: number;
+  knockbackChance?: number;
+  knockbackDistance?: number;
+  microStunDuration?: number;
+  wallBounce?: boolean;
+  tripleShot?: boolean;
+  quadShot?: boolean;
+  everyNthTriple?: number;
+  spreadChance?: number;
+  spreadDamageBonus?: number;
+  gachaDamageMultiplier?: number;
+  conditionalTripleWithPierce?: boolean;
   mineExplodes?: boolean;
   hasCamoBuff?: boolean;
   hasCoffeeBuff?: boolean;
@@ -97,7 +108,9 @@ const UPGRADE_STAT_KEYS: (keyof UpgradeStats)[] = [
   "slowDurationBonus", "slowFactorBonus", "explodeDmg", "gachaDamageOverride",
   "freezeDurationBonus", "bsodAoE", "bugExplodeDmg", "bugExplodeRadius", "bugContagion",
   "disableGlitch", "disableAbilities", "camoDetection", "camoDetectionBuff", "pierce",
-  "tackCount", "maxMines", "mineExplodes"
+  "tackCount", "maxMines", "mineExplodes", "knockbackChance", "knockbackDistance",
+  "microStunDuration", "wallBounce", "tripleShot", "quadShot", "everyNthTriple",
+  "spreadChance", "spreadDamageBonus", "gachaDamageMultiplier", "conditionalTripleWithPierce"
 ];
 
 function buildUpgradeStats(tower: PlacedTower): UpgradeStats {
@@ -167,6 +180,8 @@ interface ActiveEnemy {
   lastHitFrame?: number;
   tier?: number;
   damageReduce?: number;
+  stunImmune?: boolean;
+  knockbackImmune?: boolean;
 }
 
 interface Projectile {
@@ -205,6 +220,18 @@ interface Projectile {
   bugContagion?: boolean;
   camoDetection?: boolean;
   pierce: number;
+  knockbackChance?: number;
+  knockbackDistance?: number;
+  microStunDuration?: number;
+  wallBounce?: boolean;
+  tripleShot?: boolean;
+  quadShot?: boolean;
+  everyNthTriple?: number;
+  spreadChance?: number;
+  spreadDamageBonus?: number;
+  gachaDamageMultiplier?: number;
+  conditionalTripleWithPierce?: boolean;
+  hasBounced?: boolean;
   hitEnemyIds: string[];
   // simple physics
   angle: number;
@@ -766,7 +793,9 @@ export default function BratTDClient() {
       isHealer: baseConfig.isHealer,
       shieldHp: baseConfig.shieldHp,
       tier: baseConfig.tier,
-      damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
+      damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
+      stunImmune: baseConfig.stunImmune,
+      knockbackImmune: baseConfig.knockbackImmune
     };
     enemiesRef.current.push(applyDifficultyToEnemy(newEnemy));
   };
@@ -1126,7 +1155,18 @@ export default function BratTDClient() {
       disableAbilities: tower.disableAbilities,
       camoDetection: tower.camoDetection,
       camoDetectionBuff: tower.camoDetectionBuff,
-      pierce: tower.pierce
+      pierce: tower.pierce,
+      knockbackChance: tower.knockbackChance,
+      knockbackDistance: tower.knockbackDistance,
+      microStunDuration: tower.microStunDuration,
+      wallBounce: tower.wallBounce,
+      tripleShot: tower.tripleShot,
+      quadShot: tower.quadShot,
+      everyNthTriple: tower.everyNthTriple,
+      spreadChance: tower.spreadChance,
+      spreadDamageBonus: tower.spreadDamageBonus,
+      gachaDamageMultiplier: tower.gachaDamageMultiplier,
+      conditionalTripleWithPierce: tower.conditionalTripleWithPierce
     });
 
     // Deduct cost and apply variables
@@ -1259,7 +1299,9 @@ export default function BratTDClient() {
                   isHealer: baseConfig.isHealer,
                   shieldHp: baseConfig.shieldHp,
                   tier: baseConfig.tier,
-                  damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0
+                  damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
+                  stunImmune: baseConfig.stunImmune,
+                  knockbackImmune: baseConfig.knockbackImmune
                 };
 
                 enemiesRef.current.push(applyDifficultyToEnemy(newEnemy));
@@ -1386,12 +1428,15 @@ export default function BratTDClient() {
           if (enemy.freezeDuration > 0) {
             currentSpeed = 0;
           } else {
+            let activeSlow = 0;
             if (enemy.slowDuration > 0) {
-              currentSpeed *= (1 - (enemy.candySlowFactor || 0.5));
+              activeSlow = Math.max(activeSlow, enemy.candySlowFactor || 0.5);
             }
             if (enemy.gasSlowDuration > 0) {
-              currentSpeed *= (1 - (enemy.gasSlowFactor || 0.15));
+              activeSlow = Math.max(activeSlow, enemy.gasSlowFactor || 0.15);
             }
+            currentSpeed *= (1 - activeSlow);
+
             if (standingOnTrail) {
               currentSpeed *= 1.4; // 40% speed boost
             }
@@ -1465,8 +1510,13 @@ export default function BratTDClient() {
                 if (target.damageReduce) dmg = Math.floor(dmg * (1 - target.damageReduce));
                 if (dmg <= 0) return 0;
                 target.hp -= dmg;
-                if (mine.slowAmount) target.gasSlowDuration = 60;
-                if (mine.freezeChance && getPureRandom() < mine.freezeChance) target.freezeDuration = mine.freezeDuration || 60;
+                if (mine.slowAmount) {
+                  target.gasSlowDuration = Math.max(target.gasSlowDuration || 0, 60);
+                  target.gasSlowFactor = Math.max(target.gasSlowFactor || 0, mine.slowAmount);
+                }
+                if (mine.freezeChance && !target.stunImmune && !(target.freezeDuration > 0) && getPureRandom() < mine.freezeChance) {
+                  target.freezeDuration = mine.freezeDuration || 60;
+                }
                 if (mine.disableAbilities) { target.isGlitching = false; }
                 if (mine.damageDebuff) target.damageDebuff = applyDamageDebuffCap(target.damageDebuff, mine.damageDebuff);
                 if (target.hp <= 0) {
@@ -1734,20 +1784,43 @@ export default function BratTDClient() {
                   originY: tower.y
                 };
 
-                // Double-shot logic
+                // Double/Triple-shot logic
                 if (tower.alwaysDouble || tower.twoHits) {
                   const shotCount = tower.shotCount || 0;
                   if (tower.twoHits) tower.shotCount = shotCount + 1;
                   if (tower.alwaysDouble || (shotCount + 1) % 3 === 0) {
-                    const offsetProj = {
-                      ...newProj,
-                      id: projId + "_2",
-                      angle: angle + 0.25,
-                      spinRotation: angle + 0.25,
-                      x: tower.x + Math.cos(angle + Math.PI/2) * 8,
-                      y: tower.y + Math.sin(angle + Math.PI/2) * 8
-                    };
-                    projectilesRef.current.push(offsetProj);
+                    const isTriple = tower.conditionalTripleWithPierce && (tower.pierce >= 4);
+                    if (isTriple) {
+                      // Fire 2 additional projectiles (left and right) to make it 3 total
+                      const leftProj = {
+                        ...newProj,
+                        id: projId + "_L",
+                        angle: angle - 0.25,
+                        spinRotation: angle - 0.25,
+                        x: tower.x + Math.cos(angle - Math.PI/2) * 8,
+                        y: tower.y + Math.sin(angle - Math.PI/2) * 8
+                      };
+                      const rightProj = {
+                        ...newProj,
+                        id: projId + "_R",
+                        angle: angle + 0.25,
+                        spinRotation: angle + 0.25,
+                        x: tower.x + Math.cos(angle + Math.PI/2) * 8,
+                        y: tower.y + Math.sin(angle + Math.PI/2) * 8
+                      };
+                      projectilesRef.current.push(leftProj, rightProj);
+                    } else {
+                      // Fire 1 additional projectile (right) to make it 2 total
+                      const rightProj = {
+                        ...newProj,
+                        id: projId + "_2",
+                        angle: angle + 0.25,
+                        spinRotation: angle + 0.25,
+                        x: tower.x + Math.cos(angle + Math.PI/2) * 8,
+                        y: tower.y + Math.sin(angle + Math.PI/2) * 8
+                      };
+                      projectilesRef.current.push(rightProj);
+                    }
                   }
                 }
 
@@ -1834,34 +1907,69 @@ export default function BratTDClient() {
                 disableAbilities: tower.disableAbilities,
                 bugExplodeDmg: tower.bugExplodeDmg,
                 bugExplodeRadius: tower.bugExplodeRadius,
-                 bugContagion: tower.bugContagion,
+                bugContagion: tower.bugContagion,
                 angle,
                 lastTargetX: target.x,
                 lastTargetY: target.y,
                 pierce: tower.pierce || 1,
                 hitEnemyIds: [],
                 camoDetection: isCamoCapable,
-                spinRotation: angle
+                spinRotation: angle,
+                knockbackChance: tower.knockbackChance,
+                knockbackDistance: tower.knockbackDistance,
+                microStunDuration: tower.microStunDuration,
+                wallBounce: tower.wallBounce,
+                tripleShot: tower.tripleShot,
+                quadShot: tower.quadShot,
+                everyNthTriple: tower.everyNthTriple,
+                spreadChance: tower.spreadChance,
+                spreadDamageBonus: tower.spreadDamageBonus,
+                gachaDamageMultiplier: tower.gachaDamageMultiplier,
+                conditionalTripleWithPierce: tower.conditionalTripleWithPierce
               };
 
-              // Double-shot logic used by Hammer, Sniper and Monolith upgrades.
-              if (tower.alwaysDouble || tower.twoHits) {
-                const shotCount = tower.shotCount || 0;
-                if (tower.twoHits) tower.shotCount = shotCount + 1;
-                if (tower.alwaysDouble || (shotCount + 1) % 3 === 0) {
-                  const offsetProj = {
-                    ...newProj,
-                    id: projId + "_2",
-                    angle: angle + 0.25,
-                    spinRotation: angle + 0.25,
-                    x: tower.x + Math.cos(angle + Math.PI/2) * 8,
-                    y: tower.y + Math.sin(angle + Math.PI/2) * 8
-                  };
-                  projectilesRef.current.push(offsetProj);
-                }
-              }
+              // Multishot logic (Quad, Triple, Double)
+              const shotCount = tower.shotCount || 0;
+              tower.shotCount = shotCount + 1;
 
-              projectilesRef.current.push(newProj);
+              if (tower.quadShot) {
+                const angles = [angle - 0.3, angle - 0.1, angle + 0.1, angle + 0.3];
+                angles.forEach((a, idx) => {
+                  projectilesRef.current.push({
+                    ...newProj,
+                    id: `${projId}_quad_${idx}`,
+                    angle: a,
+                    spinRotation: a,
+                    x: tower.x + Math.cos(a + Math.PI/2) * 4,
+                    y: tower.y + Math.sin(a + Math.PI/2) * 4
+                  });
+                });
+              } else if (tower.tripleShot || (tower.everyNthTriple && (shotCount + 1) % tower.everyNthTriple === 0)) {
+                const angles = [angle - 0.25, angle, angle + 0.25];
+                angles.forEach((a, idx) => {
+                  projectilesRef.current.push({
+                    ...newProj,
+                    id: `${projId}_triple_${idx}`,
+                    angle: a,
+                    spinRotation: a,
+                    x: tower.x + Math.cos(a + Math.PI/2) * 4,
+                    y: tower.y + Math.sin(a + Math.PI/2) * 4
+                  });
+                });
+              } else if (tower.alwaysDouble || (tower.twoHits && (shotCount + 1) % 3 === 0)) {
+                const offsetProj = {
+                  ...newProj,
+                  id: projId + "_2",
+                  angle: angle + 0.25,
+                  spinRotation: angle + 0.25,
+                  x: tower.x + Math.cos(angle + Math.PI/2) * 8,
+                  y: tower.y + Math.sin(angle + Math.PI/2) * 8
+                };
+                projectilesRef.current.push(offsetProj);
+                projectilesRef.current.push(newProj);
+              } else {
+                projectilesRef.current.push(newProj);
+              }
 
               // Muzzle flash particles
               for (let mi = 0; mi < 5; mi++) {
@@ -1998,6 +2106,35 @@ export default function BratTDClient() {
             }
           }
 
+          // Wall bounce logic
+          if (proj.wallBounce && !proj.hasBounced) {
+            let bounced = false;
+            if (proj.x < 0) {
+              proj.x = 0;
+              proj.angle = Math.PI - proj.angle;
+              bounced = true;
+            } else if (proj.x > GAME_WIDTH) {
+              proj.x = GAME_WIDTH;
+              proj.angle = Math.PI - proj.angle;
+              bounced = true;
+            }
+            if (proj.y < 0) {
+              proj.y = 0;
+              proj.angle = -proj.angle;
+              bounced = true;
+            } else if (proj.y > GAME_HEIGHT) {
+              proj.y = GAME_HEIGHT;
+              proj.angle = -proj.angle;
+              bounced = true;
+            }
+            if (bounced) {
+              proj.hasBounced = true;
+              proj.hitEnemyIds = []; // clear hit list so it can deal damage again
+              proj.targetId = ""; // disable homing so it continues in straight line
+              proj.spinRotation = proj.angle;
+            }
+          }
+
           // Out of bounds check
           if ((proj.maxDistance && proj.travelDistance > proj.maxDistance && proj.type !== "boomerang") || proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
             projectilesRef.current.splice(i, 1);
@@ -2076,7 +2213,11 @@ export default function BratTDClient() {
 
               // Check Gacha jackpot
               if (dmg > 0 && proj.gachaChance && getPureRandom() < proj.gachaChance) {
-                dmg = proj.gachaDamageOverride || 300;
+                if (proj.gachaDamageMultiplier) {
+                  dmg = Math.floor(proj.damage * proj.gachaDamageMultiplier);
+                } else {
+                  dmg = proj.gachaDamageOverride || 300;
+                }
                 isCrit = true;
                 playPdrSound();
               }
@@ -2117,11 +2258,69 @@ export default function BratTDClient() {
 
               // Apply status effects
               if (proj.type === "candy") {
-                enemy.slowDuration = 120 + (proj.slowDurationBonus || 0);
-                enemy.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
+                enemy.slowDuration = Math.max(enemy.slowDuration, 120 + (proj.slowDurationBonus || 0));
+                enemy.candySlowFactor = Math.max(enemy.candySlowFactor || 0, Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0)));
                 
                 if (proj.damageDebuff) {
                   enemy.damageDebuff = applyDamageDebuffCap(enemy.damageDebuff, proj.damageDebuff);
+                }
+
+                if (proj.microStunDuration && !enemy.stunImmune && !(enemy.freezeDuration > 0)) {
+                  enemy.freezeDuration = proj.microStunDuration;
+                  spawnFloatingText(enemy.x, enemy.y - 15, "⏱️ СТАН", "#f472b6");
+                }
+
+                // Candy P3T5 spread logic
+                if (proj.spreadChance && getPureRandom() < proj.spreadChance) {
+                  const neighbors = enemiesRef.current.filter((other) => 
+                    other.id !== enemy.id && 
+                    other.hp > 0 &&
+                    (!other.isCamo || proj.camoDetection) &&
+                    (!other.isPhantomCamo || proj.camoDetection) &&
+                    getDistance(enemy.x, enemy.y, other.x, other.y) <= 60 &&
+                    !proj.hitEnemyIds.includes(other.id)
+                  );
+                  if (neighbors.length > 0) {
+                    const neighbor = neighbors[Math.floor(getPureRandom() * neighbors.length)];
+                    proj.hitEnemyIds.push(neighbor.id);
+                    
+                    neighbor.slowDuration = Math.max(neighbor.slowDuration, 120 + (proj.slowDurationBonus || 0));
+                    neighbor.candySlowFactor = Math.max(neighbor.candySlowFactor || 0, Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0)));
+                    
+                    if (proj.microStunDuration && !neighbor.stunImmune && !(neighbor.freezeDuration > 0)) {
+                      neighbor.freezeDuration = proj.microStunDuration;
+                      spawnFloatingText(neighbor.x, neighbor.y - 15, "⏱️ СТАН", "#f472b6");
+                    }
+                    
+                    let splashDmg = proj.damage;
+                    if (neighbor.shieldHp !== undefined && neighbor.shieldHp > 0) {
+                      const absorbed = Math.min(neighbor.shieldHp, splashDmg);
+                      neighbor.shieldHp -= absorbed;
+                      splashDmg -= absorbed;
+                    }
+                    if (neighbor.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * neighbor.damageDebuff);
+                    if (neighbor.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - neighbor.damageReduce));
+                    neighbor.hp -= splashDmg;
+                    if (splashDmg > 0) {
+                      spawnFloatingText(neighbor.x, neighbor.y - 10, `-${splashDmg}`, "#f472b6", 11);
+                    }
+                    
+                    spawnHitParticles(neighbor.x, neighbor.y, "#f472b6", 6);
+                    const particleCount = 5;
+                    for (let pi = 0; pi <= particleCount; pi++) {
+                      const t = pi / particleCount;
+                      particlesRef.current.push({
+                        x: enemy.x + (neighbor.x - enemy.x) * t,
+                        y: enemy.y + (neighbor.y - enemy.y) * t,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        color: "#f472b6",
+                        size: 2,
+                        life: 15,
+                        maxLife: 15
+                      });
+                    }
+                  }
                 }
 
                 if (proj.isAoESlow) {
@@ -2129,8 +2328,8 @@ export default function BratTDClient() {
                   // slow nearby enemies and apply promised explosion damage
                   enemiesRef.current.forEach((other) => {
                     if (getDistance(enemy.x, enemy.y, other.x, other.y) <= candyRadius) {
-                      other.slowDuration = 90 + (proj.slowDurationBonus || 0);
-                      other.candySlowFactor = Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0));
+                      other.slowDuration = Math.max(other.slowDuration, 90 + (proj.slowDurationBonus || 0));
+                      other.candySlowFactor = Math.max(other.candySlowFactor || 0, Math.min(0.85, 0.5 + (proj.slowFactorBonus || 0)));
                       if (proj.damageDebuff) {
                         other.damageDebuff = applyDamageDebuffCap(other.damageDebuff, proj.damageDebuff);
                       }
@@ -2166,7 +2365,7 @@ export default function BratTDClient() {
               }
 
               if (proj.type === "infinix") {
-                if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
+                if (proj.freezeChance && getPureRandom() < proj.freezeChance && !enemy.stunImmune && !(enemy.freezeDuration > 0)) {
                   enemy.freezeDuration = 60 + (proj.freezeDurationBonus || 0);
                   spawnFloatingText(enemy.x, enemy.y - 15, "ЛАГ 999мс", "#c084fc");
                   if (proj.bsodAoE) {
@@ -2188,7 +2387,7 @@ export default function BratTDClient() {
               }
 
               if (proj.type === "chain" || proj.type === "monolith" || proj.type === "boomerang") {
-                if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
+                if (proj.freezeChance && getPureRandom() < proj.freezeChance && !enemy.stunImmune && !(enemy.freezeDuration > 0)) {
                   enemy.freezeDuration = 30 + (proj.freezeDurationBonus || 0);
                   spawnFloatingText(enemy.x, enemy.y - 15, "⚡ СТАН", "#38bdf8");
                 }
@@ -2199,6 +2398,46 @@ export default function BratTDClient() {
                 if (proj.disableAbilities) {
                   enemy.isGlitching = false;
                 }
+              }
+
+              // Apply knockback
+              if (proj.knockbackChance && getPureRandom() < proj.knockbackChance && !enemy.knockbackImmune) {
+                const kbDist = proj.knockbackDistance || 50;
+                enemy.distanceTraveled = Math.max(0, enemy.distanceTraveled - kbDist);
+                
+                let remainingDist = enemy.distanceTraveled;
+                let currentX = PATH[0].x;
+                let currentY = PATH[0].y;
+                let newPathIndex = 1;
+                
+                for (let p = 0; p < PATH.length - 1; p++) {
+                  const p1 = PATH[p];
+                  const p2 = PATH[p + 1];
+                  const segLen = getDistance(p1.x, p1.y, p2.x, p2.y);
+                  if (remainingDist <= segLen) {
+                    const t = segLen > 0 ? remainingDist / segLen : 0;
+                    currentX = p1.x + (p2.x - p1.x) * t;
+                    currentY = p1.y + (p2.y - p1.y) * t;
+                    newPathIndex = p + 1;
+                    break;
+                  } else {
+                    remainingDist -= segLen;
+                    currentX = p2.x;
+                    currentY = p2.y;
+                    newPathIndex = p + 2;
+                  }
+                }
+                if (newPathIndex >= PATH.length) {
+                  newPathIndex = PATH.length - 1;
+                  currentX = PATH[PATH.length - 1].x;
+                  currentY = PATH[PATH.length - 1].y;
+                }
+                enemy.x = currentX;
+                enemy.y = currentY;
+                enemy.pathIndex = newPathIndex;
+                
+                spawnFloatingText(enemy.x, enemy.y - 15, "💥 ВІДКИД", "#c084fc");
+                spawnHitParticles(enemy.x, enemy.y, "#d8b4fe", 8, "square");
               }
 
               if ((proj.type === "sniper" || proj.type === "monolith") && proj.explodeDmg) {
