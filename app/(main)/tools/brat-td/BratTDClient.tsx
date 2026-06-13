@@ -861,7 +861,6 @@ export default function BratTDClient() {
 
   // --- CLICK HANDLING (PLACEMENT & SELECTION) ---
   const tryPlaceTower = (type: string, x: number, y: number): boolean => {
-    if (isPausedRef.current) return false;
     const config = TOWER_CONFIGS[type];
     if (!config) return false;
 
@@ -977,7 +976,7 @@ export default function BratTDClient() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameStatus !== "playing" || isPaused) return;
+    if (gameStatus !== "playing") return;
 
     const point = updateCanvasPointer(e.clientX, e.clientY);
     if (!point) return;
@@ -1019,7 +1018,7 @@ export default function BratTDClient() {
 
   const handleCanvasTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     const touch = e.changedTouches[0];
-    if (!touch || gameStatus !== "playing" || isPaused || !selectedShopTower) return;
+    if (!touch || gameStatus !== "playing" || !selectedShopTower) return;
     const point = updateCanvasPointer(touch.clientX, touch.clientY);
     if (!point) return;
     if (tryPlaceTower(selectedShopTower, point.x, point.y)) setSelectedShopTower(null);
@@ -1027,7 +1026,6 @@ export default function BratTDClient() {
 
   // --- SELLING & UPGRADING TOWERS ---
   const sellSelectedTower = () => {
-    if (isPausedRef.current) return;
     if (!selectedPlacedTowerId) return;
     const towerIdx = towersRef.current.findIndex((t) => t.id === selectedPlacedTowerId);
     if (towerIdx === -1) return;
@@ -1058,7 +1056,6 @@ export default function BratTDClient() {
   };
 
   const buyUpgrade = (pathIndex: number) => {
-    if (isPausedRef.current) return;
     if (!selectedPlacedTowerId) return;
     const tower = towersRef.current.find((t) => t.id === selectedPlacedTowerId);
     if (!tower) return;
@@ -3271,7 +3268,7 @@ export default function BratTDClient() {
             }}
             onDrop={(e) => {
               e.preventDefault();
-              if (gameStatus !== "playing" || isPaused) return;
+              if (gameStatus !== "playing") return;
               const towerType = e.dataTransfer.getData("text/plain");
               if (!towerType || !TOWER_CONFIGS[towerType]) return;
               
@@ -3716,7 +3713,7 @@ export default function BratTDClient() {
                         </div>
                       ) : (
                         <button
-                          disabled={!canAfford || gameStatus !== "playing" || isPaused}
+                          disabled={!canAfford || gameStatus !== "playing"}
                           onClick={() => buyUpgrade(pathIndex)}
                           className={`w-full p-2.5 border rounded text-left transition-all ${
                             canAfford
@@ -3757,8 +3754,8 @@ export default function BratTDClient() {
                 return (
                   <div key={type} className="relative group">
                     <button
-                      disabled={gameStatus !== "playing" || isPaused}
-                      draggable={gameStatus === "playing" && !isPaused && canAfford}
+                      disabled={gameStatus !== "playing"}
+                      draggable={gameStatus === "playing" && canAfford}
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/plain", type);
                         e.dataTransfer.effectAllowed = "copy";
