@@ -140,15 +140,21 @@ export interface EnemyConfig {
 // Higher tiers inherit abilities from lower tiers
 export const TIER_SCALING = [
   // tier 1: base (waves 1-10)
-  { hpMult: 1.0, speedMult: 1.0, damageReduce: 0, rewardMult: 1.0, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
+  { hpMult: 1.0, speedMult: 1.0, damageReduce: 0, rewardMult: 1.0, inheritsRegen: false, inheritsArmor: false, inheritsLead: false, inheritsCamo: false },
   // tier 2: tough (waves 11-20)
-  { hpMult: 1.5, speedMult: 1.05, damageReduce: 0.10, rewardMult: 1.1, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
+  { hpMult: 1.5, speedMult: 1.05, damageReduce: 0.10, rewardMult: 1.1, inheritsRegen: false, inheritsArmor: false, inheritsLead: false, inheritsCamo: false },
   // tier 3: elite (waves 21-30)
-  { hpMult: 2.5, speedMult: 1.10, damageReduce: 0.20, rewardMult: 1.3, inheritsRegen: true, inheritsArmor: false, inheritsLead: false },
+  { hpMult: 2.5, speedMult: 1.10, damageReduce: 0.20, rewardMult: 1.3, inheritsRegen: true, inheritsArmor: false, inheritsLead: false, inheritsCamo: false },
   // tier 4: champion (waves 31-40)
-  { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 1.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
-  // tier 5: legend (waves 41-46+)
-  { hpMult: 5.5, speedMult: 1.18, damageReduce: 0.35, rewardMult: 2.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
+  { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 1.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
+  // tier 5: legend (waves 41-46)
+  { hpMult: 5.5, speedMult: 1.18, damageReduce: 0.35, rewardMult: 2.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
+  // tier 6: brutal (waves 47-56)
+  { hpMult: 8.0, speedMult: 1.25, damageReduce: 0.40, rewardMult: 2.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
+  // tier 7: nightmare (waves 57-66)
+  { hpMult: 14.0, speedMult: 1.35, damageReduce: 0.50, rewardMult: 3.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: true, inheritsCamo: false },
+  // tier 8: apocalypse (waves 67+)
+  { hpMult: 22.0, speedMult: 1.45, damageReduce: 0.60, rewardMult: 5.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: true, inheritsCamo: true },
 ];
 
 export function getTierForWave(waveNumber: number): number {
@@ -156,7 +162,10 @@ export function getTierForWave(waveNumber: number): number {
   if (waveNumber <= 20) return 2;
   if (waveNumber <= 30) return 3;
   if (waveNumber <= 40) return 4;
-  return 5;
+  if (waveNumber <= 46) return 5;
+  if (waveNumber <= 56) return 6;
+  if (waveNumber <= 66) return 7;
+  return 8;
 }
 
 export const TOWER_CONFIGS: Record<string, TowerConfig> = {
@@ -598,6 +607,90 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     isGlitching: true,
     description: "Має Infinix. Періодично лагає й телепортується на 45px вперед."
   },
+  matryoshka: {
+    name: "Брат-Матрьошка",
+    hp: 280,
+    speed: 1.0,
+    reward: 12,
+    damage: 15,
+    color: "#fb923c",
+    borderColor: "#c2410c",
+    radius: 16,
+    description: "Після знищення розкривається у 2 Братів у Куртці.",
+    onDeath: (x, y, spawnEnemyCallback) => {
+      for (let i = 0; i < 2; i++) {
+        spawnEnemyCallback("coat", x - 10 + i * 20, y);
+      }
+    }
+  },
+  big_matryoshka: {
+    name: "Велика Матрьошка",
+    hp: 1200,
+    speed: 0.65,
+    reward: 30,
+    damage: 25,
+    color: "#ea580c",
+    borderColor: "#7c2d12",
+    radius: 22,
+    isArmored: true,
+    isLead: true,
+    isCamo: true,
+    isPhantomCamo: true,
+    description: "Броньована свинцева матрьошка під камуфляжем. Після знищення випускає 3 Матрьошки.",
+    onDeath: (x, y, spawnEnemyCallback) => {
+      for (let i = 0; i < 3; i++) {
+        spawnEnemyCallback("matryoshka", x - 20 + i * 20, y);
+      }
+    }
+  },
+  ceramic: {
+    name: "Керамічний Брат",
+    hp: 450,
+    speed: 0.9,
+    reward: 14,
+    damage: 18,
+    color: "#d97706",
+    borderColor: "#78350f",
+    radius: 17,
+    description: "Міцна оболонка. Після знищення випускає 3 Швидких та 2 Регенеративних.",
+    onDeath: (x, y, spawnEnemyCallback) => {
+      for (let i = 0; i < 3; i++) {
+        spawnEnemyCallback("fast", x - 12 + i * 12, y);
+      }
+      for (let i = 0; i < 2; i++) {
+        spawnEnemyCallback("regen", x - 6 + i * 12, y);
+      }
+    }
+  },
+  drowned: {
+    name: "Брат-Драунед",
+    hp: 500,
+    speed: 1.1,
+    reward: 15,
+    damage: 18,
+    color: "#67e8f9",
+    borderColor: "#0e7490",
+    radius: 15,
+    isArmored: true,
+    isRegen: true,
+    isSlowingTowers: true,
+    description: "Броньований, регенерує та смородом сповільнює вежі поруч."
+  },
+  mega_shielded: {
+    name: "Брат-Фортеця",
+    hp: 600,
+    speed: 0.65,
+    reward: 25,
+    damage: 20,
+    color: "#1d4ed8",
+    borderColor: "#1e3a8a",
+    radius: 20,
+    isArmored: true,
+    isRegen: true,
+    shieldHp: 400,
+    shieldRegenDelay: 360,
+    description: "Величезний щит, броня і регенерація. Справжня фортеця на дорозі."
+  },
   boss: {
     name: "Головний Брат",
     hp: 750,
@@ -607,14 +700,13 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     color: "#e11d48",
     borderColor: "#4c0519",
     radius: 24,
-    description: "Міні-бос братви. При смерті розсипається на 3 Швидких та 2 Братів у Куртці.",
+    description: "Міні-бос братви. При смерті розсипається на 5 Матрьошок та 5 Швидких.",
     onDeath: (x, y, spawnEnemyCallback) => {
-      // Spawn 3 fast and 2 coat
-      for (let i = 0; i < 3; i++) {
-        spawnEnemyCallback("fast", x - 10 + i * 10, y);
+      for (let i = 0; i < 5; i++) {
+        spawnEnemyCallback("matryoshka", x - 24 + i * 12, y);
       }
-      for (let i = 0; i < 2; i++) {
-        spawnEnemyCallback("coat", x - 5 + i * 10, y);
+      for (let i = 0; i < 5; i++) {
+        spawnEnemyCallback("fast", x - 20 + i * 10, y + 8);
       }
     }
   },
@@ -762,10 +854,10 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     color: "#dc2626",
     borderColor: "#450a0a",
     radius: 30,
-    description: "Гігантський бос. При смерті породжує 2 Головних Братів та 5 Гранітних.",
+    description: "Гігантський бос. При смерті породжує 3 Головних Братів та 3 Великі Матрьошки з камуфляжем і свинцем.",
     onDeath: (x, y, spawnEnemyCallback) => {
-      for (let i = 0; i < 2; i++) spawnEnemyCallback("boss", x - 15 + i * 30, y);
-      for (let i = 0; i < 5; i++) spawnEnemyCallback("granite", x - 20 + i * 10, y);
+      for (let i = 0; i < 3; i++) spawnEnemyCallback("boss", x - 24 + i * 24, y);
+      for (let i = 0; i < 3; i++) spawnEnemyCallback("big_matryoshka", x - 20 + i * 20, y + 12);
     }
   }
 };
@@ -923,7 +1015,8 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 1000 },
     { type: "regen", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
-    { type: "coat", count: 10, spawnDelay: 1400 }
+    { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1600 }
   ],
   // Wave 26: Regen + infinix
   [
@@ -944,6 +1037,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "rachky_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 1000 },
     { type: "gas_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "healer", count: 6, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "drowned", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
   // Wave 29: Support + armor
@@ -958,6 +1052,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "regen", count: 18, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
     { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
+    { type: "ceramic", count: 4, spawnDelay: 1600, delayBeforeNext: 800 },
+    { type: "drowned", count: 2, spawnDelay: 1700, delayBeforeNext: 800 },
     { type: "infinix_brat", count: 12, spawnDelay: 1100 }
   ],
   // Wave 31: Support chaos
@@ -973,6 +1069,7 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 1000 },
     { type: "phantom", count: 6, spawnDelay: 1500, delayBeforeNext: 1000 },
+    { type: "mega_shielded", count: 3, spawnDelay: 2200, delayBeforeNext: 800 },
     { type: "exploder", count: 5, spawnDelay: 1800 }
   ],
   // Wave 33: Granite wall + camo
@@ -996,6 +1093,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 15, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "exploder", count: 6, spawnDelay: 1600, delayBeforeNext: 800 },
     { type: "healer", count: 8, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "mega_shielded", count: 5, spawnDelay: 1600, delayBeforeNext: 800 },
+    { type: "drowned", count: 3, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "coat", count: 12, spawnDelay: 1300 }
   ],
   // === WAVE 36: JUMPER + SHIELDED intro ===
@@ -1020,6 +1119,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 600 },
     { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
     { type: "jumper", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "big_matryoshka", count: 3, spawnDelay: 2200, delayBeforeNext: 800 },
     { type: "exploder", count: 8, spawnDelay: 1400 }
   ],
   // Wave 39: Everything mixed - penultimate
@@ -1030,7 +1130,10 @@ export const WAVES: WaveSegment[][] = [
     { type: "shielded", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "jumper", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "regen", count: 20, spawnDelay: 700, delayBeforeNext: 600 },
-    { type: "lead", count: 15, spawnDelay: 1100 }
+    { type: "lead", count: 15, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "matryoshka", count: 5, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "ceramic", count: 4, spawnDelay: 1300, delayBeforeNext: 600 },
+    { type: "drowned", count: 3, spawnDelay: 1300 }
   ],
   // === WAVE 40: THE ULTIMATE FINAL WAVE ===
   // Wave 40: Boss + Megaboss + everything
@@ -1046,7 +1149,10 @@ export const WAVES: WaveSegment[][] = [
     { type: "exploder", count: 8, spawnDelay: 1250, delayBeforeNext: 500 },
     { type: "shielded", count: 12, spawnDelay: 1050, delayBeforeNext: 500 },
     { type: "healer", count: 8, spawnDelay: 1050, delayBeforeNext: 500 },
-    { type: "jumper", count: 12, spawnDelay: 1050 }
+    { type: "jumper", count: 12, spawnDelay: 1050, delayBeforeNext: 500 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2200, delayBeforeNext: 500 },
+    { type: "ceramic", count: 4, spawnDelay: 1400, delayBeforeNext: 500 },
+    { type: "mega_shielded", count: 3, spawnDelay: 1800 }
   ],
   // === COMBO WAVES 41-46: Synergy enemy combinations ===
   // Wave 41: COMBO - Camo+Lead (невидимі + імунні до молотків)
@@ -1056,6 +1162,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "camo", count: 15, spawnDelay: 500, delayBeforeNext: 600 },
     { type: "lead", count: 15, spawnDelay: 700, delayBeforeNext: 600 },
     { type: "phantom", count: 10, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "matryoshka", count: 6, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "ceramic", count: 4, spawnDelay: 1300, delayBeforeNext: 600 },
     { type: "fast", count: 30, spawnDelay: 350 }
   ],
   // Wave 42: COMBO - Regen+Phantom (регенерація + супер-камуфляж)
@@ -1065,6 +1173,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
     { type: "phantom", count: 12, spawnDelay: 900, delayBeforeNext: 600 },
     { type: "camo", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
+    { type: "ceramic", count: 5, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "drowned", count: 4, spawnDelay: 1300, delayBeforeNext: 600 },
     { type: "infinix_brat", count: 15, spawnDelay: 900 }
   ],
   // Wave 43: COMBO - Shielded+Exploder (щит + вибух при смерті)
@@ -1075,6 +1185,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "exploder", count: 10, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 500 },
     { type: "gas_brat", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "mega_shielded", count: 5, spawnDelay: 1400, delayBeforeNext: 500 },
+    { type: "ceramic", count: 5, spawnDelay: 1200, delayBeforeNext: 500 },
     { type: "granite", count: 10, spawnDelay: 1500 }
   ],
   // Wave 44: COMBO - Granite+Lead (подвійна броня)
@@ -1085,7 +1197,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 12, spawnDelay: 850, delayBeforeNext: 600 },
     { type: "coat", count: 12, spawnDelay: 1050, delayBeforeNext: 600 },
     { type: "heavy", count: 10, spawnDelay: 1550, delayBeforeNext: 600 },
-    { type: "shielded", count: 8, spawnDelay: 1250 }
+    { type: "shielded", count: 8, spawnDelay: 1250, delayBeforeNext: 600 },
+    { type: "drowned", count: 6, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2400 }
   ],
   // Wave 45: COMBO - Jumper+Regen (телепорт + регенерація)
   [
@@ -1095,7 +1209,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "regen", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
     { type: "infinix_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
     { type: "phantom", count: 12, spawnDelay: 1000, delayBeforeNext: 600 },
-    { type: "rachky_brat", count: 18, spawnDelay: 700 }
+    { type: "rachky_brat", count: 18, spawnDelay: 700, delayBeforeNext: 600 },
+    { type: "matryoshka", count: 8, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "mega_shielded", count: 4, spawnDelay: 1500 }
   ],
   // Wave 46: COMBO ULTIMATE - All synergies combined
   [
@@ -1111,7 +1227,12 @@ export const WAVES: WaveSegment[][] = [
     { type: "jumper", count: 10, spawnDelay: 1050, delayBeforeNext: 400 },
     { type: "infinix_brat", count: 14, spawnDelay: 850, delayBeforeNext: 400 },
     { type: "rachky_brat", count: 16, spawnDelay: 650, delayBeforeNext: 400 },
-    { type: "gas_brat", count: 12, spawnDelay: 850 }
+    { type: "gas_brat", count: 12, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "matryoshka", count: 8, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "ceramic", count: 6, spawnDelay: 1050, delayBeforeNext: 400 },
+    { type: "drowned", count: 5, spawnDelay: 1050, delayBeforeNext: 400 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2400, delayBeforeNext: 400 },
+    { type: "mega_shielded", count: 4, spawnDelay: 1600 }
   ]
 ];
 
@@ -1119,54 +1240,76 @@ export const POST_46_WAVES: WaveSegment[][] = [
   [
     { type: "phantom", count: 14, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "lead", count: 16, spawnDelay: 700, delayBeforeNext: 500 },
-    { type: "camo", count: 24, spawnDelay: 450 }
+    { type: "camo", count: 24, spawnDelay: 450, delayBeforeNext: 500 },
+    { type: "matryoshka", count: 8, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "ceramic", count: 5, spawnDelay: 1200 }
   ],
   [
     { type: "shielded", count: 14, spawnDelay: 950, delayBeforeNext: 500 },
     { type: "exploder", count: 12, spawnDelay: 1000, delayBeforeNext: 500 },
-    { type: "gas_brat", count: 14, spawnDelay: 750 }
+    { type: "gas_brat", count: 14, spawnDelay: 750, delayBeforeNext: 500 },
+    { type: "mega_shielded", count: 6, spawnDelay: 1350, delayBeforeNext: 500 },
+    { type: "drowned", count: 6, spawnDelay: 1050 }
   ],
   [
     { type: "jumper", count: 16, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "regen", count: 26, spawnDelay: 550, delayBeforeNext: 500 },
-    { type: "healer", count: 8, spawnDelay: 1100 }
+    { type: "healer", count: 8, spawnDelay: 1100, delayBeforeNext: 500 },
+    { type: "ceramic", count: 7, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "drowned", count: 6, spawnDelay: 1050 }
   ],
   [
     { type: "granite", count: 16, spawnDelay: 1200, delayBeforeNext: 500 },
     { type: "coat", count: 18, spawnDelay: 800, delayBeforeNext: 500 },
-    { type: "boss", count: 2, spawnDelay: 2600 }
+    { type: "boss", count: 2, spawnDelay: 2600, delayBeforeNext: 500 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2400, delayBeforeNext: 500 },
+    { type: "matryoshka", count: 8, spawnDelay: 800 }
   ],
   [
     { type: "megaboss", count: 1, spawnDelay: 4800, delayBeforeNext: 500 },
     { type: "shielded", count: 16, spawnDelay: 900, delayBeforeNext: 500 },
-    { type: "phantom", count: 14, spawnDelay: 850 }
+    { type: "phantom", count: 14, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2500, delayBeforeNext: 500 },
+    { type: "mega_shielded", count: 6, spawnDelay: 1300 }
   ],
   [
     { type: "rachky_brat", count: 26, spawnDelay: 500, delayBeforeNext: 400 },
     { type: "fast", count: 36, spawnDelay: 300, delayBeforeNext: 400 },
-    { type: "jumper", count: 14, spawnDelay: 800 }
+    { type: "jumper", count: 14, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "matryoshka", count: 10, spawnDelay: 750, delayBeforeNext: 400 },
+    { type: "drowned", count: 8, spawnDelay: 900 }
   ],
   [
     { type: "lead", count: 22, spawnDelay: 650, delayBeforeNext: 400 },
     { type: "granite", count: 18, spawnDelay: 1000, delayBeforeNext: 400 },
-    { type: "exploder", count: 12, spawnDelay: 900 }
+    { type: "exploder", count: 12, spawnDelay: 900, delayBeforeNext: 400 },
+    { type: "big_matryoshka", count: 3, spawnDelay: 2300, delayBeforeNext: 400 },
+    { type: "drowned", count: 10, spawnDelay: 800 }
   ],
   [
     { type: "healer", count: 10, spawnDelay: 900, delayBeforeNext: 400 },
     { type: "regen", count: 32, spawnDelay: 450, delayBeforeNext: 400 },
-    { type: "infinix_brat", count: 20, spawnDelay: 650 }
+    { type: "infinix_brat", count: 20, spawnDelay: 650, delayBeforeNext: 400 },
+    { type: "ceramic", count: 10, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "matryoshka", count: 12, spawnDelay: 700 }
   ],
   [
     { type: "boss", count: 3, spawnDelay: 2400, delayBeforeNext: 500 },
     { type: "shielded", count: 18, spawnDelay: 800, delayBeforeNext: 400 },
     { type: "phantom", count: 18, spawnDelay: 750, delayBeforeNext: 400 },
-    { type: "jumper", count: 16, spawnDelay: 750 }
+    { type: "jumper", count: 16, spawnDelay: 750, delayBeforeNext: 400 },
+    { type: "big_matryoshka", count: 3, spawnDelay: 2200, delayBeforeNext: 400 },
+    { type: "mega_shielded", count: 8, spawnDelay: 950 }
   ],
   [
     { type: "megaboss", count: 2, spawnDelay: 4500, delayBeforeNext: 500 },
     { type: "granite", count: 20, spawnDelay: 850, delayBeforeNext: 400 },
     { type: "lead", count: 20, spawnDelay: 600, delayBeforeNext: 400 },
-    { type: "healer", count: 12, spawnDelay: 900 }
+    { type: "healer", count: 12, spawnDelay: 900, delayBeforeNext: 400 },
+    { type: "big_matryoshka", count: 4, spawnDelay: 2200, delayBeforeNext: 400 },
+    { type: "mega_shielded", count: 10, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "ceramic", count: 12, spawnDelay: 700, delayBeforeNext: 400 },
+    { type: "drowned", count: 10, spawnDelay: 800 }
   ]
 ];
 
@@ -1176,9 +1319,9 @@ const GLOBAL_WAVE_ENEMY_COUNT_MULTIPLIER = 1.5;
 // Applied on top of the handcrafted WAVES / POST_46_WAVES definitions.
 function getWaveScaling(waveNumber: number, type: string): { countMult: number; delayMult: number } {
   const swarm = ["ordinary", "fast"];
-  const massSpecial = ["camo", "regen", "rachky_brat", "gas_brat"];
-  const armored = ["coat", "heavy", "lead"];
-  const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer"];
+  const massSpecial = ["camo", "regen", "rachky_brat", "gas_brat", "matryoshka", "ceramic"];
+  const armored = ["coat", "heavy", "lead", "drowned"];
+  const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer", "big_matryoshka", "mega_shielded"];
 
   // Early waves should have large spacing between enemies; later waves tighten up.
   const swarmDelay = waveNumber <= 5 ? 1.15 : waveNumber <= 10 ? 1.0 : waveNumber <= 25 ? 0.7 : 0.55;
@@ -1187,7 +1330,11 @@ function getWaveScaling(waveNumber: number, type: string): { countMult: number; 
   const miniBossDelay = waveNumber <= 10 ? 1.0 : 0.9;
 
   if (swarm.includes(type)) {
-    return { countMult: 1.4 + waveNumber * 0.045, delayMult: swarmDelay };
+    const baseMult = 1.4 + Math.min(waveNumber, 30) * 0.045;
+    const phaseOut = type === "ordinary"
+      ? waveNumber >= 45 ? 0.15 : waveNumber > 30 ? Math.max(0.15, 1 - (waveNumber - 30) * 0.06) : 1
+      : waveNumber >= 55 ? 0.25 : waveNumber > 40 ? Math.max(0.25, 1 - (waveNumber - 40) * 0.05) : 1;
+    return { countMult: Math.max(0.2, baseMult * phaseOut), delayMult: swarmDelay };
   }
   if (massSpecial.includes(type)) {
     return { countMult: 1.15 + waveNumber * 0.03, delayMult: specialDelay };
@@ -1221,8 +1368,10 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
     baseSegments = POST_46_WAVES[waveNumber - 47];
   } else {
     // Endless mode after the handcrafted post-game set.
-    const multiplier = Math.pow(1.06, waveNumber - 56);
-    const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer"];
+    const multiplier = Math.pow(1.08, waveNumber - 56);
+    const earlyEndlessTypes = ["fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "ceramic", "drowned", "mega_shielded"];
+    const deepEndlessTypes = ["heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "ceramic", "drowned", "big_matryoshka", "mega_shielded"];
+    const types = waveNumber >= 70 ? deepEndlessTypes : earlyEndlessTypes;
     baseSegments = [];
 
     // Bosses every 5 waves
@@ -1240,7 +1389,7 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
     const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
     for (let i = 0; i < segmentCount; i++) {
       const randomType = types[Math.floor(Math.random() * types.length)];
-      const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
+      const baseCount = randomType === "big_matryoshka" || randomType === "mega_shielded" ? 2 : randomType === "granite" || randomType === "heavy" ? 4 : randomType === "matryoshka" || randomType === "ceramic" || randomType === "drowned" ? 6 : 10;
       const count = Math.floor(baseCount * Math.sqrt(multiplier));
       const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 56) * 0.05)));
       baseSegments.push({
@@ -1270,6 +1419,7 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
   let isSuperArmored = base.isSuperArmored;
   let isRegen = base.isRegen;
   let isLead = base.isLead;
+  let isCamo = base.isCamo;
 
   // Tier inheritance: higher tiers gain abilities
   if (tierData.inheritsRegen && !isRegen) {
@@ -1281,12 +1431,15 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
   if (tierData.inheritsLead && !isLead) {
     isLead = true;
   }
+  if (tierData.inheritsCamo && !isCamo) {
+    isCamo = true;
+  }
 
-  // Endless mode (after wave 46): additional scaling on top of tier
+  // Endless mode (after wave 56): additional scaling on top of tier
   if (waveNumber > 56) {
     const endlessTier = Math.floor((waveNumber - 57) / 5) + 1;
-    const endlessHpMult = Math.pow(1.05, endlessTier);
-    const endlessSpeedMult = Math.min(2.5, Math.pow(1.02, endlessTier));
+    const endlessHpMult = Math.pow(1.08, endlessTier);
+    const endlessSpeedMult = Math.min(3.0, Math.pow(1.02, endlessTier));
     hp = Math.floor(hp * endlessHpMult);
     speed = speed * endlessSpeedMult;
   }
@@ -1300,15 +1453,16 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
     isSuperArmored,
     isRegen,
     isLead,
+    isCamo,
     tier,
-    shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.06, waveNumber - 56) : 1) * tierData.hpMult)) : undefined,
+    shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.08, waveNumber - 56) : 1) * tierData.hpMult)) : undefined,
   };
 }
 
 // Shared emoji map for enemies and towers.
 export const EMOJI_MAP: Record<string, string> = {
   ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
-  infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
+  infinix_brat: "👾", matryoshka: "🪆", big_matryoshka: "🪆", ceramic: "🏺", drowned: "🫧", mega_shielded: "🏰", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
   camo: "🦹", regen: "💗", lead: "🔩",
   phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
   sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿",
