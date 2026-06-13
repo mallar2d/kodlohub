@@ -215,11 +215,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +300 Gold наприкінці кожної хвилі.", cost: 12540, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300 }) }
       ],
       path3: [
-        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1 до шкоди.", cost: 660, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
-        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3 до шкоди.", cost: 1440, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
-        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8 шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 3370, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
-        { id: "coffee_filter", name: "Анти-лаг фільтр", description: "Бафнуті вежі пробивають 30% броні ворогів.", cost: 5940, effect: (s) => ({ ...s, ignoreArmorBuff: 0.3 }) },
-        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30 до шкоди та +25% дальності.", cost: 14630, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
+        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1% до шкоди.", cost: 660, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
+        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3% до шкоди.", cost: 1440, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
+        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8% шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 3370, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
+        { id: "coffee_mocha", name: "Мокко Підсилення", description: "Швидкість атаки веж в радіусі +12%.", cost: 6230, effect: (s) => ({ ...s, buffMultiplier: (s.buffMultiplier || 0.05) + 0.12 }) },
+        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30% до шкоди та +25% дальності.", cost: 14630, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
       ]
     }
   },
@@ -450,10 +450,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       ],
       path2: [
         { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус +20px.", cost: 220, effect: (s) => ({ ...s, range: s.range + 20 }) },
-        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Вежі поруч отримують +2 шкоди.", cost: 520, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
-        { id: "bankomat_premium", name: "Преміум Пакет", description: "+5 шкоди та +10px дальності вежам поруч.", cost: 1250, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5, rangeBuff: (s.rangeBuff || 0) + 10 }) },
-        { id: "bankomat_black", name: "Чорна Картка", description: "+10 шкоди, +20px дальності.", cost: 2800, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 20 }) },
-        { id: "bankomat_platinum", name: "Platinum Gold", description: "+18 шкоди та 20% пробиття броні вежам поруч.", cost: 6200, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 18, ignoreArmorBuff: 0.2 }) }
+        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Вежі поруч отримують +2% шкоди.", cost: 520, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
+        { id: "bankomat_premium", name: "Преміум Пакет", description: "+5% шкоди та +10px дальності вежам поруч.", cost: 1250, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5, rangeBuff: (s.rangeBuff || 0) + 10 }) },
+        { id: "bankomat_black", name: "Чорна Картка", description: "+10% шкоди, +20px дальності.", cost: 2800, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 20 }) },
+        { id: "bankomat_platinum", name: "Platinum Gold", description: "+18% шкоди та 20% пробиття броні вежам поруч.", cost: 6200, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 18, ignoreArmorBuff: 0.2 }) }
       ],
       path3: [
         { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 380, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
@@ -1254,6 +1254,7 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
     isRegen,
     isLead,
     tier,
+    shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.06, waveNumber - 56) : 1) * tierData.hpMult)) : undefined,
   };
 }
 

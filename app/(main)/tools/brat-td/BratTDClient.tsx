@@ -522,7 +522,8 @@ export default function BratTDClient() {
   };
 
   const getEffectiveTowerDamage = (tower: PlacedTower) => {
-    return tower.damage + (tower.coffeeDamageBonus || 0);
+    // Coffee/Bankomat damage buffs are now percentage-based (e.g. 30 = +30% damage)
+    return tower.damage * (1 + (tower.coffeeDamageBonus || 0) / 100);
   };
 
   const applyDamageDebuffCap = (current: number | undefined, incoming: number) => {
@@ -578,7 +579,7 @@ export default function BratTDClient() {
       tackCount: tower.tackCount
     });
     const beforeDps = getExpectedDps({ ...tower, damage: getEffectiveTowerDamage(tower) });
-    const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage + (tower.coffeeDamageBonus || 0) });
+    const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage * (1 + (tower.coffeeDamageBonus || 0) / 100) });
     return `DPS ${beforeDps.toFixed(1)}→${afterDps.toFixed(1)} | DMG ${tower.damage}→${next.damage} | RNG ${tower.range}→${next.range} | RATE ${tower.fireRate.toFixed(2)}→${next.fireRate.toFixed(2)} | P ${tower.pierce || 1}→${next.pierce || 1}`;
   };
 
@@ -984,7 +985,7 @@ export default function BratTDClient() {
     for (let i = 0; i < tower.path2Tier; i++) totalCost += baseConfig.upgrades.path2[i].cost;
     for (let i = 0; i < tower.path3Tier; i++) totalCost += baseConfig.upgrades.path3[i].cost;
 
-    const sellPrice = Math.floor(totalCost * 0.7);
+    const sellPrice = Math.floor(totalCost * 0.8);
     setGold((prev) => prev + sellPrice);
     
     // Remove tower
@@ -1218,15 +1219,16 @@ export default function BratTDClient() {
             });
             const earlyBonus = EARLY_WAVE_BONUSES[clearedWave - 1] || 0;
 
-            // Wave clear bonus: early catch-up (waves 1-8) + economy towers.
-            const finalBonus = bonusGold + earlyBonus;
+            // Wave clear bonus: small flat bonus + early catch-up (waves 1-8) + economy towers.
+            const clearBonus = 10;
+            const finalBonus = bonusGold + earlyBonus + clearBonus;
             if (finalBonus > 0) {
               setGold((prev) => prev + finalBonus);
             }
             setScore((prev) => prev + clearedWave * 50);
 
             pushLog(finalBonus > 0
-              ? `Накат братви відбито! +${finalBonus} ☕ (${earlyBonus ? `ранній бонус ${earlyBonus}` : ""}${earlyBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
+              ? `Накат братви відбито! +${finalBonus} ☕ (база ${clearBonus}${earlyBonus ? ` + ранній ${earlyBonus}` : ""}${bonusGold ? ` + економіка ${bonusGold}` : ""}).`
               : "Накат братви відбито!");
             
             // Check victory conditions (after wave 46)
@@ -1375,16 +1377,18 @@ export default function BratTDClient() {
             enemy.distanceTraveled += currentSpeed;
           }
 
-          // Regen healing (0.18 HP per frame, approx 10.8 HP per second)
+          // Regen healing (flat + % of max HP so it stays relevant late game)
           if (enemy.isRegen && enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.freezeDuration <= 0) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + 0.18);
+            const regenAmount = 0.1 + enemy.maxHp * 0.0001;
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenAmount);
           }
 
-          // Healer: heals nearby allies (3 HP/sec = 0.05 HP/frame)
+          // Healer: heals nearby allies (flat + % scaling)
           if (enemy.isHealer && enemy.hp > 0 && enemy.freezeDuration <= 0) {
+            const healAmount = 0.08 + enemy.maxHp * 0.00008;
             enemiesRef.current.forEach((ally) => {
               if (ally.id !== enemy.id && ally.hp > 0 && ally.hp < ally.maxHp && getDistance(enemy.x, enemy.y, ally.x, ally.y) <= 80) {
-                ally.hp = Math.min(ally.maxHp, ally.hp + 0.05);
+                ally.hp = Math.min(ally.maxHp, ally.hp + healAmount);
               }
             });
           }
@@ -3290,7 +3294,7 @@ export default function BratTDClient() {
                         for (let i = 0; i < selectedPlacedTower.path2Tier; i++) upCost += baseConfig.upgrades.path2[i].cost;
                         for (let i = 0; i < selectedPlacedTower.path3Tier; i++) upCost += baseConfig.upgrades.path3[i].cost;
                         return upCost;
-                      })()) * 0.7
+                      }                  )()) * 0.8
                   )} ☕
                 </button>
                 <button
