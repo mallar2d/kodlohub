@@ -208,7 +208,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   coffee: {
     name: "Nescafe Ritual",
     description: "Підтримка. Не атакує, але збільшує швидкість атаки башт поруч та генерує пасивний дохід.",
-    cost: 650,
+    cost: 1350,
     range: 110,
     damage: 0,
     fireRate: 0,
@@ -449,7 +449,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   bankomat: {
     name: "Банкомат Nescafe",
     description: "Аналог Monkey Village: не атакує, але підсилює башти поруч, відкриває камуфляж/броню та дає економіку.",
-    cost: 600,
+    cost: 1200,
     range: 105,
     damage: 0,
     fireRate: 0,
