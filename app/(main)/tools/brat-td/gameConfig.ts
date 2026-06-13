@@ -432,9 +432,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   bankomat: {
     name: "Банкомат Nescafe",
-    description: "Економічна башта. Не атакує, але приносить Gold після хвилі. Ризикований greed-pick.",
-    cost: 500,
-    range: 70,
+    description: "Аналог Monkey Village: не атакує, але підсилює башти поруч, відкриває камуфляж/броню та дає економіку.",
+    cost: 600,
+    range: 105,
     damage: 0,
     fireRate: 0,
     color: "#facc15",
@@ -442,25 +442,25 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "bankomat_cashback", name: "Кешбек", description: "Дохід наприкінці хвилі +25.", cost: 320, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 25 }) },
-        { id: "bankomat_deposit", name: "Депозит", description: "Дохід +45.", cost: 720, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 45 }) },
-        { id: "bankomat_crypto", name: "Крипто Кодла", description: "Дохід +80.", cost: 1550, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
-        { id: "bankomat_tax", name: "Податкова Оптимізація", description: "Дохід +140.", cost: 3300, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 140 }) },
-        { id: "bankomat_tycoon", name: "Nescafe Capital", description: "Дохід +260 наприкінці хвилі.", cost: 7600, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 260 }) }
+        { id: "bankomat_cashback", name: "Кешбек", description: "Дохід +35 наприкінці хвилі, аура дає ще +5px дальності.", cost: 360, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 35, rangeBuff: (s.rangeBuff || 0) + 5 }) },
+        { id: "bankomat_deposit", name: "Депозит", description: "Дохід +55, радіус аури +15px.", cost: 820, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 55, range: s.range + 15 }) },
+        { id: "bankomat_crypto", name: "Крипто Кодла", description: "Дохід +90, вежі поруч стріляють на 8% швидше.", cost: 1720, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 90, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
+        { id: "bankomat_tax", name: "Податкова Оптимізація", description: "Дохід +150, вежі поруч отримують +10% шкоди.", cost: 3550, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 150, damageBuff: (s.damageBuff || 0) + 10 }) },
+        { id: "bankomat_tycoon", name: "Nescafe Capital", description: "Дохід +300, аура дає +18% шкоди та +15% швидкості атаки.", cost: 8200, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300, damageBuff: (s.damageBuff || 0) + 18, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.15) }) }
       ],
       path2: [
-        { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус +20px.", cost: 220, effect: (s) => ({ ...s, range: s.range + 20 }) },
-        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Вежі поруч отримують +2% шкоди.", cost: 520, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 2 }) },
-        { id: "bankomat_premium", name: "Преміум Пакет", description: "+5% шкоди та +10px дальності вежам поруч.", cost: 1250, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5, rangeBuff: (s.rangeBuff || 0) + 10 }) },
-        { id: "bankomat_black", name: "Чорна Картка", description: "+10% шкоди, +20px дальності.", cost: 2800, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 20 }) },
-        { id: "bankomat_platinum", name: "Platinum Gold", description: "+18% шкоди та 20% пробиття броні вежам поруч.", cost: 6200, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 18, ignoreArmorBuff: 0.2 }) }
+        { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус аури +25px.", cost: 260, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Аура шкоди для веж поруч стає +8%.", cost: 620, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 8) }) },
+        { id: "bankomat_premium", name: "Преміум Пакет", description: "Аура дає +15% шкоди, +12% дальності та +10px дальності.", cost: 1420, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 15), rangeBuff: (s.rangeBuff || 0) + 10, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.12) }) },
+        { id: "bankomat_black", name: "Чорна Картка", description: "Аура дає +24% шкоди, +20% дальності та +8% швидкості атаки.", cost: 3150, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 24), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.20), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
+        { id: "bankomat_platinum", name: "Platinum Gold", description: "Аура дає +40% шкоди, +25% дальності, +12% швидкості та 35% пробиття броні.", cost: 7200, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 40), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.12), ignoreArmorBuff: 0.35 }) }
       ],
       path3: [
-        { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 380, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
-        { id: "bankomat_range", name: "Мережа Терміналів", description: "Радіус +30px.", cost: 800, effect: (s) => ({ ...s, range: s.range + 30 }) },
-        { id: "bankomat_safe", name: "Сейф", description: "Дохід +35 і радіус +20px.", cost: 1500, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 35, range: s.range + 20 }) },
-        { id: "bankomat_audit", name: "Аудит Братви", description: "Вежі поруч отримують +15% дальності.", cost: 3100, effect: (s) => ({ ...s, rangeBuffPercent: 0.15 }) },
-        { id: "bankomat_bank", name: "Центробанк Подро", description: "+120 доходу, +25% дальності вежам поруч.", cost: 6900, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 120, rangeBuffPercent: 0.25 }) }
+        { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 420, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
+        { id: "bankomat_range", name: "Мережа Терміналів", description: "Радіус аури +35px, вежі поруч отримують +10px дальності.", cost: 920, effect: (s) => ({ ...s, range: s.range + 35, rangeBuff: (s.rangeBuff || 0) + 10 }) },
+        { id: "bankomat_safe", name: "Сейф MIB", description: "Вежі поруч пробивають 25% броні та стріляють на 10% швидше.", cost: 1850, effect: (s) => ({ ...s, ignoreArmorBuff: Math.max(s.ignoreArmorBuff || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.10) }) },
+        { id: "bankomat_audit", name: "Аудит Братви", description: "+18% дальності, +12% шкоди та повна камуфляж-детекція для аури.", cost: 3600, effect: (s) => ({ ...s, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.18), damageBuff: (s.damageBuff || 0) + 12, camoDetectionBuff: true }) },
+        { id: "bankomat_bank", name: "Центробанк Подро", description: "Village-ядро: +28% дальності, +20% швидкості, 50% пробиття броні та +160 доходу.", cost: 7600, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 160, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.28), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.20), ignoreArmorBuff: 0.50, camoDetectionBuff: true }) }
       ]
     }
   },
@@ -1131,6 +1131,8 @@ export const POST_46_WAVES: WaveSegment[][] = [
   ]
 ];
 
+const GLOBAL_WAVE_ENEMY_COUNT_MULTIPLIER = 1.5;
+
 // BTD-style wave scaling: more simple enemies, fewer MOAB-style elites.
 // Applied on top of the handcrafted WAVES / POST_46_WAVES definitions.
 function getWaveScaling(waveNumber: number, type: string): { countMult: number; delayMult: number } {
@@ -1166,7 +1168,7 @@ function scaleWaveSegments(segments: WaveSegment[], waveNumber: number): WaveSeg
     const scaling = getWaveScaling(waveNumber, seg.type);
     return {
       ...seg,
-      count: Math.max(1, Math.floor(seg.count * scaling.countMult)),
+      count: Math.max(1, Math.ceil(seg.count * scaling.countMult * GLOBAL_WAVE_ENEMY_COUNT_MULTIPLIER)),
       spawnDelay: Math.max(150, Math.floor(seg.spawnDelay * scaling.delayMult))
     };
   });

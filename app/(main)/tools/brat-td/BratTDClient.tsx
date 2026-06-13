@@ -296,10 +296,21 @@ const DEFAULT_SETTINGS = {
   particles: true
 };
 
-const EARLY_WAVE_BONUSES = [78, 65, 52, 39, 26, 26, 26, 26];
+const NON_ENDLESS_WAVE_COUNT = 46;
+
+function getNonEndlessWaveClearReward(wave: number) {
+  if (wave < 1 || wave > NON_ENDLESS_WAVE_COUNT) return 0;
+
+  const earlyCatchUp = wave <= 8 ? Math.max(0, 90 - wave * 8) : 0;
+  const progression = 40 + wave * 12;
+  const milestone = Math.floor(wave / 5) * 25 + Math.floor(wave / 10) * 40;
+  return progression + milestone + earlyCatchUp;
+}
 
 const LEADERBOARD_KEY = "brat_td_leaderboard";
 const SETTINGS_KEY = "brat_td_settings";
+const SUPPORT_TOWER_TYPES = new Set(["coffee", "bankomat"]);
+const isSupportTowerType = (type: string) => SUPPORT_TOWER_TYPES.has(type);
 
 function loadSettings() {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -572,6 +583,20 @@ export default function BratTDClient() {
 
   const getUpgradePreview = (tower: PlacedTower, upgrade: Upgrade) => {
     const next = upgrade.effect(buildUpgradeStats(tower));
+    if (isSupportTowerType(tower.type)) {
+      const currentSpeedBuff = tower.buffMultiplier || (tower.type === "coffee" ? 0.05 : 0);
+      const nextSpeedBuff = next.buffMultiplier || (tower.type === "coffee" ? 0.05 : 0);
+      return [
+        `AURA ${Math.round(tower.range)}→${Math.round(next.range)}px`,
+        `GOLD +${tower.endOfWaveBonus || 0}→+${next.endOfWaveBonus || 0}`,
+        `DMG +${tower.damageBuff || 0}%→+${next.damageBuff || 0}%`,
+        `RNG +${tower.rangeBuff || 0}px/${Math.round((tower.rangeBuffPercent || 0) * 100)}%→+${next.rangeBuff || 0}px/${Math.round((next.rangeBuffPercent || 0) * 100)}%`,
+        `SPD +${Math.round(currentSpeedBuff * 100)}%→+${Math.round(nextSpeedBuff * 100)}%`,
+        `ARM ${Math.round((tower.ignoreArmorBuff || 0) * 100)}%→${Math.round((next.ignoreArmorBuff || 0) * 100)}%`,
+        `CAMO ${tower.camoDetectionBuff ? "так" : "ні"}→${next.camoDetectionBuff ? "так" : "ні"}`
+      ].join(" | ");
+    }
+
     const beforeDps = getExpectedDps({ ...tower, damage: getEffectiveTowerDamage(tower) });
     const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage * (1 + (tower.coffeeDamageBonus || 0) / 100) });
     return `DPS ${beforeDps.toFixed(1)}→${afterDps.toFixed(1)} | DMG ${tower.damage}→${next.damage} | RNG ${tower.range}→${next.range} | RATE ${tower.fireRate.toFixed(2)}→${next.fireRate.toFixed(2)} | P ${tower.pierce || 1}→${next.pierce || 1}`;
@@ -868,7 +893,8 @@ export default function BratTDClient() {
       newTower.buffMultiplier = 0.05;
       newTower.endOfWaveBonus = 20;
     } else if (type === "bankomat") {
-      newTower.endOfWaveBonus = 45;
+      newTower.endOfWaveBonus = 25;
+      newTower.rangeBuffPercent = 0.10;
     } else if (type === "gas") {
       newTower.slowAmount = 0.15;
     } else if (type === "chain") {
@@ -1096,9 +1122,9 @@ export default function BratTDClient() {
     setSelectedTower({ ...tower });
   };
 
-  // System: pre-calculate Coffee tower buffs for all towers.
+  // System: pre-calculate support tower buffs for all towers.
   function updateCoffeeBuffs(towers: PlacedTower[]) {
-    const coffeeTowers = towers.filter((t) => t.type === "coffee");
+    const supportTowers = towers.filter((t) => isSupportTowerType(t.type));
     towers.forEach((tower) => {
       let maxBuff = 0;
       let hasCamoBuff = false;
@@ -1106,22 +1132,29 @@ export default function BratTDClient() {
       let maxRangeBuff = 0;
       let maxRangeBuffPercent = 0;
       let maxIgnoreArmorBuff = 0;
-      coffeeTowers.forEach((coffee) => {
-        const dist = getDistance(tower.x, tower.y, coffee.x, coffee.y);
-        if (dist <= coffee.range) {
-          const buffVal = coffee.buffMultiplier || 0.05;
+      supportTowers.forEach((supportTower) => {
+        const dist = getDistance(tower.x, tower.y, supportTower.x, supportTower.y);
+        if (dist <= supportTower.range) {
+          const buffVal = supportTower.buffMultiplier || (supportTower.type === "coffee" ? 0.05 : 0);
           if (buffVal > maxBuff) maxBuff = buffVal;
-          if (coffee.camoDetectionBuff) hasCamoBuff = true;
-          if (coffee.damageBuff && coffee.damageBuff > maxDamageBuff) maxDamageBuff = coffee.damageBuff;
-          if (coffee.rangeBuff && coffee.rangeBuff > maxRangeBuff) maxRangeBuff = coffee.rangeBuff;
-          if (coffee.rangeBuffPercent && coffee.rangeBuffPercent > maxRangeBuffPercent) maxRangeBuffPercent = coffee.rangeBuffPercent;
-          if (coffee.ignoreArmorBuff && coffee.ignoreArmorBuff > maxIgnoreArmorBuff) maxIgnoreArmorBuff = coffee.ignoreArmorBuff;
+          if (supportTower.camoDetectionBuff) hasCamoBuff = true;
+          if (supportTower.damageBuff && supportTower.damageBuff > maxDamageBuff) maxDamageBuff = supportTower.damageBuff;
+          if (supportTower.rangeBuff && supportTower.rangeBuff > maxRangeBuff) maxRangeBuff = supportTower.rangeBuff;
+          if (supportTower.rangeBuffPercent && supportTower.rangeBuffPercent > maxRangeBuffPercent) maxRangeBuffPercent = supportTower.rangeBuffPercent;
+          if (supportTower.ignoreArmorBuff && supportTower.ignoreArmorBuff > maxIgnoreArmorBuff) maxIgnoreArmorBuff = supportTower.ignoreArmorBuff;
         }
       });
       tower.hasCamoBuff = hasCamoBuff;
-      tower.hasCoffeeBuff = maxBuff > 0;
+      tower.hasCoffeeBuff = maxBuff > 0 || hasCamoBuff || maxDamageBuff > 0 || maxRangeBuff > 0 || maxRangeBuffPercent > 0 || maxIgnoreArmorBuff > 0;
       tower.coffeeBuffMultiplier = maxBuff;
-      tower.coffeeBuffStrength = Math.min(1, maxBuff / 1.2);
+      tower.coffeeBuffStrength = Math.min(1, Math.max(
+        maxBuff / 0.6,
+        maxDamageBuff / 60,
+        maxRangeBuff / 80,
+        maxRangeBuffPercent,
+        maxIgnoreArmorBuff,
+        hasCamoBuff ? 0.25 : 0
+      ));
       tower.coffeeDamageBonus = maxDamageBuff;
       tower.coffeeRangeBonus = maxRangeBuff;
       tower.coffeeRangeBuffPercent = maxRangeBuffPercent;
@@ -1208,18 +1241,15 @@ export default function BratTDClient() {
                 bonusGold += t.endOfWaveBonus;
               }
             });
-            const earlyBonus = EARLY_WAVE_BONUSES[clearedWave - 1] || 0;
-
-            // Wave clear bonus: small flat bonus + early catch-up (waves 1-8) + economy towers.
-            const clearBonus = 10;
-            const finalBonus = bonusGold + earlyBonus + clearBonus;
+            const clearBonus = isEndless ? 0 : getNonEndlessWaveClearReward(clearedWave);
+            const finalBonus = bonusGold + clearBonus;
             if (finalBonus > 0) {
               setGold((prev) => prev + finalBonus);
             }
             setScore((prev) => prev + clearedWave * 50);
 
             pushLog(finalBonus > 0
-              ? `Накат братви відбито! +${finalBonus} ☕ (база ${clearBonus}${earlyBonus ? ` + ранній ${earlyBonus}` : ""}${bonusGold ? ` + економіка ${bonusGold}` : ""}).`
+              ? `Накат братви відбито! +${finalBonus} ☕ (${clearBonus ? `хвиля ${clearBonus}` : ""}${clearBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
               : "Накат братви відбито!");
             
             // Check victory conditions (after wave 46)
@@ -1493,7 +1523,7 @@ export default function BratTDClient() {
           }
 
           // Economy/support-only towers do not shoot
-          if (tower.type === "coffee") return;
+          if (isSupportTowerType(tower.type)) return;
 
           // Кладмен places mines on the path
           if (tower.type === "kladmen") {
@@ -2315,18 +2345,19 @@ export default function BratTDClient() {
       }
 
 
-      // --- Draw Coffee Tower Range Rings (always visible, light gold) ---
+      // --- Draw Support Tower Range Rings (always visible, light gold) ---
       towersRef.current.forEach((tower) => {
-        if (tower.type === "coffee") {
+        if (isSupportTowerType(tower.type)) {
           ctx.beginPath();
           ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(234, 179, 8, 0.02)";
-          ctx.strokeStyle = "rgba(234, 179, 8, 0.1)";
+          ctx.fillStyle = tower.type === "bankomat" ? "rgba(250, 204, 21, 0.025)" : "rgba(234, 179, 8, 0.02)";
+          ctx.strokeStyle = tower.type === "bankomat" ? "rgba(250, 204, 21, 0.16)" : "rgba(234, 179, 8, 0.1)";
           ctx.lineWidth = 1;
+          ctx.fill();
           ctx.stroke();
 
           // Coffee steam particles
-          if (Math.random() < 0.15) {
+          if (tower.type === "coffee" && Math.random() < 0.15) {
             particlesRef.current.push({
               x: tower.x + (Math.random() - 0.5) * 10,
               y: tower.y - 10,
@@ -2371,7 +2402,7 @@ export default function BratTDClient() {
 
         // Draw emoji inside (rotate toward nearest enemy)
         let towerAngle = 0;
-        if (tower.type !== "coffee" && tower.type !== "gas") {
+        if (!isSupportTowerType(tower.type) && tower.type !== "gas") {
           let nearestEnemy: ActiveEnemy | null = null;
           let nearestDist = Infinity;
           for (const enemy of enemiesRef.current) {
@@ -2395,8 +2426,8 @@ export default function BratTDClient() {
         ctx.fillText(tower.emoji, 0, 0);
         ctx.restore();
 
-        // Coffee buff visual indicator
-        if (tower.hasCoffeeBuff && tower.type !== "coffee") {
+        // Support buff visual indicator
+        if (tower.hasCoffeeBuff && !isSupportTowerType(tower.type)) {
           const pulse = Math.sin(frameCountRef.current * 0.08) * 0.3 + 0.7;
           const strength = tower.coffeeBuffStrength || 0.5;
           const glowRadius = 20 + strength * 4;
@@ -2414,9 +2445,9 @@ export default function BratTDClient() {
           ctx.fillStyle = `rgba(234, 179, 8, ${0.06 * pulse * strength})`;
           ctx.fill();
 
-          // Small coffee icon above tower
+          // Small support icon above tower
           ctx.font = "10px Arial";
-          ctx.fillText("☕", tower.x, tower.y - 24);
+          ctx.fillText("✦", tower.x, tower.y - 24);
         }
 
         // Camo buff indicator
@@ -3219,6 +3250,8 @@ export default function BratTDClient() {
                   {selectedPlacedTower.name}
                 </h3>
                 <p className="text-xs text-ink-mute mt-0.5">Рівень: {selectedPlacedTower.level} | Убивств: {selectedPlacedTower.totalKills}</p>
+                {!isSupportTowerType(selectedPlacedTower.type) && (
+                  <>
                     {/* Targeting mode toggle */}
                     <div className="flex items-center gap-1 mt-1">
                       {(["first", "last", "strongest", "nearest"] as const).map((mode) => {
@@ -3240,6 +3273,8 @@ export default function BratTDClient() {
                         );
                       })}
                     </div>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -3273,6 +3308,50 @@ export default function BratTDClient() {
 
             {/* Detailed Stats Grid */}
             {(() => {
+              if (isSupportTowerType(selectedPlacedTower.type)) {
+                const speedBuff = selectedPlacedTower.buffMultiplier || (selectedPlacedTower.type === "coffee" ? 0.05 : 0);
+                const rangeBuff = selectedPlacedTower.rangeBuff || 0;
+                const rangeBuffPercent = selectedPlacedTower.rangeBuffPercent || 0;
+                const armorPierce = selectedPlacedTower.ignoreArmorBuff || 0;
+                return (
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/40 border border-hairline-dark/50 p-2.5 rounded mb-4">
+                    <div>
+                      <span className="text-ink-mute">Радіус аури:</span>{" "}
+                      <span className="text-on-primary font-semibold">{Math.round(selectedPlacedTower.range)}px</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-mute">Дохід:</span>{" "}
+                      <span className="text-yellow-400 font-semibold">+{selectedPlacedTower.endOfWaveBonus || 0} / хвиля</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-mute">Швидкість:</span>{" "}
+                      <span className="text-cyan-400 font-semibold">+{Math.round(speedBuff * 100)}%</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-mute">Шкода:</span>{" "}
+                      <span className="text-green-400 font-semibold">+{selectedPlacedTower.damageBuff || 0}%</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-mute">Дальність веж:</span>{" "}
+                      <span className="text-on-primary font-semibold">+{rangeBuff}px / +{Math.round(rangeBuffPercent * 100)}%</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-mute">Пробиття броні:</span>{" "}
+                      <span className="text-amber-300 font-semibold">{Math.round(armorPierce * 100)}%</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-ink-mute">Камуфляж аури:</span>{" "}
+                      <span className={selectedPlacedTower.camoDetectionBuff ? "text-green-400 font-semibold animate-pulse" : "text-red-400 font-semibold"}>
+                        {selectedPlacedTower.camoDetectionBuff ? "Дає вежам поруч" : "Ні"}
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-[10px] text-ink-mute border-t border-hairline-dark/50 pt-1">
+                      Hotkeys: Q/W/E купують шлях 1/2/3. На мобілці вибір башти ставить паузу.
+                    </div>
+                  </div>
+                );
+              }
+
               const detectsCamo = selectedPlacedTower.camoDetection || selectedPlacedTower.hasCamoBuff;
               const isLeadImmune = selectedPlacedTower.ignoresArmor || selectedPlacedTower.type !== "hammer";
               const effectiveDamage = getEffectiveTowerDamage(selectedPlacedTower);
@@ -3325,15 +3404,15 @@ export default function BratTDClient() {
                 let pathUpgrades: Upgrade[] = [];
                 
                 if (pathIndex === 0) {
-                  pathName = "Шлях 1: Руйнівна Сила";
+                  pathName = selectedPlacedTower.type === "bankomat" ? "Шлях 1: Економіка" : "Шлях 1: Руйнівна Сила";
                   currentTier = selectedPlacedTower.path1Tier;
                   pathUpgrades = baseConfig.upgrades.path1;
                 } else if (pathIndex === 1) {
-                  pathName = "Шлях 2: Швидкість Атаки";
+                  pathName = selectedPlacedTower.type === "bankomat" ? "Шлях 2: Підсилення" : "Шлях 2: Швидкість Атаки";
                   currentTier = selectedPlacedTower.path2Tier;
                   pathUpgrades = baseConfig.upgrades.path2;
                 } else {
-                  pathName = "Шлях 3: Особливі Ефекти";
+                  pathName = selectedPlacedTower.type === "bankomat" ? "Шлях 3: Радар і MIB" : "Шлях 3: Особливі Ефекти";
                   currentTier = selectedPlacedTower.path3Tier;
                   pathUpgrades = baseConfig.upgrades.path3;
                 }
