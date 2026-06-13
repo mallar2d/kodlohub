@@ -176,7 +176,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає молоток у найближчого брата. Базовий юніт.",
     cost: 200,
     range: 140,
-    damage: 32,
+    damage: 28,
     fireRate: 1.1,
     color: "#38bdf8", // Sky blue
     emoji: "🔨",
@@ -275,7 +275,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   infinix: {
     name: "Infinix Tower",
     description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода. Бачить камуфляж.",
-    cost: 440,
+    cost: 450,
     range: 120,
     damage: 30,
     fireRate: 0.8,
@@ -310,7 +310,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   gas: {
     name: "Газовий Tack Shooter",
     description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
-    cost: 360,
+    cost: 350,
     range: 82,
     damage: 10,
     fireRate: 0.9,
@@ -345,7 +345,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   sniper: {
     name: "Снайпер Подро",
     description: "Снайпер з дальністю на всю карту. Бачить камуфляж, б'є боляче, але рідко.",
-    cost: 350,
+    cost: 400,
     range: 1000,
     damage: 108,
     fireRate: 3.0,
@@ -380,7 +380,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   chain: {
     name: "Ланцюгова Башня",
     description: "Б'є блискавкою, що перескакує між ворогами. Кожен перескок зменшує шкоду снаряду на 20%.",
-    cost: 460,
+    cost: 600,
     range: 120,
     damage: 11,
     fireRate: 1.15,
@@ -414,7 +414,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   kladmen: {
     name: "Кладмен",
     description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 15 мін.",
-    cost: 275,
+    cost: 400,
     range: 150,
     damage: 12,
     fireRate: 3.0,
@@ -518,7 +518,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   boomerang: {
     name: "Бумеранг Подро",
     description: "Кидає бумеранг, який б'є ворогів на виліті та поверненні. Може вдарити одну ціль двічі.",
-    cost: 320,
+    cost: 250,
     range: 135,
     damage: 16,
     fireRate: 1.25,
