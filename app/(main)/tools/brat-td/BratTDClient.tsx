@@ -11,6 +11,7 @@ import {
   GAME_HEIGHT,
   PathPoint,
   Upgrade,
+  UpgradeStats,
   OBSTACLES,
   EMOJI_MAP,
   SOUND_MAP,
@@ -80,7 +81,37 @@ interface PlacedTower {
   coffeeRangeBonus?: number;
   coffeeRangeBuffPercent?: number;
   coffeeIgnoreArmorBuff?: number;
+  coffeeBuffMultiplier?: number;
   targetingMode?: "first" | "last" | "strongest" | "nearest";
+}
+
+// Keys copied between PlacedTower and UpgradeStats during upgrade apply/preview.
+const UPGRADE_STAT_KEYS: (keyof UpgradeStats)[] = [
+  "range", "damage", "fireRate", "twoHits", "critChance", "buffMultiplier",
+  "endOfWaveBonus", "isAoESlow", "damageDebuff", "freezeChance", "gachaChance",
+  "copilotBug", "slowAmount", "antiArmor", "ignoresArmor", "alwaysDouble",
+  "critMultiplier", "damageBuff", "rangeBuff", "ignoreArmorBuff", "rangeBuffPercent",
+  "slowDurationBonus", "slowFactorBonus", "explodeDmg", "gachaDamageOverride",
+  "freezeDurationBonus", "bsodAoE", "bugExplodeDmg", "bugExplodeRadius", "bugContagion",
+  "disableGlitch", "disableAbilities", "camoDetection", "camoDetectionBuff", "pierce",
+  "tackCount"
+];
+
+function buildUpgradeStats(tower: PlacedTower): UpgradeStats {
+  const stats: Partial<UpgradeStats> = {};
+  UPGRADE_STAT_KEYS.forEach((key) => {
+    (stats as any)[key] = (tower as any)[key];
+  });
+  return stats as UpgradeStats;
+}
+
+function applyUpgradeStats(tower: PlacedTower, stats: UpgradeStats) {
+  UPGRADE_STAT_KEYS.forEach((key) => {
+    if (key in stats) {
+      (tower as any)[key] = stats[key];
+    }
+  });
+  tower.pierce = stats.pierce || 1;
 }
 
 
@@ -540,44 +571,7 @@ export default function BratTDClient() {
   };
 
   const getUpgradePreview = (tower: PlacedTower, upgrade: Upgrade) => {
-    const next = upgrade.effect({
-      range: tower.range,
-      damage: tower.damage,
-      fireRate: tower.fireRate,
-      twoHits: tower.twoHits,
-      critChance: tower.critChance,
-      buffMultiplier: tower.buffMultiplier,
-      endOfWaveBonus: tower.endOfWaveBonus,
-      isAoESlow: tower.isAoESlow,
-      damageDebuff: tower.damageDebuff,
-      freezeChance: tower.freezeChance,
-      gachaChance: tower.gachaChance,
-      copilotBug: tower.copilotBug,
-      slowAmount: tower.slowAmount,
-      antiArmor: tower.antiArmor,
-      ignoresArmor: tower.ignoresArmor,
-      alwaysDouble: tower.alwaysDouble,
-      critMultiplier: tower.critMultiplier,
-      damageBuff: tower.damageBuff,
-      rangeBuff: tower.rangeBuff,
-      ignoreArmorBuff: tower.ignoreArmorBuff,
-      rangeBuffPercent: tower.rangeBuffPercent,
-      slowDurationBonus: tower.slowDurationBonus,
-      slowFactorBonus: tower.slowFactorBonus,
-      explodeDmg: tower.explodeDmg,
-      gachaDamageOverride: tower.gachaDamageOverride,
-      freezeDurationBonus: tower.freezeDurationBonus,
-      bsodAoE: tower.bsodAoE,
-      bugExplodeDmg: tower.bugExplodeDmg,
-      bugExplodeRadius: tower.bugExplodeRadius,
-      bugContagion: tower.bugContagion,
-      disableGlitch: tower.disableGlitch,
-      disableAbilities: tower.disableAbilities,
-      camoDetection: tower.camoDetection,
-      camoDetectionBuff: tower.camoDetectionBuff,
-      pierce: tower.pierce,
-      tackCount: tower.tackCount
-    });
+    const next = upgrade.effect(buildUpgradeStats(tower));
     const beforeDps = getExpectedDps({ ...tower, damage: getEffectiveTowerDamage(tower) });
     const afterDps = getExpectedDps({ ...tower, ...next, damage: next.damage * (1 + (tower.coffeeDamageBonus || 0) / 100) });
     return `DPS ${beforeDps.toFixed(1)}→${afterDps.toFixed(1)} | DMG ${tower.damage}→${next.damage} | RNG ${tower.range}→${next.range} | RATE ${tower.fireRate.toFixed(2)}→${next.fireRate.toFixed(2)} | P ${tower.pierce || 1}→${next.pierce || 1}`;
@@ -1080,43 +1074,7 @@ export default function BratTDClient() {
     else if (pathIndex === 1) tower.path2Tier++;
     else if (pathIndex === 2) tower.path3Tier++;
 
-    tower.range = newStats.range;
-    tower.damage = newStats.damage;
-    tower.fireRate = newStats.fireRate;
-    tower.twoHits = newStats.twoHits;
-    tower.critChance = newStats.critChance;
-    tower.buffMultiplier = newStats.buffMultiplier;
-    tower.endOfWaveBonus = newStats.endOfWaveBonus;
-    tower.isAoESlow = newStats.isAoESlow;
-    tower.damageDebuff = newStats.damageDebuff;
-    tower.freezeChance = newStats.freezeChance;
-    tower.gachaChance = newStats.gachaChance;
-    tower.copilotBug = newStats.copilotBug;
-    tower.slowAmount = newStats.slowAmount;
-    tower.antiArmor = newStats.antiArmor;
-    tower.ignoresArmor = newStats.ignoresArmor;
-    tower.alwaysDouble = newStats.alwaysDouble;
-    tower.critMultiplier = newStats.critMultiplier;
-    tower.damageBuff = newStats.damageBuff;
-    tower.rangeBuff = newStats.rangeBuff;
-    tower.ignoreArmorBuff = newStats.ignoreArmorBuff;
-    tower.rangeBuffPercent = newStats.rangeBuffPercent;
-    tower.slowDurationBonus = newStats.slowDurationBonus;
-    tower.slowFactorBonus = newStats.slowFactorBonus;
-    tower.explodeDmg = newStats.explodeDmg;
-    tower.gachaDamageOverride = newStats.gachaDamageOverride;
-    tower.freezeDurationBonus = newStats.freezeDurationBonus;
-    tower.bsodAoE = newStats.bsodAoE;
-    tower.bugExplodeDmg = newStats.bugExplodeDmg;
-    tower.bugExplodeRadius = newStats.bugExplodeRadius;
-    tower.bugContagion = newStats.bugContagion;
-    tower.disableGlitch = newStats.disableGlitch;
-    tower.disableAbilities = newStats.disableAbilities;
-    tower.camoDetection = newStats.camoDetection;
-    tower.camoDetectionBuff = newStats.camoDetectionBuff;
-    tower.pierce = newStats.pierce || 1;
-    tower.tackCount = newStats.tackCount;
-    
+    applyUpgradeStats(tower, newStats);
     tower.level += 1;
 
     // Special logic for refund upgrade
@@ -1137,6 +1095,39 @@ export default function BratTDClient() {
     playPdrSound();
     setSelectedTower({ ...tower });
   };
+
+  // System: pre-calculate Coffee tower buffs for all towers.
+  function updateCoffeeBuffs(towers: PlacedTower[]) {
+    const coffeeTowers = towers.filter((t) => t.type === "coffee");
+    towers.forEach((tower) => {
+      let maxBuff = 0;
+      let hasCamoBuff = false;
+      let maxDamageBuff = 0;
+      let maxRangeBuff = 0;
+      let maxRangeBuffPercent = 0;
+      let maxIgnoreArmorBuff = 0;
+      coffeeTowers.forEach((coffee) => {
+        const dist = getDistance(tower.x, tower.y, coffee.x, coffee.y);
+        if (dist <= coffee.range) {
+          const buffVal = coffee.buffMultiplier || 0.05;
+          if (buffVal > maxBuff) maxBuff = buffVal;
+          if (coffee.camoDetectionBuff) hasCamoBuff = true;
+          if (coffee.damageBuff && coffee.damageBuff > maxDamageBuff) maxDamageBuff = coffee.damageBuff;
+          if (coffee.rangeBuff && coffee.rangeBuff > maxRangeBuff) maxRangeBuff = coffee.rangeBuff;
+          if (coffee.rangeBuffPercent && coffee.rangeBuffPercent > maxRangeBuffPercent) maxRangeBuffPercent = coffee.rangeBuffPercent;
+          if (coffee.ignoreArmorBuff && coffee.ignoreArmorBuff > maxIgnoreArmorBuff) maxIgnoreArmorBuff = coffee.ignoreArmorBuff;
+        }
+      });
+      tower.hasCamoBuff = hasCamoBuff;
+      tower.hasCoffeeBuff = maxBuff > 0;
+      tower.coffeeBuffMultiplier = maxBuff;
+      tower.coffeeBuffStrength = Math.min(1, maxBuff / 1.2);
+      tower.coffeeDamageBonus = maxDamageBuff;
+      tower.coffeeRangeBonus = maxRangeBuff;
+      tower.coffeeRangeBuffPercent = maxRangeBuffPercent;
+      tower.coffeeIgnoreArmorBuff = maxIgnoreArmorBuff;
+    });
+  }
 
   // --- MAIN LOOP ---
   useEffect(() => {
@@ -1473,40 +1464,10 @@ export default function BratTDClient() {
 
         // --- 4. TOWERS TARGET & FIRE ---
         // Pre-calculate Nescafe Ritual buffs on nearby towers
-        // For each tower, check if there's a Nescafe Ritual nearby
-        const towers = towersRef.current;
-        const coffeeTowers = towers.filter((t) => t.type === "coffee");
-        
-        towers.forEach((tower) => {
-          // Find max coffee buff multiplier
-          let maxBuff = 0;
-          let hasCamoBuff = false;
-          let maxDamageBuff = 0;
-          let maxRangeBuff = 0;
-          let maxRangeBuffPercent = 0;
-          let maxIgnoreArmorBuff = 0;
-          coffeeTowers.forEach((coffee) => {
-            const dist = getDistance(tower.x, tower.y, coffee.x, coffee.y);
-            if (dist <= coffee.range) {
-              const buffVal = coffee.buffMultiplier || 0.05;
-              if (buffVal > maxBuff) maxBuff = buffVal;
-              if (coffee.camoDetectionBuff) {
-                hasCamoBuff = true;
-              }
-              if (coffee.damageBuff && coffee.damageBuff > maxDamageBuff) maxDamageBuff = coffee.damageBuff;
-              if (coffee.rangeBuff && coffee.rangeBuff > maxRangeBuff) maxRangeBuff = coffee.rangeBuff;
-              if (coffee.rangeBuffPercent && coffee.rangeBuffPercent > maxRangeBuffPercent) maxRangeBuffPercent = coffee.rangeBuffPercent;
-              if (coffee.ignoreArmorBuff && coffee.ignoreArmorBuff > maxIgnoreArmorBuff) maxIgnoreArmorBuff = coffee.ignoreArmorBuff;
-            }
-          });
-          tower.hasCamoBuff = hasCamoBuff;
-          tower.hasCoffeeBuff = maxBuff > 0;
-          tower.coffeeBuffStrength = Math.min(1, maxBuff / 1.2);
-          tower.coffeeDamageBonus = maxDamageBuff;
-          tower.coffeeRangeBonus = maxRangeBuff;
-          tower.coffeeRangeBuffPercent = maxRangeBuffPercent;
-          tower.coffeeIgnoreArmorBuff = maxIgnoreArmorBuff;
+        updateCoffeeBuffs(towersRef.current);
 
+        const towers = towersRef.current;
+        towers.forEach((tower) => {
           // Check if affected by Gas Brat debuff (slow attack rate)
           let speedDebuff = 1.0;
           enemiesRef.current.forEach((enemy) => {
@@ -1521,7 +1482,7 @@ export default function BratTDClient() {
           // Tick cooldown
           if (tower.cooldown > 0) {
             // attack speed boosted by coffee buff, slowed by gas smell
-            const cooldownSpeed = (1 + maxBuff) * speedDebuff;
+            const cooldownSpeed = (1 + (tower.coffeeBuffMultiplier || 0)) * speedDebuff;
             tower.cooldown = Math.max(0, tower.cooldown - cooldownSpeed);
           }
 
@@ -1592,7 +1553,7 @@ export default function BratTDClient() {
             return;
           }
 
-          const isCamoCapable = tower.camoDetection || hasCamoBuff;
+          const isCamoCapable = tower.camoDetection || tower.hasCamoBuff;
 
           // Gas is a tack-shooter analog: short radial bursts, no passive aura damage.
           if (tower.type === "gas") {
