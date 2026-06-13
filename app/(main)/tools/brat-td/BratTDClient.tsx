@@ -3422,25 +3422,29 @@ export default function BratTDClient() {
               >
                 ПРИЙНЯТИ НАКАТ
               </button>
-              {leaderboard.length > 0 && (
-                <div className="w-full max-w-xs text-left">
-                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
-                  <div className="bg-zinc-900/60 border border-hairline-dark rounded p-2 max-h-36 overflow-y-auto">
-                    {leaderboard.map((e, i) => (
-                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
-                        <span className="flex items-center gap-2">
-                          <span className="w-5 text-right font-bold">{i + 1}.</span>
-                          <span className="truncate max-w-[120px]">{e.name}</span>
-                        </span>
-                        <span className="font-bold">{e.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {leaderboard.length > 0 && (
+          <div className="card-dark p-3 border-hairline-dark">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <p className="micro-cap text-ink-mute">ЛЕДЕРБОРД</p>
+              <p className="text-[10px] text-ink-mute">нижче екрана гри</p>
+            </div>
+            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
+              {leaderboard.slice(0, 10).map((e, i) => (
+                <div key={`${e.name}-${e.score}-${i}`} className={`flex items-center justify-between gap-2 rounded border border-hairline-dark/70 bg-black/35 px-2 py-1.5 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-5 shrink-0 text-right font-bold">{i + 1}.</span>
+                    <span className="truncate">{e.name}</span>
+                  </span>
+                  <span className="shrink-0 font-bold">{e.score}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Wave Preview */}
         {gameStatus === "playing" && !isWaveActive && (() => {

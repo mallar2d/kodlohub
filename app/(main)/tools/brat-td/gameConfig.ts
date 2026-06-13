@@ -185,23 +185,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "hammer_sharp", name: "Гострий молоток", description: "Збільшує шкоду молотка на 5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
         { id: "hammer_steel", name: "Сталеве гартування", description: "Шкода +10, пробиття (пірс) +1.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
-        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, пірс +2, але атака на 25% повільніша.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, fireRate: s.fireRate * 1.25, pierce: (s.pierce || 1) + 2 }) },
-        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45, пірс +2. Молотки ігнорують броню.", cost: 1385, effect: (s) => ({ ...s, damage: s.damage + 45, ignoresArmor: true, pierce: (s.pierce || 1) + 2 }) },
-        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+130), радіус (+35) та великий пірс (+6).", cost: 5015, effect: (s) => ({ ...s, damage: s.damage + 130, range: s.range + 35, pierce: (s.pierce || 1) + 6 }) }
+        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, пірс +2, але атака на 25% повільніша.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, fireRate: s.fireRate * 1.25, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45, пірс +2. Молотки ігнорують броню.", cost: 1662, effect: (s) => ({ ...s, damage: s.damage + 45, ignoresArmor: true, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+130), радіус (+35) та великий пірс (+6).", cost: 7523, effect: (s) => ({ ...s, damage: s.damage + 130, range: s.range + 35, pierce: (s.pierce || 1) + 6 }) }
       ],
       path2: [
         { id: "hammer_fast", name: "Швидка рука", description: "Збільшує швидкість атаки на 15%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "hammer_espresso", name: "Еспресо-рефлекс", description: "Збільшує швидкість атаки ще на 30%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
-        { id: "hammer_two_hits", name: "Два удари", description: "Кожен 3-й удар кидає два молотки одночасно.", cost: 610, effect: (s) => ({ ...s, twoHits: true }) },
-        { id: "hammer_gatling", name: "Кулемет молотків", description: "Надшвидке кидання молотків (швидкість +55%).", cost: 1585, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45 }) },
-        { id: "hammer_berserk", name: "Ентропійний Берсерк", description: "Кидає 2 молотки при кожному ударі, швидкість +75%.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.25, alwaysDouble: true }) }
+        { id: "hammer_two_hits", name: "Два удари", description: "Кожен 3-й удар кидає два молотки одночасно.", cost: 671, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "hammer_gatling", name: "Кулемет молотків", description: "Надшвидке кидання молотків (швидкість +55%).", cost: 1902, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45 }) },
+        { id: "hammer_berserk", name: "Ентропійний Берсерк", description: "Кидає 2 молотки при кожному ударі, швидкість +75%.", cost: 9405, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.25, alwaysDouble: true }) }
       ],
       path3: [
         { id: "hammer_long", name: "Дальній кидок", description: "Збільшує дальність кидка на 25px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "hammer_eagle", name: "Орлине око", description: "Дальність кидка +35px, пірс +1, виявляє камуфляж.", cost: 230, effect: (s) => ({ ...s, range: s.range + 35, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
-        { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "20% шанс нанести 3-кратну шкоду, пірс +1.", cost: 580, effect: (s) => ({ ...s, critChance: 0.20, pierce: (s.pierce || 1) + 1 }) },
-        { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту 40%, пірс +1.", cost: 1190, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40, pierce: (s.pierce || 1) + 1 }) },
-        { id: "hammer_legend", name: "Легенда без слів", description: "Шанс криту 60%, критичні удари наносять 6x шкоду.", cost: 4180, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6 }) }
+        { id: "hammer_crit", name: "Критичний ПОЧУВ", description: "20% шанс нанести 3-кратну шкоду, пірс +1.", cost: 638, effect: (s) => ({ ...s, critChance: 0.20, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_deep", name: "Глибокий аналіз", description: "Дальність +30px, шанс криту 40%, пірс +1.", cost: 1428, effect: (s) => ({ ...s, range: s.range + 30, critChance: 0.40, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_legend", name: "Легенда без слів", description: "Шанс криту 60%, критичні удари наносять 6x шкоду.", cost: 6270, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6 }) }
       ]
     }
   },
@@ -216,25 +216,25 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "☕",
     upgrades: {
       path1: [
-        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +10%.", cost: 660, effect: (s) => ({ ...s, buffMultiplier: 0.10 }) },
-        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +18%.", cost: 1240, effect: (s) => ({ ...s, buffMultiplier: 0.18 }) },
-        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +25%.", cost: 2890, effect: (s) => ({ ...s, buffMultiplier: 0.25 }) },
-        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +40%.", cost: 5940, effect: (s) => ({ ...s, buffMultiplier: 0.40 }) },
-        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +60%.", cost: 15675, effect: (s) => ({ ...s, buffMultiplier: 0.60 }) }
+        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +10%.", cost: 792, effect: (s) => ({ ...s, buffMultiplier: 0.10 }) },
+        { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +18%.", cost: 1612, effect: (s) => ({ ...s, buffMultiplier: 0.18 }) },
+        { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +25%.", cost: 4335, effect: (s) => ({ ...s, buffMultiplier: 0.25 }) },
+        { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +40%.", cost: 10692, effect: (s) => ({ ...s, buffMultiplier: 0.40 }) },
+        { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +60%.", cost: 34485, effect: (s) => ({ ...s, buffMultiplier: 0.60 }) }
       ],
       path2: [
-        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 15px.", cost: 530, effect: (s) => ({ ...s, range: s.range + 15 }) },
-        { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +25px.", cost: 990, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +30 Gold наприкінці кожної хвилі.", cost: 2320, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 30 }) },
-        { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +80 Gold наприкінці кожної хвилі.", cost: 4950, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
-        { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +300 Gold наприкінці кожної хвилі.", cost: 12540, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300 }) }
+        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 15px.", cost: 636, effect: (s) => ({ ...s, range: s.range + 15 }) },
+        { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +25px.", cost: 1287, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +30 Gold наприкінці кожної хвилі.", cost: 3480, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 30 }) },
+        { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +80 Gold наприкінці кожної хвилі.", cost: 8910, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 80 }) },
+        { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +300 Gold наприкінці кожної хвилі.", cost: 27588, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300 }) }
       ],
       path3: [
-        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1% до шкоди.", cost: 660, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
-        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3% до шкоди.", cost: 1440, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
-        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8% шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 3370, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
-        { id: "coffee_mocha", name: "Мокко Підсилення", description: "Швидкість атаки веж в радіусі +12%.", cost: 6230, effect: (s) => ({ ...s, buffMultiplier: (s.buffMultiplier || 0.05) + 0.12 }) },
-        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30% до шкоди та +25% дальності.", cost: 14630, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
+        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +1% до шкоди.", cost: 792, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 1 }) },
+        { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +3% до шкоди.", cost: 1872, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 3 }) },
+        { id: "coffee_roast", name: "Міцне обсмаження", description: "+8% шкоди, +10px дальності та виявлення камуфляжу для веж поруч.", cost: 5055, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 8, rangeBuff: (s.rangeBuff || 0) + 10, camoDetectionBuff: true }) },
+        { id: "coffee_mocha", name: "Мокко Підсилення", description: "Швидкість атаки веж в радіусі +12%.", cost: 11214, effect: (s) => ({ ...s, buffMultiplier: (s.buffMultiplier || 0.05) + 0.12 }) },
+        { id: "coffee_elixir", name: "Коростишівський Еліксир", description: "Вежі в радіусі отримують +30% до шкоди та +25% дальності.", cost: 32186, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 30, rangeBuffPercent: 0.25 }) }
       ]
     }
   },
@@ -252,23 +252,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "candy_sweet", name: "Солодкий удар", description: "Шкода від цукерок +3.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
         { id: "candy_press", name: "Карамель-прес", description: "Шкода +7, сповільнення триває на 1 секунду довше.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 7, slowDurationBonus: (s.slowDurationBonus || 0) + 60 }) },
-        { id: "candy_dust", name: "Пил часу", description: "Сповільнені вороги отримують на 30% більше шкоди від усіх джерел.", cost: 655, effect: (s) => ({ ...s, damageDebuff: 1.3 }) },
-        { id: "candy_paralysis", name: "Цукровий параліч", description: "Сповільнення збільшується з 50% до 70%.", cost: 1385, effect: (s) => ({ ...s, slowFactorBonus: 0.2 }) },
-        { id: "candy_stop", name: "Абсолютний стоп", description: "Сповільнення стає 85%, вороги отримують на 60% більше шкоди.", cost: 4595, effect: (s) => ({ ...s, slowFactorBonus: 0.35, damageDebuff: 1.6 }) }
+        { id: "candy_dust", name: "Пил часу", description: "Сповільнені вороги отримують на 30% більше шкоди від усіх джерел.", cost: 721, effect: (s) => ({ ...s, damageDebuff: 1.3 }) },
+        { id: "candy_paralysis", name: "Цукровий параліч", description: "Сповільнення збільшується з 50% до 70%.", cost: 1662, effect: (s) => ({ ...s, slowFactorBonus: 0.2 }) },
+        { id: "candy_stop", name: "Абсолютний стоп", description: "Сповільнення стає 85%, вороги отримують на 60% більше шкоди.", cost: 6893, effect: (s) => ({ ...s, slowFactorBonus: 0.35, damageDebuff: 1.6 }) }
       ],
       path2: [
         { id: "candy_big", name: "Великі рачки", description: "Дальність стрільби цукерками +15px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 15 }) },
         { id: "candy_dispense", name: "Швидкий викид", description: "Швидкість стрільби цукерками +25%.", cost: 260, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px), пірс +1 та бачить камуфляж.", cost: 850, effect: (s) => ({ ...s, isAoESlow: true, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
-        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px, наносить 15 шкоди, пірс +2.", cost: 1780, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15, pierce: (s.pierce || 1) + 2 }) },
-        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Вибух у 150px наносить 80 шкоди, миттєво стопить натовп, пірс +5.", cost: 5435, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20, pierce: (s.pierce || 1) + 5 }) }
+        { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px), пірс +1 та бачить камуфляж.", cost: 935, effect: (s) => ({ ...s, isAoESlow: true, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
+        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px, наносить 15 шкоди, пірс +2.", cost: 2136, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15, pierce: (s.pierce || 1) + 2 }) },
+        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Вибух у 150px наносить 80 шкоди, миттєво стопить натовп, пірс +5.", cost: 8153, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20, pierce: (s.pierce || 1) + 5 }) }
       ],
       path3: [
         { id: "candy_sugar_cheap", name: "Дешевий цукор", description: "Апгрейд Candy Launcher стає дешевшим (повертає 30 Gold).", cost: 78, effect: (s) => s },
         { id: "candy_cheap", name: "Кишеньковий запас", description: "Швидкість атаки +20%, повертає 40 Gold.", cost: 195, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.8 }) },
-        { id: "candy_bakery", name: "Свята цукерня", description: "Швидкість стрільби збільшується на 40%.", cost: 580, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.6 }) },
-        { id: "candy_vending", name: "Автомат рачків", description: "Стріляє цукерками на 60% швидше.", cost: 1505, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.4 }) },
-        { id: "candy_conveyor", name: "Конвеєр Коростишева", description: "Неймовірна швидкість стрільби (кожні 0.3с), шкода +15.", cost: 4180, effect: (s) => ({ ...s, fireRate: 0.3, damage: s.damage + 15 }) }
+        { id: "candy_bakery", name: "Свята цукерня", description: "Швидкість стрільби збільшується на 40%.", cost: 638, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.6 }) },
+        { id: "candy_vending", name: "Автомат рачків", description: "Стріляє цукерками на 60% швидше.", cost: 1806, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.4 }) },
+        { id: "candy_conveyor", name: "Конвеєр Коростишева", description: "Неймовірна швидкість стрільби (кожні 0.3с), шкода +15.", cost: 6270, effect: (s) => ({ ...s, fireRate: 0.3, damage: s.damage + 15 }) }
       ]
     }
   },
@@ -287,23 +287,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 5.", cost: 185, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
         { id: "infinix_discharge", name: "Цифровий розряд", description: "Шкода +15.", cost: 400, effect: (s) => ({ ...s, damage: s.damage + 15 }) },
-        { id: "infinix_gacha", name: "Гача-зрив", description: "5% шанс завдати колосальні 300 одиниць шкоди (Джекпот!).", cost: 960, effect: (s) => ({ ...s, gachaChance: 0.05 }) },
-        { id: "infinix_jackpot", name: "Джекпот-адикт", description: "Шанс джекпоту збільшується до 12% на 350 шкоди.", cost: 1980, effect: (s) => ({ ...s, gachaChance: 0.12, damage: s.damage + 10 }) },
-        { id: "infinix_pull", name: "5-Зірковий пул", description: "Шанс джекпоту 25%, шкода джекпоту стає 600.", cost: 6270, effect: (s) => ({ ...s, gachaChance: 0.25, gachaDamageOverride: 600 }) }
+        { id: "infinix_gacha", name: "Гача-зрив", description: "5% шанс завдати колосальні 300 одиниць шкоди (Джекпот!).", cost: 1056, effect: (s) => ({ ...s, gachaChance: 0.05 }) },
+        { id: "infinix_jackpot", name: "Джекпот-адикт", description: "Шанс джекпоту збільшується до 12% на 350 шкоди.", cost: 2376, effect: (s) => ({ ...s, gachaChance: 0.12, damage: s.damage + 10 }) },
+        { id: "infinix_pull", name: "5-Зірковий пул", description: "Шанс джекпоту 25%, шкода джекпоту стає 600.", cost: 9405, effect: (s) => ({ ...s, gachaChance: 0.25, gachaDamageOverride: 600 }) }
       ],
       path2: [
         { id: "infinix_refresh90", name: "Частота 90Гц", description: "Збільшує швидкість імпульсу на 15%.", cost: 210, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "infinix_refresh120", name: "Частота 120Гц", description: "Швидкість стрільби +30%.", cost: 430, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
-        { id: "infinix_lag", name: "Лаг 999 мс", description: "Імпульси мають 15% шанс повністю заморозити ворога на 1 секунду, пірс +1.", cost: 885, effect: (s) => ({ ...s, freezeChance: 0.15, pierce: (s.pierce || 1) + 1 }) },
-        { id: "infinix_freeze", name: "Критичний фриз", description: "Шанс заморозки 30%, тривалість 2 секунди, пірс +2.", cost: 1900, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, pierce: (s.pierce || 1) + 2 }) },
-        { id: "infinix_bsod", name: "Синій екран (BSOD)", description: "45% шанс заморозити ворога на 3с. Заморожені вороги сповільнюють сусідів, пірс +4.", cost: 5545, effect: (s) => ({ ...s, freezeChance: 0.45, freezeDurationBonus: 120, bsodAoE: true, pierce: (s.pierce || 1) + 4 }) }
+        { id: "infinix_lag", name: "Лаг 999 мс", description: "Імпульси мають 15% шанс повністю заморозити ворога на 1 секунду, пірс +1.", cost: 974, effect: (s) => ({ ...s, freezeChance: 0.15, pierce: (s.pierce || 1) + 1 }) },
+        { id: "infinix_freeze", name: "Критичний фриз", description: "Шанс заморозки 30%, тривалість 2 секунди, пірс +2.", cost: 2280, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, pierce: (s.pierce || 1) + 2 }) },
+        { id: "infinix_bsod", name: "Синій екран (BSOD)", description: "45% шанс заморозити ворога на 3с. Заморожені вороги сповільнюють сусідів, пірс +4.", cost: 8318, effect: (s) => ({ ...s, freezeChance: 0.45, freezeDurationBonus: 120, bsodAoE: true, pierce: (s.pierce || 1) + 4 }) }
       ],
       path3: [
         { id: "infinix_4g", name: "Сигнал 4G", description: "Дальність стрільби вежі +25px.", cost: 130, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "infinix_5g", name: "Антена 5G", description: "Дальність вежі +40px.", cost: 300, effect: (s) => ({ ...s, range: s.range + 40 }) },
-        { id: "infinix_copilot", name: "Copilot Manager", description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 50 шкоди навколо.", cost: 1080, effect: (s) => ({ ...s, copilotBug: true }) },
-        { id: "infinix_worm", name: "Мережевий черв", description: "Вибух багу наносить 90 шкоди в радіусі 100px.", cost: 2180, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 90, bugExplodeRadius: 100 }) },
-        { id: "infinix_super", name: "Суперкомп'ютер", description: "Вибух наносить 250 шкоди, розповсюджуючи баг на сусідніх ворогів.", cost: 6690, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 250, bugExplodeRadius: 150, bugContagion: true }) }
+        { id: "infinix_copilot", name: "Copilot Manager", description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 50 шкоди навколо.", cost: 1188, effect: (s) => ({ ...s, copilotBug: true }) },
+        { id: "infinix_worm", name: "Мережевий черв", description: "Вибух багу наносить 90 шкоди в радіусі 100px.", cost: 2616, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 90, bugExplodeRadius: 100 }) },
+        { id: "infinix_super", name: "Суперкомп'ютер", description: "Вибух наносить 250 шкоди, розповсюджуючи баг на сусідніх ворогів.", cost: 10035, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 250, bugExplodeRadius: 150, bugContagion: true }) }
       ]
     }
   },
@@ -322,23 +322,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "gas_sharp", name: "Їдкі Шипи", description: "Шкода шипів +3.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
         { id: "gas_more", name: "Більше Форсунок", description: "+2 газові шипи за залп.", cost: 300, effect: (s) => ({ ...s, tackCount: (s.tackCount || 6) + 2 }) },
-        { id: "gas_corrosive", name: "Корозійний Газ", description: "Шкода +8, шипи краще беруть броню.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 8, antiArmor: true }) },
-        { id: "gas_blade", name: "Газові Леза", description: "Шкода +14, пірс +1, +2 шипи.", cost: 1780, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1, tackCount: (s.tackCount || 6) + 2 }) },
-        { id: "gas_inferno", name: "Токсичне Кільце", description: "Шкода +28, пірс +2, +4 шипи, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 28, pierce: (s.pierce || 1) + 2, tackCount: (s.tackCount || 6) + 4, ignoresArmor: true }) }
+        { id: "gas_corrosive", name: "Корозійний Газ", description: "Шкода +8, шипи краще беруть броню.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 8, antiArmor: true }) },
+        { id: "gas_blade", name: "Газові Леза", description: "Шкода +14, пірс +1, +2 шипи.", cost: 2136, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1, tackCount: (s.tackCount || 6) + 2 }) },
+        { id: "gas_inferno", name: "Токсичне Кільце", description: "Шкода +28, пірс +2, +4 шипи, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 28, pierce: (s.pierce || 1) + 2, tackCount: (s.tackCount || 6) + 4, ignoresArmor: true }) }
       ],
       path2: [
         { id: "gas_fast", name: "Швидкий Клапан", description: "Швидкість стрільби +18%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
         { id: "gas_stasis", name: "Капсула Стазису", description: "Шипи сповільнюють на 35%.", cost: 330, effect: (s) => ({ ...s, slowAmount: 0.35 }) },
-        { id: "gas_acid", name: "Кислотні Шипи", description: "Швидкість +25%, вороги отримують на 20% більше шкоди.", cost: 850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, damageDebuff: 1.20 }) },
-        { id: "gas_asphyxia", name: "Ядуха", description: "Швидкість +35%, сповільнення 55%.", cost: 1980, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65, slowAmount: 0.55 }) },
-        { id: "gas_weapon", name: "Біологічний Ротор", description: "Швидкість +45%, сповільнення 70%, +2 шипи.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, slowAmount: 0.70, tackCount: (s.tackCount || 6) + 2, damageDebuff: 1.35 }) }
+        { id: "gas_acid", name: "Кислотні Шипи", description: "Швидкість +25%, вороги отримують на 20% більше шкоди.", cost: 935, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, damageDebuff: 1.20 }) },
+        { id: "gas_asphyxia", name: "Ядуха", description: "Швидкість +35%, сповільнення 55%.", cost: 2376, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65, slowAmount: 0.55 }) },
+        { id: "gas_weapon", name: "Біологічний Ротор", description: "Швидкість +45%, сповільнення 70%, +2 шипи.", cost: 9405, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, slowAmount: 0.70, tackCount: (s.tackCount || 6) + 2, damageDebuff: 1.35 }) }
       ],
       path3: [
         { id: "gas_range", name: "Довгі Сопла", description: "Дальність +18px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 18 }) },
         { id: "gas_scanner", name: "Біо-Сканер", description: "Виявляє камуфляж, дальність +12px.", cost: 260, effect: (s) => ({ ...s, camoDetection: true, range: s.range + 12 }) },
-        { id: "gas_glitch", name: "Глючний Газ", description: "Шипи вимикають телепорти ворогів при влучанні.", cost: 770, effect: (s) => ({ ...s, disableGlitch: true }) },
-        { id: "gas_gacha", name: "Гача-Форсунка", description: "6% шанс на 80 додаткової шкоди при влучанні.", cost: 1900, effect: (s) => ({ ...s, gachaChance: 0.06, gachaDamageOverride: 80 }) },
-        { id: "gas_entropy", name: "Ентропійний Ротор", description: "Шипи вимикають здібності, +12 шкоди, +4 шипи.", cost: 5150, effect: (s) => ({ ...s, damage: s.damage + 12, tackCount: (s.tackCount || 6) + 4, disableGlitch: true, disableAbilities: true }) }
+        { id: "gas_glitch", name: "Глючний Газ", description: "Шипи вимикають телепорти ворогів при влучанні.", cost: 847, effect: (s) => ({ ...s, disableGlitch: true }) },
+        { id: "gas_gacha", name: "Гача-Форсунка", description: "6% шанс на 80 додаткової шкоди при влучанні.", cost: 2280, effect: (s) => ({ ...s, gachaChance: 0.06, gachaDamageOverride: 80 }) },
+        { id: "gas_entropy", name: "Ентропійний Ротор", description: "Шипи вимикають здібності, +12 шкоди, +4 шипи.", cost: 7725, effect: (s) => ({ ...s, damage: s.damage + 12, tackCount: (s.tackCount || 6) + 4, disableGlitch: true, disableAbilities: true }) }
       ]
     }
   },
@@ -357,23 +357,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "sniper_heavy_cal", name: "Важкий калібр", description: "Шкода +40.", cost: 265, effect: (s) => ({ ...s, damage: s.damage + 40 }) },
         { id: "sniper_armor_piercing", name: "Бронебійний", description: "Шкода +60, ігнорує броню.", cost: 600, effect: (s) => ({ ...s, damage: s.damage + 60, ignoresArmor: true }) },
-        { id: "sniper_explosive_round", name: "Вибуховий заряд", description: "Шкода +80, снаряди вибухають (радіус 50px).", cost: 1350, effect: (s) => ({ ...s, damage: s.damage + 80, explodeDmg: 40 }) },
-        { id: "sniper_anti_material", name: "Антиматеріальний", description: "Шкода +150, пробиває будь-яку броню.", cost: 2770, effect: (s) => ({ ...s, damage: s.damage + 150, ignoresArmor: true }) },
-        { id: "sniper_tactical_nuke", name: "Тактичний ядерний", description: "Шкода +400, вибух 120px, пробиває 3 цілі.", cost: 6270, effect: (s) => ({ ...s, damage: s.damage + 400, explodeDmg: 200, pierce: (s.pierce || 1) + 2 }) }
+        { id: "sniper_explosive_round", name: "Вибуховий заряд", description: "Шкода +80, снаряди вибухають (радіус 50px).", cost: 1485, effect: (s) => ({ ...s, damage: s.damage + 80, explodeDmg: 40 }) },
+        { id: "sniper_anti_material", name: "Антиматеріальний", description: "Шкода +150, пробиває будь-яку броню.", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 150, ignoresArmor: true }) },
+        { id: "sniper_tactical_nuke", name: "Тактичний ядерний", description: "Шкода +400, вибух 120px, пробиває 3 цілі.", cost: 9405, effect: (s) => ({ ...s, damage: s.damage + 400, explodeDmg: 200, pierce: (s.pierce || 1) + 2 }) }
       ],
       path2: [
         { id: "sniper_fast_reload", name: "Швидка перезарядка", description: "Швидкість атаки +15%.", cost: 265, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "sniper_semi_auto", name: "Напівавтомат", description: "Швидкість атаки +25%.", cost: 660, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "sniper_double_tap", name: "Подвійний постріл", description: "Кожен 3-й постріл стріляє двічі.", cost: 1350, effect: (s) => ({ ...s, twoHits: true }) },
-        { id: "sniper_full_auto", name: "Повний автомат", description: "Швидкість атаки +45%.", cost: 2770, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55 }) },
-        { id: "sniper_minigun", name: "Снайперський мініган", description: "Дуже швидка стрільба, +2 пробиття.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.35, pierce: (s.pierce || 1) + 2 }) }
+        { id: "sniper_double_tap", name: "Подвійний постріл", description: "Кожен 3-й постріл стріляє двічі.", cost: 1485, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "sniper_full_auto", name: "Повний автомат", description: "Швидкість атаки +45%.", cost: 3324, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55 }) },
+        { id: "sniper_minigun", name: "Снайперський мініган", description: "Дуже швидка стрільба, +2 пробиття.", cost: 9405, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.35, pierce: (s.pierce || 1) + 2 }) }
       ],
       path3: [
         { id: "sniper_spotter", name: "Спостерігач", description: "Пробиття +1.", cost: 185, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 1 }) },
         { id: "sniper_deadeye", name: "Мертве око", description: "25% шанс криту (3x шкода).", cost: 495, effect: (s) => ({ ...s, critChance: 0.25 }) },
-        { id: "sniper_headhunter", name: "Мисливець за головами", description: "40% шанс криту (4x шкода).", cost: 1080, effect: (s) => ({ ...s, critChance: 0.40, critMultiplier: 4 }) },
-        { id: "sniper_wallhack", name: "Волхак", description: "Бачить всю карту, 50% крит, +2 пробиття.", cost: 2375, effect: (s) => ({ ...s, critChance: 0.50, pierce: (s.pierce || 1) + 2 }) },
-        { id: "sniper_one_shot", name: "One Shot One Kill", description: "60% крит (6x шкода), ігнорує броню, +3 пробиття.", cost: 5545, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6, ignoresArmor: true, pierce: (s.pierce || 1) + 3 }) }
+        { id: "sniper_headhunter", name: "Мисливець за головами", description: "40% шанс криту (4x шкода).", cost: 1188, effect: (s) => ({ ...s, critChance: 0.40, critMultiplier: 4 }) },
+        { id: "sniper_wallhack", name: "Волхак", description: "Бачить всю карту, 50% крит, +2 пробиття.", cost: 2850, effect: (s) => ({ ...s, critChance: 0.50, pierce: (s.pierce || 1) + 2 }) },
+        { id: "sniper_one_shot", name: "One Shot One Kill", description: "60% крит (6x шкода), ігнорує броню, +3 пробиття.", cost: 8318, effect: (s) => ({ ...s, critChance: 0.60, critMultiplier: 6, ignoresArmor: true, pierce: (s.pierce || 1) + 3 }) }
       ]
     }
   },
@@ -391,23 +391,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "chain_voltage", name: "Підвищена напруга", description: "Шкода +8.", cost: 210, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
         { id: "chain_overload", name: "Перевантаження", description: "Шкода +15, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 3) + 1 }) },
-        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +20, +1 ланцюг.", cost: 1080, effect: (s) => ({ ...s, damage: s.damage + 20, pierce: (s.pierce || 3) + 1 }) },
-        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +35, +2 ланцюги.", cost: 2375, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 3) + 2 }) },
-        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +70, +4 ланцюги, ігнорує броню.", cost: 5545, effect: (s) => ({ ...s, damage: s.damage + 70, pierce: (s.pierce || 3) + 4, ignoresArmor: true }) }
+        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +20, +1 ланцюг.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 20, pierce: (s.pierce || 3) + 1 }) },
+        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +35, +2 ланцюги.", cost: 2850, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 3) + 2 }) },
+        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +70, +4 ланцюги, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 70, pierce: (s.pierce || 3) + 4, ignoresArmor: true }) }
       ],
       path2: [
         { id: "chain_conductivity", name: "Провідність", description: "Швидкість атаки +20%.", cost: 210, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
         { id: "chain_capacitor", name: "Конденсатор", description: "Швидкість атаки +30%.", cost: 495, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
-        { id: "chain_discharge", name: "Швидкий розряд", description: "Швидкість атаки +40%.", cost: 1080, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60 }) },
-        { id: "chain_rapid", name: "Шквал блискавок", description: "Швидкість атаки +55%.", cost: 2375, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45 }) },
-        { id: "chain_storm", name: "Електричний шторм", description: "Шалена швидкість, виявляє камуфляж.", cost: 5545, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, camoDetection: true }) }
+        { id: "chain_discharge", name: "Швидкий розряд", description: "Швидкість атаки +40%.", cost: 1188, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60 }) },
+        { id: "chain_rapid", name: "Шквал блискавок", description: "Швидкість атаки +55%.", cost: 2850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45 }) },
+        { id: "chain_storm", name: "Електричний шторм", description: "Шалена швидкість, виявляє камуфляж.", cost: 8318, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.30, camoDetection: true }) }
       ],
       path3: [
         { id: "chain_static", name: "Статичний заряд", description: "10% шанс оглушити ворога на 0.5с.", cost: 210, effect: (s) => ({ ...s, freezeChance: 0.10 }) },
         { id: "chain_paralyze", name: "Параліч", description: "20% шанс оглушити на 1с.", cost: 495, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30 }) },
-        { id: "chain_magnetic", name: "Магнітне поле", description: "Сповільнює вражених ворогів на 30%.", cost: 1080, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
-        { id: "chain_superconductor", name: "Надпровідник", description: "35% оглушення, сповільнення 50%, +2 ланцюги.", cost: 2375, effect: (s) => ({ ...s, freezeChance: 0.35, slowAmount: 0.50, pierce: (s.pierce || 3) + 2 }) },
-        { id: "chain_EMP", name: "ЕМП-імпульс", description: "50% оглушення на 2с, сповільнення 70%, вимикає здібності ворогів.", cost: 5545, effect: (s) => ({ ...s, freezeChance: 0.50, freezeDurationBonus: 120, slowAmount: 0.70, disableAbilities: true }) }
+        { id: "chain_magnetic", name: "Магнітне поле", description: "Сповільнює вражених ворогів на 30%.", cost: 1188, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
+        { id: "chain_superconductor", name: "Надпровідник", description: "35% оглушення, сповільнення 50%, +2 ланцюги.", cost: 2850, effect: (s) => ({ ...s, freezeChance: 0.35, slowAmount: 0.50, pierce: (s.pierce || 3) + 2 }) },
+        { id: "chain_EMP", name: "ЕМП-імпульс", description: "50% оглушення на 2с, сповільнення 70%, вимикає здібності ворогів.", cost: 8318, effect: (s) => ({ ...s, freezeChance: 0.50, freezeDurationBonus: 120, slowAmount: 0.70, disableAbilities: true }) }
       ]
     }
   },
@@ -426,23 +426,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +4.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
         { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +7, кожна міна витримує +1 влучання.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 7, pierce: (s.pierce || 3) + 1, explodeDmg: (s.explodeDmg || 0) + 10 }) },
-        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +12, міна вибухає при контакті (AoE).", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 12, mineExplodes: true, explodeDmg: (s.explodeDmg || 0) + 20 }) },
-        { id: "kladmen_c4", name: "C4", description: "Шкода +20, пробиває броню, радіус вибуху +15px.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 20, ignoresArmor: true, explodeDmg: (s.explodeDmg || 0) + 15, mineExplodes: true }) },
-        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +55, радіус +25px, 6 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 55, pierce: (s.pierce || 3) + 3, explodeDmg: (s.explodeDmg || 0) + 25, mineExplodes: true, ignoresArmor: true }) }
+        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +12, міна вибухає при контакті (AoE).", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 12, mineExplodes: true, explodeDmg: (s.explodeDmg || 0) + 20 }) },
+        { id: "kladmen_c4", name: "C4", description: "Шкода +20, пробиває броню, радіус вибуху +15px.", cost: 1848, effect: (s) => ({ ...s, damage: s.damage + 20, ignoresArmor: true, explodeDmg: (s.explodeDmg || 0) + 15, mineExplodes: true }) },
+        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +55, радіус +25px, 6 цілей.", cost: 5775, effect: (s) => ({ ...s, damage: s.damage + 55, pierce: (s.pierce || 3) + 3, explodeDmg: (s.explodeDmg || 0) + 25, mineExplodes: true, ignoresArmor: true }) }
       ],
       path2: [
         { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +10%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.90 }) },
         { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +18%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
-        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +25%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, range: s.range + 20 }) },
-        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +30%, макс 18 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, maxMines: (s.maxMines || 15) + 3 }) },
-        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 22 міни, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, maxMines: (s.maxMines || 15) + 7, camoDetection: true }) }
+        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +25%, дальність +20px.", cost: 770, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, range: s.range + 20 }) },
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +30%, макс 18 мін.", cost: 1848, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, maxMines: (s.maxMines || 15) + 3 }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 22 міни, виявляє камуфляж.", cost: 5775, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, maxMines: (s.maxMines || 15) + 7, camoDetection: true }) }
       ],
       path3: [
         { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30%.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
         { id: "kladmen_freeze", name: "Кріо-міна", description: "15% шанс заморозити ворога на 1с.", cost: 330, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
-        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги отримують на 25% більше шкоди після влучання.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
-        { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності.", cost: 1540, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
-        { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "45% оглушення, сповільнення 50%, вимикає здібності.", cost: 3850, effect: (s) => ({ ...s, freezeChance: 0.45, slowAmount: 0.50, freezeDurationBonus: 120, disableAbilities: true }) }
+        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги отримують на 25% більше шкоди після влучання.", cost: 770, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
+        { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності.", cost: 1848, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
+        { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "45% оглушення, сповільнення 50%, вимикає здібності.", cost: 5775, effect: (s) => ({ ...s, freezeChance: 0.45, slowAmount: 0.50, freezeDurationBonus: 120, disableAbilities: true }) }
       ]
     }
   },
@@ -458,25 +458,25 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "bankomat_cashback", name: "Кешбек", description: "Дохід +35 наприкінці хвилі, аура дає ще +5px дальності.", cost: 360, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 35, rangeBuff: (s.rangeBuff || 0) + 5 }) },
-        { id: "bankomat_deposit", name: "Депозит", description: "Дохід +55, радіус аури +15px.", cost: 820, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 55, range: s.range + 15 }) },
-        { id: "bankomat_crypto", name: "Крипто Кодла", description: "Дохід +90, вежі поруч стріляють на 8% швидше.", cost: 1720, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 90, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
-        { id: "bankomat_tax", name: "Податкова Оптимізація", description: "Дохід +150, вежі поруч отримують +10% шкоди.", cost: 3550, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 150, damageBuff: (s.damageBuff || 0) + 10 }) },
-        { id: "bankomat_tycoon", name: "Nescafe Capital", description: "Дохід +300, аура дає +18% шкоди та +15% швидкості атаки.", cost: 8200, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300, damageBuff: (s.damageBuff || 0) + 18, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.15) }) }
+        { id: "bankomat_cashback", name: "Кешбек", description: "Дохід +35 наприкінці хвилі, аура дає ще +5px дальності.", cost: 432, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 35, rangeBuff: (s.rangeBuff || 0) + 5 }) },
+        { id: "bankomat_deposit", name: "Депозит", description: "Дохід +55, радіус аури +15px.", cost: 1066, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 55, range: s.range + 15 }) },
+        { id: "bankomat_crypto", name: "Крипто Кодла", description: "Дохід +90, вежі поруч стріляють на 8% швидше.", cost: 2580, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 90, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
+        { id: "bankomat_tax", name: "Податкова Оптимізація", description: "Дохід +150, вежі поруч отримують +10% шкоди.", cost: 6390, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 150, damageBuff: (s.damageBuff || 0) + 10 }) },
+        { id: "bankomat_tycoon", name: "Nescafe Capital", description: "Дохід +300, аура дає +18% шкоди та +15% швидкості атаки.", cost: 18040, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 300, damageBuff: (s.damageBuff || 0) + 18, buffMultiplier: Math.max(s.buffMultiplier || 0, 0.15) }) }
       ],
       path2: [
-        { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус аури +25px.", cost: 260, effect: (s) => ({ ...s, range: s.range + 25 }) },
-        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Аура шкоди для веж поруч стає +8%.", cost: 620, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 8) }) },
-        { id: "bankomat_premium", name: "Преміум Пакет", description: "Аура дає +15% шкоди, +12% дальності та +10px дальності.", cost: 1420, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 15), rangeBuff: (s.rangeBuff || 0) + 10, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.12) }) },
-        { id: "bankomat_black", name: "Чорна Картка", description: "Аура дає +24% шкоди, +20% дальності та +8% швидкості атаки.", cost: 3150, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 24), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.20), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
-        { id: "bankomat_platinum", name: "Platinum Gold", description: "Аура дає +40% шкоди, +25% дальності, +12% швидкості та 35% пробиття броні.", cost: 7200, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 40), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.12), ignoreArmorBuff: 0.35 }) }
+        { id: "bankomat_wifi", name: "Wi-Fi Термінал", description: "Радіус аури +25px.", cost: 312, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "bankomat_bonus", name: "Бонусна Карта", description: "Аура шкоди для веж поруч стає +8%.", cost: 806, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 8) }) },
+        { id: "bankomat_premium", name: "Преміум Пакет", description: "Аура дає +15% шкоди, +12% дальності та +10px дальності.", cost: 2130, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 15), rangeBuff: (s.rangeBuff || 0) + 10, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.12) }) },
+        { id: "bankomat_black", name: "Чорна Картка", description: "Аура дає +24% шкоди, +20% дальності та +8% швидкості атаки.", cost: 5670, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 24), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.20), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.08) }) },
+        { id: "bankomat_platinum", name: "Platinum Gold", description: "Аура дає +40% шкоди, +25% дальності, +12% швидкості та 35% пробиття броні.", cost: 15840, effect: (s) => ({ ...s, damageBuff: Math.max(s.damageBuff || 0, 40), rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.12), ignoreArmorBuff: 0.35 }) }
       ],
       path3: [
-        { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 420, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
-        { id: "bankomat_range", name: "Мережа Терміналів", description: "Радіус аури +35px, вежі поруч отримують +10px дальності.", cost: 920, effect: (s) => ({ ...s, range: s.range + 35, rangeBuff: (s.rangeBuff || 0) + 10 }) },
-        { id: "bankomat_safe", name: "Сейф MIB", description: "Вежі поруч пробивають 25% броні та стріляють на 10% швидше.", cost: 1850, effect: (s) => ({ ...s, ignoreArmorBuff: Math.max(s.ignoreArmorBuff || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.10) }) },
-        { id: "bankomat_audit", name: "Аудит Братви", description: "+18% дальності, +12% шкоди та повна камуфляж-детекція для аури.", cost: 3600, effect: (s) => ({ ...s, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.18), damageBuff: (s.damageBuff || 0) + 12, camoDetectionBuff: true }) },
-        { id: "bankomat_bank", name: "Центробанк Подро", description: "Village-ядро: +28% дальності, +20% швидкості, 50% пробиття броні та +160 доходу.", cost: 7600, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 160, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.28), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.20), ignoreArmorBuff: 0.50, camoDetectionBuff: true }) }
+        { id: "bankomat_scanner", name: "Сканер Купюр", description: "Дає камуфляж-детекцію вежам поруч.", cost: 504, effect: (s) => ({ ...s, camoDetectionBuff: true }) },
+        { id: "bankomat_range", name: "Мережа Терміналів", description: "Радіус аури +35px, вежі поруч отримують +10px дальності.", cost: 1196, effect: (s) => ({ ...s, range: s.range + 35, rangeBuff: (s.rangeBuff || 0) + 10 }) },
+        { id: "bankomat_safe", name: "Сейф MIB", description: "Вежі поруч пробивають 25% броні та стріляють на 10% швидше.", cost: 2775, effect: (s) => ({ ...s, ignoreArmorBuff: Math.max(s.ignoreArmorBuff || 0, 0.25), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.10) }) },
+        { id: "bankomat_audit", name: "Аудит Братви", description: "+18% дальності, +12% шкоди та повна камуфляж-детекція для аури.", cost: 6480, effect: (s) => ({ ...s, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.18), damageBuff: (s.damageBuff || 0) + 12, camoDetectionBuff: true }) },
+        { id: "bankomat_bank", name: "Центробанк Подро", description: "Village-ядро: +28% дальності, +20% швидкості, 50% пробиття броні та +160 доходу.", cost: 16720, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 160, rangeBuffPercent: Math.max(s.rangeBuffPercent || 0, 0.28), buffMultiplier: Math.max(s.buffMultiplier || 0, 0.20), ignoreArmorBuff: 0.50, camoDetectionBuff: true }) }
       ]
     }
   },
@@ -495,23 +495,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "mono_sharp", name: "Гострі Уламки", description: "Шкода +8.", cost: 780, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
         { id: "mono_dense", name: "Щільний Граніт", description: "Шкода +14, пірс +1.", cost: 1800, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1 }) },
-        { id: "mono_plasma", name: "Плазмовий Кар'єр", description: "Шкода +24, ігнорує броню.", cost: 3900, effect: (s) => ({ ...s, damage: s.damage + 24, ignoresArmor: true }) },
-        { id: "mono_sun", name: "Сонячний Моноліт", description: "Шкода +45, пірс +2.", cost: 8100, effect: (s) => ({ ...s, damage: s.damage + 45, pierce: (s.pierce || 1) + 2 }) },
-        { id: "mono_temple", name: "Храм Коростишева", description: "Шкода +90, вибух 50px, пірс +3.", cost: 17700, effect: (s) => ({ ...s, damage: s.damage + 90, explodeDmg: 70, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
+        { id: "mono_plasma", name: "Плазмовий Кар'єр", description: "Шкода +24, ігнорує броню.", cost: 4290, effect: (s) => ({ ...s, damage: s.damage + 24, ignoresArmor: true }) },
+        { id: "mono_sun", name: "Сонячний Моноліт", description: "Шкода +45, пірс +2.", cost: 9720, effect: (s) => ({ ...s, damage: s.damage + 45, pierce: (s.pierce || 1) + 2 }) },
+        { id: "mono_temple", name: "Храм Коростишева", description: "Шкода +90, вибух 50px, пірс +3.", cost: 26550, effect: (s) => ({ ...s, damage: s.damage + 90, explodeDmg: 70, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
       ],
       path2: [
         { id: "mono_hands", name: "Швидкі Руки", description: "Швидкість атаки +12%.", cost: 720, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.88 }) },
         { id: "mono_reflex", name: "Гранітний Рефлекс", description: "Швидкість +18%.", cost: 1575, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
-        { id: "mono_double", name: "Подвійний Уламок", description: "Кожен 3-й постріл подвійний.", cost: 3450, effect: (s) => ({ ...s, twoHits: true }) },
-        { id: "mono_laser", name: "Лазерний Кар'єр", description: "Швидкість +25%, пірс +1.", cost: 7200, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, pierce: (s.pierce || 1) + 1 }) },
-        { id: "mono_robo", name: "Робо-Моноліт", description: "Кожен постріл подвійний, швидкість +20%, пірс +2.", cost: 14850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, alwaysDouble: true, pierce: (s.pierce || 1) + 2 }) }
+        { id: "mono_double", name: "Подвійний Уламок", description: "Кожен 3-й постріл подвійний.", cost: 3795, effect: (s) => ({ ...s, twoHits: true }) },
+        { id: "mono_laser", name: "Лазерний Кар'єр", description: "Швидкість +25%, пірс +1.", cost: 8640, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_robo", name: "Робо-Моноліт", description: "Кожен постріл подвійний, швидкість +20%, пірс +2.", cost: 22275, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, alwaysDouble: true, pierce: (s.pierce || 1) + 2 }) }
       ],
       path3: [
         { id: "mono_scope", name: "Кам'яне Око", description: "Дальність +30px.", cost: 630, effect: (s) => ({ ...s, range: s.range + 30 }) },
         { id: "mono_camo", name: "Радар Кар'єру", description: "Виявляє камуфляж, пірс +1.", cost: 1350, effect: (s) => ({ ...s, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
-        { id: "mono_knock", name: "Гравітаційний Удар", description: "10% шанс оглушити на 0.5с, дальність +20px.", cost: 3150, effect: (s) => ({ ...s, freezeChance: 0.10, range: s.range + 20 }) },
-        { id: "mono_emp", name: "Кам'яний EMP", description: "20% оглушення, вимикає здібності.", cost: 6900, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30, disableAbilities: true }) },
-        { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +35 шкоди, камуфляж, здібності вимкнено.", cost: 14400, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 35, camoDetection: true, disableAbilities: true }) }
+        { id: "mono_knock", name: "Гравітаційний Удар", description: "10% шанс оглушити на 0.5с, дальність +20px.", cost: 3465, effect: (s) => ({ ...s, freezeChance: 0.10, range: s.range + 20 }) },
+        { id: "mono_emp", name: "Кам'яний EMP", description: "20% оглушення, вимикає здібності.", cost: 8280, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30, disableAbilities: true }) },
+        { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +35 шкоди, камуфляж, здібності вимкнено.", cost: 21600, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 35, camoDetection: true, disableAbilities: true }) }
       ]
     }
   },
@@ -529,23 +529,23 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path1: [
         { id: "boomerang_sharp", name: "Гострі Краї", description: "Шкода бумеранга +4.", cost: 140, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
         { id: "boomerang_twin", name: "Подвійний Бумеранг", description: "Пробиття +1.", cost: 320, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 1 }) },
-        { id: "boomerang_glaive", name: "Глефа Подро", description: "Шкода +10, пробиття +1.", cost: 780, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
-        { id: "boomerang_moab", name: "MOAB-прес", description: "Шкода +18, шанс оглушити на 0.5с.", cost: 1580, effect: (s) => ({ ...s, damage: s.damage + 18, freezeChance: 0.15 }) },
-        { id: "boomerang_lord", name: "Лорд Глеф", description: "Шкода +35, пробиття +3, ігнорує броню.", cost: 5200, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
+        { id: "boomerang_glaive", name: "Глефа Подро", description: "Шкода +10, пробиття +1.", cost: 858, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
+        { id: "boomerang_moab", name: "MOAB-прес", description: "Шкода +18, шанс оглушити на 0.5с.", cost: 1896, effect: (s) => ({ ...s, damage: s.damage + 18, freezeChance: 0.15 }) },
+        { id: "boomerang_lord", name: "Лорд Глеф", description: "Шкода +35, пробиття +3, ігнорує броню.", cost: 7800, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
       ],
       path2: [
         { id: "boomerang_fast", name: "Швидкий Мет", description: "Швидкість атаки +15%.", cost: 160, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "boomerang_turbo", name: "Турбо-Обертання", description: "Швидкість атаки +25%.", cost: 360, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "boomerang_perma", name: "Постійне Обертання", description: "Швидкість атаки +30%, бумеранг летить швидше.", cost: 880, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
-        { id: "boomerang_hyper", name: "Гіперзвуковий", description: "Швидкість атаки +40%.", cost: 1820, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60 }) },
-        { id: "boomerang_death", name: "Бумеранг Смерті", description: "Надшвидка атака, кожен 3-й кидок подвійний.", cost: 4980, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) }
+        { id: "boomerang_perma", name: "Постійне Обертання", description: "Швидкість атаки +30%, бумеранг летить швидше.", cost: 968, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
+        { id: "boomerang_hyper", name: "Гіперзвуковий", description: "Швидкість атаки +40%.", cost: 2184, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60 }) },
+        { id: "boomerang_death", name: "Бумеранг Смерті", description: "Надшвидка атака, кожен 3-й кидок подвійний.", cost: 7470, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) }
       ],
       path3: [
         { id: "boomerang_long", name: "Дальній Кидок", description: "Дальність +25px.", cost: 120, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "boomerang_eagle", name: "Орлине Око", description: "Дальність +20px, бачить камуфляж.", cost: 280, effect: (s) => ({ ...s, range: s.range + 20, camoDetection: true }) },
-        { id: "boomerang_bounce", name: "Рикошет", description: "Пробиття +2, бумеранг відскакує до нових цілей.", cost: 720, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 2 }) },
-        { id: "boomerang_chain", name: "Ланцюговий Бумеранг", description: "Пробиття +3, дальність +15px.", cost: 1650, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 3, range: s.range + 15 }) },
-        { id: "boomerang_eternal", name: "Вічна Глефа", description: "Величезне пробиття +5, камуфляж, шкода +12.", cost: 4750, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 5, camoDetection: true, damage: s.damage + 12 }) }
+        { id: "boomerang_bounce", name: "Рикошет", description: "Пробиття +2, бумеранг відскакує до нових цілей.", cost: 792, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 2 }) },
+        { id: "boomerang_chain", name: "Ланцюговий Бумеранг", description: "Пробиття +3, дальність +15px.", cost: 1980, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 3, range: s.range + 15 }) },
+        { id: "boomerang_eternal", name: "Вічна Глефа", description: "Величезне пробиття +5, камуфляж, шкода +12.", cost: 7125, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 5, camoDetection: true, damage: s.damage + 12 }) }
       ]
     }
   }
