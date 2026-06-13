@@ -72,6 +72,8 @@ export interface UpgradeStats {
   camoDetectionBuff?: boolean;
   pierce?: number;
   tackCount?: number;
+  maxMines?: number;
+  mineExplodes?: boolean;
 }
 
 export interface Upgrade {
@@ -94,6 +96,8 @@ export interface TowerStats {
   camoDetection?: boolean;
   pierce?: number;
   tackCount?: number;
+  maxMines?: number;
+  mineExplodes?: boolean;
 }
 
 export interface TowerConfig extends TowerStats {
@@ -138,13 +142,13 @@ export const TIER_SCALING = [
   // tier 1: base (waves 1-10)
   { hpMult: 1.0, speedMult: 1.0, damageReduce: 0, rewardMult: 1.0, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
   // tier 2: tough (waves 11-20)
-  { hpMult: 1.5, speedMult: 1.05, damageReduce: 0.10, rewardMult: 1.3, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
+  { hpMult: 1.5, speedMult: 1.05, damageReduce: 0.10, rewardMult: 1.1, inheritsRegen: false, inheritsArmor: false, inheritsLead: false },
   // tier 3: elite (waves 21-30)
-  { hpMult: 2.5, speedMult: 1.10, damageReduce: 0.20, rewardMult: 1.8, inheritsRegen: true, inheritsArmor: false, inheritsLead: false },
+  { hpMult: 2.5, speedMult: 1.10, damageReduce: 0.20, rewardMult: 1.3, inheritsRegen: true, inheritsArmor: false, inheritsLead: false },
   // tier 4: champion (waves 31-40)
-  { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 2.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
+  { hpMult: 4.0, speedMult: 1.15, damageReduce: 0.30, rewardMult: 1.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
   // tier 5: legend (waves 41-46+)
-  { hpMult: 5.5, speedMult: 1.18, damageReduce: 0.35, rewardMult: 3.4, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
+  { hpMult: 5.5, speedMult: 1.18, damageReduce: 0.35, rewardMult: 2.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: false },
 ];
 
 export function getTierForWave(waveNumber: number): number {
@@ -329,9 +333,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   sniper: {
     name: "Снайпер Подро",
-    description: "Далекобійний снайпер. Бачить камуфляж, б'є боляче, але рідко.",
+    description: "Снайпер з дальністю на всю карту. Бачить камуфляж, б'є боляче, але рідко.",
     cost: 350,
-    range: 250,
+    range: 1000,
     damage: 108,
     fireRate: 3.0,
     color: "#f43f5e",
@@ -354,7 +358,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "sniper_minigun", name: "Снайперський мініган", description: "Дуже швидка стрільба, +2 пробиття.", cost: 6270, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.35, pierce: (s.pierce || 1) + 2 }) }
       ],
       path3: [
-        { id: "sniper_spotter", name: "Спостерігач", description: "Дальність +30px.", cost: 185, effect: (s) => ({ ...s, range: s.range + 30 }) },
+        { id: "sniper_spotter", name: "Спостерігач", description: "Пробиття +1.", cost: 185, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 1 }) },
         { id: "sniper_deadeye", name: "Мертве око", description: "25% шанс криту (3x шкода).", cost: 495, effect: (s) => ({ ...s, critChance: 0.25 }) },
         { id: "sniper_headhunter", name: "Мисливець за головами", description: "40% шанс криту (4x шкода).", cost: 1080, effect: (s) => ({ ...s, critChance: 0.40, critMultiplier: 4 }) },
         { id: "sniper_wallhack", name: "Волхак", description: "Бачить всю карту, 50% крит, +2 пробиття.", cost: 2375, effect: (s) => ({ ...s, critChance: 0.50, pierce: (s.pierce || 1) + 2 }) },
@@ -364,7 +368,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   chain: {
     name: "Ланцюгова Башня",
-    description: "Б'є блискавкою, що перескакує між ворогами. Ефективна проти натовпів.",
+    description: "Б'є блискавкою, що перескакує між ворогами. Кожен перескок зменшує шкоду снаряду на 20%.",
     cost: 460,
     range: 120,
     damage: 11,
@@ -398,33 +402,34 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   kladmen: {
     name: "Кладмен",
-    description: "Ставить міни на дорозі. Міни вибухають при контакті, наносячи AoE шкоду. Макс 4 міни одночасно.",
+    description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 15 мін.",
     cost: 275,
     range: 150,
-    damage: 35,
-    fireRate: 2.0,
+    damage: 12,
+    fireRate: 2.4,
     color: "#ef4444",
     emoji: "💣",
     pierce: 3,
+    maxMines: 15,
     upgrades: {
       path1: [
-        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +30.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 30 }) },
-        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +50, радіус вибуху +20px.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 50, explodeDmg: 20 }) },
-        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +80, вибух зачіпає 5 цілей.", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 80, pierce: (s.pierce || 3) + 2 }) },
-        { id: "kladmen_c4", name: "C4", description: "Шкода +130, пробиває броню.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 130, ignoresArmor: true }) },
-        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +300, радіус +30px, 8 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 300, pierce: (s.pierce || 3) + 5, ignoresArmor: true }) }
+        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +4.", cost: 155, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
+        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +7, кожна міна витримує +1 влучання.", cost: 330, effect: (s) => ({ ...s, damage: s.damage + 7, pierce: (s.pierce || 3) + 1, explodeDmg: (s.explodeDmg || 0) + 10 }) },
+        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +12, міна вибухає при контакті (AoE).", cost: 700, effect: (s) => ({ ...s, damage: s.damage + 12, mineExplodes: true, explodeDmg: (s.explodeDmg || 0) + 20 }) },
+        { id: "kladmen_c4", name: "C4", description: "Шкода +20, пробиває броню, радіус вибуху +15px.", cost: 1540, effect: (s) => ({ ...s, damage: s.damage + 20, ignoresArmor: true, explodeDmg: (s.explodeDmg || 0) + 15, mineExplodes: true }) },
+        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +55, радіус +25px, 6 цілей.", cost: 3850, effect: (s) => ({ ...s, damage: s.damage + 55, pierce: (s.pierce || 3) + 3, explodeDmg: (s.explodeDmg || 0) + 25, mineExplodes: true, ignoresArmor: true }) }
       ],
       path2: [
-        { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +15%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
-        { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +25%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
-        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +30%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, range: s.range + 20 }) },
-        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +35%, макс 5 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.65, twoHits: true }) },
-        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 6 мін, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, alwaysDouble: true, camoDetection: true }) }
+        { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +10%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.90 }) },
+        { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +18%.", cost: 330, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
+        { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +25%, дальність +20px.", cost: 700, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, range: s.range + 20 }) },
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +30%, макс 18 мін.", cost: 1540, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, maxMines: (s.maxMines || 15) + 3 }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 22 міни, виявляє камуфляж.", cost: 3850, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, maxMines: (s.maxMines || 15) + 7, camoDetection: true }) }
       ],
       path3: [
         { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 30%.", cost: 155, effect: (s) => ({ ...s, slowAmount: 0.30 }) },
         { id: "kladmen_freeze", name: "Кріо-міна", description: "15% шанс заморозити ворога на 1с.", cost: 330, effect: (s) => ({ ...s, freezeChance: 0.15 }) },
-        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги отримують на 25% більше шкоди після вибуху.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
+        { id: "kladmen_burn", name: "Запальна міна", description: "Вороги отримують на 25% більше шкоди після влучання.", cost: 700, effect: (s) => ({ ...s, damageDebuff: 1.25 }) },
         { id: "kladmen_emp", name: "ЕМП-міна", description: "30% шанс оглушити на 2с, вимикає здібності.", cost: 1540, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 120, disableAbilities: true }) },
         { id: "kladmen_antimatter", name: "Антиматеріальна міна", description: "45% оглушення, сповільнення 50%, вимикає здібності.", cost: 3850, effect: (s) => ({ ...s, freezeChance: 0.45, slowAmount: 0.50, freezeDurationBonus: 120, disableAbilities: true }) }
       ]
@@ -496,6 +501,40 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "mono_knock", name: "Гравітаційний Удар", description: "10% шанс оглушити на 0.5с, дальність +20px.", cost: 3150, effect: (s) => ({ ...s, freezeChance: 0.10, range: s.range + 20 }) },
         { id: "mono_emp", name: "Кам'яний EMP", description: "20% оглушення, вимикає здібності.", cost: 6900, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30, disableAbilities: true }) },
         { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +35 шкоди, камуфляж, здібності вимкнено.", cost: 14400, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 35, camoDetection: true, disableAbilities: true }) }
+      ]
+    }
+  },
+  boomerang: {
+    name: "Бумеранг Подро",
+    description: "Кидає бумеранг, який б'є ворогів на виліті та поверненні. Може вдарити одну ціль двічі.",
+    cost: 320,
+    range: 135,
+    damage: 16,
+    fireRate: 1.25,
+    color: "#d97706",
+    emoji: "🪃",
+    pierce: 3,
+    upgrades: {
+      path1: [
+        { id: "boomerang_sharp", name: "Гострі Краї", description: "Шкода бумеранга +4.", cost: 140, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
+        { id: "boomerang_twin", name: "Подвійний Бумеранг", description: "Пробиття +1.", cost: 320, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 1 }) },
+        { id: "boomerang_glaive", name: "Глефа Подро", description: "Шкода +10, пробиття +1.", cost: 780, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
+        { id: "boomerang_moab", name: "MOAB-прес", description: "Шкода +18, шанс оглушити на 0.5с.", cost: 1580, effect: (s) => ({ ...s, damage: s.damage + 18, freezeChance: 0.15 }) },
+        { id: "boomerang_lord", name: "Лорд Глеф", description: "Шкода +35, пробиття +3, ігнорує броню.", cost: 5200, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
+      ],
+      path2: [
+        { id: "boomerang_fast", name: "Швидкий Мет", description: "Швидкість атаки +15%.", cost: 160, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "boomerang_turbo", name: "Турбо-Обертання", description: "Швидкість атаки +25%.", cost: 360, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
+        { id: "boomerang_perma", name: "Постійне Обертання", description: "Швидкість атаки +30%, бумеранг летить швидше.", cost: 880, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70 }) },
+        { id: "boomerang_hyper", name: "Гіперзвуковий", description: "Швидкість атаки +40%.", cost: 1820, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60 }) },
+        { id: "boomerang_death", name: "Бумеранг Смерті", description: "Надшвидка атака, кожен 3-й кидок подвійний.", cost: 4980, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.45, twoHits: true }) }
+      ],
+      path3: [
+        { id: "boomerang_long", name: "Дальній Кидок", description: "Дальність +25px.", cost: 120, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "boomerang_eagle", name: "Орлине Око", description: "Дальність +20px, бачить камуфляж.", cost: 280, effect: (s) => ({ ...s, range: s.range + 20, camoDetection: true }) },
+        { id: "boomerang_bounce", name: "Рикошет", description: "Пробиття +2, бумеранг відскакує до нових цілей.", cost: 720, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 2 }) },
+        { id: "boomerang_chain", name: "Ланцюговий Бумеранг", description: "Пробиття +3, дальність +15px.", cost: 1650, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 3, range: s.range + 15 }) },
+        { id: "boomerang_eternal", name: "Вічна Глефа", description: "Величезне пробиття +5, камуфляж, шкода +12.", cost: 4750, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 5, camoDetection: true, damage: s.damage + 12 }) }
       ]
     }
   }
@@ -1245,11 +1284,11 @@ export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyCon
 
   // Endless mode (after wave 46): additional scaling on top of tier
   if (waveNumber > 56) {
-    const endlessMult = Math.pow(1.06, waveNumber - 56);
-    const endlessSpeed = Math.min(1.4, Math.pow(1.012, waveNumber - 56));
-    hp = Math.floor(hp * endlessMult);
-    speed = speed * endlessSpeed;
-    reward = Math.floor(reward * Math.pow(1.02, waveNumber - 56));
+    const endlessTier = Math.floor((waveNumber - 57) / 5) + 1;
+    const endlessHpMult = Math.pow(1.05, endlessTier);
+    const endlessSpeedMult = Math.min(2.5, Math.pow(1.02, endlessTier));
+    hp = Math.floor(hp * endlessHpMult);
+    speed = speed * endlessSpeedMult;
   }
 
   return {
@@ -1272,7 +1311,8 @@ export const EMOJI_MAP: Record<string, string> = {
   infinix_brat: "👾", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
   camo: "🦹", regen: "💗", lead: "🔩",
   phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
-  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿"
+  sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿",
+  boomerang: "🪃"
 };
 
 // Shared sound map. All sounds use the same PDR Production sample with different volumes.
@@ -1287,6 +1327,7 @@ export const SOUND_MAP: Record<string, { file: string; volume: number }> = {
   kladmen: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
   bankomat: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.18 },
   monolith: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.55 },
+  boomerang: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
   wave: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.22 },
   crit: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
   explosion: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 },

@@ -74,6 +74,8 @@ interface PlacedTower {
   disableAbilities?: boolean;
   camoDetection?: boolean;
   camoDetectionBuff?: boolean;
+  maxMines?: number;
+  mineExplodes?: boolean;
   hasCamoBuff?: boolean;
   hasCoffeeBuff?: boolean;
   coffeeBuffStrength?: number; // 0-1 how strong the buff is (for visual intensity)
@@ -94,7 +96,7 @@ const UPGRADE_STAT_KEYS: (keyof UpgradeStats)[] = [
   "slowDurationBonus", "slowFactorBonus", "explodeDmg", "gachaDamageOverride",
   "freezeDurationBonus", "bsodAoE", "bugExplodeDmg", "bugExplodeRadius", "bugContagion",
   "disableGlitch", "disableAbilities", "camoDetection", "camoDetectionBuff", "pierce",
-  "tackCount"
+  "tackCount", "maxMines", "mineExplodes"
 ];
 
 function buildUpgradeStats(tower: PlacedTower): UpgradeStats {
@@ -210,6 +212,13 @@ interface Projectile {
   spinRotation?: number;
   travelDistance?: number;
   maxDistance?: number;
+  // Boomerang-specific
+  isReturning?: boolean;
+  originX?: number;
+  originY?: number;
+  turnX?: number;
+  turnY?: number;
+  returnHitReset?: boolean;
 }
 
 interface Particle {
@@ -256,7 +265,24 @@ interface Mine {
   freezeDuration?: number;
   disableAbilities?: boolean;
   damageDebuff?: number;
-  pierce: number; // max enemies hit
+  pierce: number; // max enemies hit / trap durability
+  towerId: string;
+  hitEnemyIds: string[]; // enemies already damaged by this trap
+  explodes: boolean;
+  camoDetection?: boolean;
+}
+
+interface MineProjectile {
+  id: string;
+  x: number;
+  y: number;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  progress: number;
+  speed: number;
+  color: string;
   towerId: string;
 }
 
@@ -455,6 +481,7 @@ export default function BratTDClient() {
   const towersRef = useRef<PlacedTower[]>([]);
   const enemiesRef = useRef<ActiveEnemy[]>([]);
   const projectilesRef = useRef<Projectile[]>([]);
+  const mineProjectilesRef = useRef<MineProjectile[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const floatingTextsRef = useRef<FloatingText[]>([]);
   const speedTrailsRef = useRef<SpeedTrail[]>([]);
@@ -581,6 +608,11 @@ export default function BratTDClient() {
     return (dmg * shotMult) / tower.fireRate;
   };
 
+  const formatStat = (value: number) => {
+    if (Number.isInteger(value)) return `${value}`;
+    return value.toFixed(1).replace(/\.0$/, "");
+  };
+
   const getUpgradePreview = (tower: PlacedTower, upgrade: Upgrade) => {
     const next = upgrade.effect(buildUpgradeStats(tower));
     if (isSupportTowerType(tower.type)) {
@@ -589,8 +621,8 @@ export default function BratTDClient() {
       return [
         `AURA ${Math.round(tower.range)}→${Math.round(next.range)}px`,
         `GOLD +${tower.endOfWaveBonus || 0}→+${next.endOfWaveBonus || 0}`,
-        `DMG +${tower.damageBuff || 0}%→+${next.damageBuff || 0}%`,
-        `RNG +${tower.rangeBuff || 0}px/${Math.round((tower.rangeBuffPercent || 0) * 100)}%→+${next.rangeBuff || 0}px/${Math.round((next.rangeBuffPercent || 0) * 100)}%`,
+        `DMG +${formatStat(tower.damageBuff || 0)}%→+${formatStat(next.damageBuff || 0)}%`,
+        `RNG +${formatStat(tower.rangeBuff || 0)}px/${Math.round((tower.rangeBuffPercent || 0) * 100)}%→+${formatStat(next.rangeBuff || 0)}px/${Math.round((next.rangeBuffPercent || 0) * 100)}%`,
         `SPD +${Math.round(currentSpeedBuff * 100)}%→+${Math.round(nextSpeedBuff * 100)}%`,
         `ARM ${Math.round((tower.ignoreArmorBuff || 0) * 100)}%→${Math.round((next.ignoreArmorBuff || 0) * 100)}%`,
         `CAMO ${tower.camoDetectionBuff ? "так" : "ні"}→${next.camoDetectionBuff ? "так" : "ні"}`
@@ -744,6 +776,7 @@ export default function BratTDClient() {
     towersRef.current = [];
     enemiesRef.current = [];
     projectilesRef.current = [];
+    mineProjectilesRef.current = [];
     particlesRef.current = [];
     floatingTextsRef.current = [];
     speedTrailsRef.current = [];
@@ -885,6 +918,7 @@ export default function BratTDClient() {
       camoDetection: config.camoDetection || false,
       pierce: config.pierce || 1,
       tackCount: config.tackCount,
+      maxMines: config.maxMines,
       targetingMode: "first",
     };
 
@@ -1011,8 +1045,9 @@ export default function BratTDClient() {
     // Remove tower
     towersRef.current.splice(towerIdx, 1);
     
-    // Remove mines from this tower
+    // Remove mines and in-flight mine projectiles from this tower
     minesRef.current = minesRef.current.filter(m => m.towerId !== tower.id);
+    mineProjectilesRef.current = mineProjectilesRef.current.filter(p => p.towerId !== tower.id);
     
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
@@ -1418,37 +1453,58 @@ export default function BratTDClient() {
           for (let mi = minesRef.current.length - 1; mi >= 0; mi--) {
             const mine = minesRef.current[mi];
             if (getDistance(enemy.x, enemy.y, mine.x, mine.y) <= mine.triggerRadius) {
-              // BOOM! Mine explodes
-              spawnHitParticles(mine.x, mine.y, "#ef4444", 15, "square");
-              spawnFloatingText(mine.x, mine.y - 15, "💥 МІНА!", "#ef4444");
-              
-              // Damage enemies in blast radius
-              let hitCount = 0;
-              enemiesRef.current.forEach((e) => {
-                if (e.hp <= 0 || hitCount >= mine.pierce) return;
-                if (getDistance(e.x, e.y, mine.x, mine.y) <= mine.radius) {
-                  let dmg = mine.damage;
-                  if (mine.ignoresArmor) { /* no reduction */ }
-                  else if (e.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.75 * (1 - (mine.armorPierce || 0))));
-                  else if (e.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.5 * (1 - (mine.armorPierce || 0))));
-                  if (e.damageReduce) dmg = Math.floor(dmg * (1 - e.damageReduce));
-                  e.hp -= dmg;
-                  hitCount++;
-                  if (mine.slowAmount) e.gasSlowDuration = 60;
-                  if (mine.freezeChance && getPureRandom() < mine.freezeChance) e.freezeDuration = mine.freezeDuration || 60;
-                  if (mine.disableAbilities) { e.isGlitching = false; }
-                  if (mine.damageDebuff) e.damageDebuff = applyDamageDebuffCap(e.damageDebuff, mine.damageDebuff);
-                  if (e.hp <= 0) {
-                    const sourceTower = towersRef.current.find(t => t.id === mine.towerId);
-                    if (sourceTower) sourceTower.totalKills++;
+              // Camo mines only trigger on camo enemies if the tower can see camo
+              if ((enemy.isCamo || enemy.isPhantomCamo) && !mine.camoDetection) continue;
+
+              const applyMineDamage = (target: ActiveEnemy, dmg: number) => {
+                if (mine.ignoresArmor) { /* no reduction */ }
+                else if (target.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.75 * (1 - (mine.armorPierce || 0))));
+                else if (target.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.5 * (1 - (mine.armorPierce || 0))));
+                if (target.damageReduce) dmg = Math.floor(dmg * (1 - target.damageReduce));
+                if (dmg <= 0) return 0;
+                target.hp -= dmg;
+                if (mine.slowAmount) target.gasSlowDuration = 60;
+                if (mine.freezeChance && getPureRandom() < mine.freezeChance) target.freezeDuration = mine.freezeDuration || 60;
+                if (mine.disableAbilities) { target.isGlitching = false; }
+                if (mine.damageDebuff) target.damageDebuff = applyDamageDebuffCap(target.damageDebuff, mine.damageDebuff);
+                if (target.hp <= 0) {
+                  const sourceTower = towersRef.current.find(t => t.id === mine.towerId);
+                  if (sourceTower) sourceTower.totalKills++;
+                }
+                return dmg;
+              };
+
+              if (mine.explodes) {
+                // Exploding mine: AoE blast and then destroyed
+                spawnHitParticles(mine.x, mine.y, "#ef4444", 15, "square");
+                spawnFloatingText(mine.x, mine.y - 15, "💥 МІНА!", "#ef4444");
+
+                let hitCount = 0;
+                enemiesRef.current.forEach((e) => {
+                  if (e.hp <= 0 || hitCount >= mine.pierce) return;
+                  if ((e.isCamo || e.isPhantomCamo) && !mine.camoDetection) return;
+                  if (getDistance(e.x, e.y, mine.x, mine.y) <= mine.radius) {
+                    applyMineDamage(e, mine.damage);
+                    hitCount++;
+                  }
+                });
+
+                minesRef.current.splice(mi, 1);
+                if (settingsRef.current.screenShake) screenShakeRef.current = { x: 0, y: 0, intensity: 3, duration: 5 };
+                playTowerSound("explosion");
+              } else {
+                // Stacking trap: damages each enemy once, loses durability
+                if (!mine.hitEnemyIds.includes(enemy.id)) {
+                  const dmg = applyMineDamage(enemy, mine.damage);
+                  mine.hitEnemyIds.push(enemy.id);
+                  mine.pierce--;
+                  spawnHitParticles(enemy.x, enemy.y, "#ef4444", 5, "square");
+                  spawnFloatingText(enemy.x, enemy.y - 10, `-${dmg}`, "#ef4444");
+                  if (mine.pierce <= 0) {
+                    minesRef.current.splice(mi, 1);
                   }
                 }
-              });
-              
-              // Remove mine
-              minesRef.current.splice(mi, 1);
-              if (settingsRef.current.screenShake) screenShakeRef.current = { x: 0, y: 0, intensity: 3, duration: 5 };
-              playTowerSound("explosion");
+              }
             }
           }
 
@@ -1522,19 +1578,20 @@ export default function BratTDClient() {
             return; // Skip this tower's attack
           }
 
-          // Economy/support-only towers do not shoot
-          if (isSupportTowerType(tower.type)) return;
+          // Economy/support-only towers and zero-damage utilities do not shoot.
+          if (isSupportTowerType(tower.type) || tower.damage <= 0) return;
 
-          // Кладмен places mines on the path
+          // Кладмен throws mines onto the path
           if (tower.type === "kladmen") {
             if (tower.cooldown <= 0) {
               tower.cooldown = tower.fireRate * 60;
               const effectiveRange = getEffectiveTowerRange(tower);
-              const effectiveDamage = getEffectiveTowerDamage(tower);
-               
+
               // Find a path segment within range
-              const maxMines = tower.alwaysDouble ? 6 : tower.twoHits ? 5 : 4;
-              if (minesRef.current.filter(m => m.towerId === tower.id).length < maxMines) {
+              const maxMines = tower.maxMines ?? 15;
+              const placedMines = minesRef.current.filter(m => m.towerId === tower.id).length;
+              const flyingMines = mineProjectilesRef.current.filter(p => p.towerId === tower.id).length;
+              if (placedMines + flyingMines < maxMines) {
                 // Pick a random path point near the tower
                 let bestX = tower.x, bestY = tower.y;
                 let found = false;
@@ -1545,8 +1602,9 @@ export default function BratTDClient() {
                     const px = a.x + (b.x - a.x) * t;
                     const py = a.y + (b.y - a.y) * t;
                     if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
-                      // Check no mine already here
-                      const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30);
+                      // Check no mine (placed or already thrown) is already here
+                      const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30) ||
+                        mineProjectilesRef.current.some(p => getDistance(p.targetX, p.targetY, px, py) < 30);
                       if (!tooClose) {
                         bestX = px + (getPureRandom() - 0.5) * 10;
                         bestY = py + (getPureRandom() - 0.5) * 10;
@@ -1557,26 +1615,22 @@ export default function BratTDClient() {
                   }
                   if (found) break;
                 }
-                
+
                 if (found) {
-                  const mine: Mine = {
+                  // Throw a mine projectile; it becomes a placed mine on landing
+                  mineProjectilesRef.current.push({
                     id: getPureId(),
-                    x: bestX,
-                    y: bestY,
-                    damage: effectiveDamage,
-                    radius: tower.explodeDmg ? 80 : 50,
-                    triggerRadius: 15,
-                    ignoresArmor: tower.ignoresArmor,
-                    armorPierce: tower.coffeeIgnoreArmorBuff,
-                    slowAmount: tower.slowAmount,
-                    freezeChance: tower.freezeChance,
-                    freezeDuration: tower.freezeDurationBonus,
-                    disableAbilities: tower.disableAbilities,
-                    damageDebuff: tower.damageDebuff ? 1.25 : undefined,
-                    pierce: tower.pierce || 3,
+                    x: tower.x,
+                    y: tower.y,
+                    startX: tower.x,
+                    startY: tower.y,
+                    targetX: bestX,
+                    targetY: bestY,
+                    progress: 0,
+                    speed: 0.06,
+                    color: tower.color,
                     towerId: tower.id
-                  };
-                  minesRef.current.push(mine);
+                  });
                 }
               }
             }
@@ -1624,6 +1678,92 @@ export default function BratTDClient() {
                   travelDistance: 0,
                   maxDistance: effectiveRange
                 });
+              }
+            }
+            return;
+          }
+
+          // Boomerang: curved projectile that hits on the way out and back.
+          if (tower.type === "boomerang") {
+            if (tower.cooldown <= 0 && enemiesRef.current.length > 0) {
+              const targetsInRange = enemiesRef.current.filter((e) => {
+                if (e.isCamo && !isCamoCapable) return false;
+                if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
+                return getDistance(tower.x, tower.y, e.x, e.y) <= getEffectiveTowerRange(tower);
+              });
+
+              if (targetsInRange.length > 0) {
+                targetsInRange.sort((a, b) => b.distanceTraveled - a.distanceTraveled);
+                const target = targetsInRange[0];
+
+                tower.cooldown = tower.fireRate * 60;
+                const projId = getPureId();
+                const dx = target.x - tower.x;
+                const dy = target.y - tower.y;
+                const angle = Math.atan2(dy, dx);
+
+                const newProj: Projectile = {
+                  id: projId,
+                  type: tower.type,
+                  x: tower.x,
+                  y: tower.y,
+                  targetId: target.id,
+                  speed: 7,
+                  damage: getEffectiveTowerDamage(tower),
+                  emoji: tower.emoji,
+                  color: tower.color,
+                  ignoresArmor: tower.ignoresArmor,
+                  armorPierce: tower.coffeeIgnoreArmorBuff,
+                  freezeChance: tower.freezeChance,
+                  freezeDurationBonus: tower.freezeDurationBonus,
+                  disableAbilities: tower.disableAbilities,
+                  critChance: tower.critChance,
+                  critMultiplier: tower.critMultiplier,
+                  pierce: tower.pierce || 1,
+                  hitEnemyIds: [],
+                  camoDetection: isCamoCapable,
+                  angle,
+                  lastTargetX: target.x,
+                  lastTargetY: target.y,
+                  spinRotation: angle,
+                  travelDistance: 0,
+                  maxDistance: getEffectiveTowerRange(tower),
+                  originX: tower.x,
+                  originY: tower.y
+                };
+
+                // Double-shot logic
+                if (tower.alwaysDouble || tower.twoHits) {
+                  const shotCount = tower.shotCount || 0;
+                  if (tower.twoHits) tower.shotCount = shotCount + 1;
+                  if (tower.alwaysDouble || (shotCount + 1) % 3 === 0) {
+                    const offsetProj = {
+                      ...newProj,
+                      id: projId + "_2",
+                      angle: angle + 0.25,
+                      spinRotation: angle + 0.25,
+                      x: tower.x + Math.cos(angle + Math.PI/2) * 8,
+                      y: tower.y + Math.sin(angle + Math.PI/2) * 8
+                    };
+                    projectilesRef.current.push(offsetProj);
+                  }
+                }
+
+                projectilesRef.current.push(newProj);
+
+                // Muzzle flash particles
+                for (let mi = 0; mi < 5; mi++) {
+                  particlesRef.current.push({
+                    x: tower.x,
+                    y: tower.y,
+                    vx: Math.cos(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
+                    vy: Math.sin(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
+                    color: tower.color,
+                    size: Math.random() * 3 + 1,
+                    life: 8,
+                    maxLife: 8
+                  });
+                }
               }
             }
             return;
@@ -1738,9 +1878,48 @@ export default function BratTDClient() {
           }
         });
 
+        // --- Update thrown mine projectiles ---
+        for (let i = mineProjectilesRef.current.length - 1; i >= 0; i--) {
+          const mp = mineProjectilesRef.current[i];
+          mp.progress += mp.speed;
+          mp.x = mp.startX + (mp.targetX - mp.startX) * mp.progress;
+          mp.y = mp.startY + (mp.targetY - mp.startY) * mp.progress;
+
+          if (mp.progress >= 1) {
+            const sourceTower = towersRef.current.find(t => t.id === mp.towerId);
+            if (sourceTower) {
+              const mineDamage = getEffectiveTowerDamage(sourceTower);
+              const mine: Mine = {
+                id: getPureId(),
+                x: mp.targetX,
+                y: mp.targetY,
+                damage: mineDamage,
+                radius: 50 + (sourceTower.explodeDmg || 0),
+                triggerRadius: 15,
+                ignoresArmor: sourceTower.ignoresArmor,
+                armorPierce: sourceTower.coffeeIgnoreArmorBuff,
+                slowAmount: sourceTower.slowAmount,
+                freezeChance: sourceTower.freezeChance,
+                freezeDuration: sourceTower.freezeDurationBonus,
+                disableAbilities: sourceTower.disableAbilities,
+                damageDebuff: sourceTower.damageDebuff ? 1.25 : undefined,
+                pierce: sourceTower.pierce || 3,
+                towerId: sourceTower.id,
+                hitEnemyIds: [],
+                explodes: !!sourceTower.mineExplodes,
+                camoDetection: sourceTower.camoDetection || sourceTower.hasCamoBuff,
+              };
+              minesRef.current.push(mine);
+            }
+            mineProjectilesRef.current.splice(i, 1);
+          }
+        }
+
         // --- 5. PROCESS PROJECTILES ---
         for (let i = projectilesRef.current.length - 1; i >= 0; i--) {
           const proj = projectilesRef.current[i];
+          let snappedToTarget = false;
+          let snapDistance = 0;
           
           // Homing: adjust angle toward target each frame
           if (proj.targetId) {
@@ -1748,13 +1927,22 @@ export default function BratTDClient() {
             if (targetEnemy) {
               const dx = targetEnemy.x - proj.x;
               const dy = targetEnemy.y - proj.y;
+              const targetDistance = Math.hypot(dx, dy);
               const targetAngle = Math.atan2(dy, dx);
-              // Smooth turn toward target (max ~15 degrees per frame)
-              let angleDiff = targetAngle - proj.angle;
-              while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-              while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-              const maxTurn = 0.26; // ~15 degrees
-              proj.angle += Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+              if (targetDistance <= proj.speed) {
+                proj.x = targetEnemy.x;
+                proj.y = targetEnemy.y;
+                proj.angle = targetAngle;
+                snappedToTarget = true;
+                snapDistance = targetDistance;
+              } else {
+                // Smooth turn toward target (max ~15 degrees per frame)
+                let angleDiff = targetAngle - proj.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                const maxTurn = 0.26; // ~15 degrees
+                proj.angle += Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+              }
               proj.lastTargetX = targetEnemy.x;
               proj.lastTargetY = targetEnemy.y;
             } else {
@@ -1763,9 +1951,11 @@ export default function BratTDClient() {
           }
 
           // Flight
-          proj.x += Math.cos(proj.angle) * proj.speed;
-          proj.y += Math.sin(proj.angle) * proj.speed;
-          proj.travelDistance = (proj.travelDistance || 0) + proj.speed;
+          if (!snappedToTarget) {
+            proj.x += Math.cos(proj.angle) * proj.speed;
+            proj.y += Math.sin(proj.angle) * proj.speed;
+          }
+          proj.travelDistance = (proj.travelDistance || 0) + (snappedToTarget ? snapDistance : proj.speed);
 
           // Add trail point
           projectileTrailRef.current.push({
@@ -1780,15 +1970,44 @@ export default function BratTDClient() {
             projectileTrailRef.current = projectileTrailRef.current.slice(-200);
           }
 
+          // Boomerang: turn around at target/max range and fly back to the tower.
+          if (proj.type === "boomerang") {
+            const originDx = (proj.originX ?? proj.x) - proj.x;
+            const originDy = (proj.originY ?? proj.y) - proj.y;
+            const distToOrigin = Math.hypot(originDx, originDy);
+
+            if (proj.isReturning) {
+              proj.angle = Math.atan2(originDy, originDx);
+              if (distToOrigin <= proj.speed + 2) {
+                projectilesRef.current.splice(i, 1);
+                continue;
+              }
+            } else {
+              const reachedTarget = snappedToTarget;
+              const reachedLastTarget = !proj.targetId && Math.hypot(proj.lastTargetX - proj.x, proj.lastTargetY - proj.y) <= proj.speed;
+              const reachedMaxRange = proj.maxDistance !== undefined && proj.travelDistance >= proj.maxDistance;
+              if (reachedTarget || reachedLastTarget || reachedMaxRange) {
+                proj.isReturning = true;
+                proj.targetId = "";
+                proj.turnX = proj.x;
+                proj.turnY = proj.y;
+                proj.angle = Math.atan2(originDy, originDx);
+              }
+            }
+          }
+
           // Out of bounds check
-          if ((proj.maxDistance && proj.travelDistance > proj.maxDistance) || proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
+          if ((proj.maxDistance && proj.travelDistance > proj.maxDistance && proj.type !== "boomerang") || proj.x < -40 || proj.x > GAME_WIDTH + 40 || proj.y < -40 || proj.y > GAME_HEIGHT + 40) {
             projectilesRef.current.splice(i, 1);
             continue;
           }
 
-          // Spinning effect for hammer
+          // Spinning effect for hammer and boomerang
           if (proj.type === "hammer") {
             proj.spinRotation = (proj.spinRotation ?? proj.angle) + 0.25;
+          }
+          if (proj.type === "boomerang") {
+            proj.spinRotation = (proj.spinRotation ?? proj.angle) + 0.22;
           }
 
           // Collision detection with ALL enemies
@@ -1805,7 +2024,7 @@ export default function BratTDClient() {
               proj.hitEnemyIds.push(enemy.id);
               proj.pierce--;
 
-              let dmg = proj.damage;
+              let dmg = proj.type === "chain" ? Math.max(1, Math.floor(proj.damage)) : proj.damage;
 
               // Shield absorption
               if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
@@ -1885,7 +2104,8 @@ export default function BratTDClient() {
                 chain: "#38bdf8",
                 kladmen: "#fb923c",
                 bankomat: "#a1a1aa",
-                monolith: "#f87171"
+                monolith: "#f87171",
+                boomerang: "#fbbf24"
               };
               if (dmg > 0) {
                 const color = isCrit ? "#f43f5e" : (typeColors[proj.type] || "#ffffff");
@@ -1965,7 +2185,7 @@ export default function BratTDClient() {
                 }
               }
 
-              if (proj.type === "chain" || proj.type === "monolith") {
+              if (proj.type === "chain" || proj.type === "monolith" || proj.type === "boomerang") {
                 if (proj.freezeChance && getPureRandom() < proj.freezeChance) {
                   enemy.freezeDuration = 30 + (proj.freezeDurationBonus || 0);
                   spawnFloatingText(enemy.x, enemy.y - 15, "⚡ СТАН", "#38bdf8");
@@ -2021,24 +2241,40 @@ export default function BratTDClient() {
               // Trigger particles
               spawnHitParticles(enemy.x, enemy.y, proj.color, 6);
 
+              if (proj.type === "chain" && proj.pierce > 0) {
+                proj.damage = Math.max(1, proj.damage * 0.8);
+              }
+
               // Check if projectile is depleted
               if (proj.pierce <= 0) {
                 projectilesRef.current.splice(i, 1);
                 hasSpliced = true;
                 break;
               } else {
-                // Homing Ricochet to next target
-                const nextTarget = enemiesRef.current
-                  .filter((other) => other.hp > 0 && !proj.hitEnemyIds.includes(other.id) && getDistance(proj.x, proj.y, other.x, other.y) <= 120 && !(other.isCamo && !proj.camoDetection))
-                  .sort((a, b) => getDistance(proj.x, proj.y, a.x, a.y) - getDistance(proj.x, proj.y, b.x, b.y))[0];
+                // Boomerang: after moving away from the turnaround point, reset hit list so it can strike the same enemies again on the way back.
+                if (proj.type === "boomerang" && proj.isReturning && !proj.returnHitReset) {
+                  const turnDx = proj.x - (proj.turnX ?? proj.x);
+                  const turnDy = proj.y - (proj.turnY ?? proj.y);
+                  if (Math.hypot(turnDx, turnDy) > 25) {
+                    proj.hitEnemyIds = [];
+                    proj.returnHitReset = true;
+                  }
+                }
 
-                if (nextTarget) {
-                  proj.targetId = nextTarget.id;
-                  proj.lastTargetX = nextTarget.x;
-                  proj.lastTargetY = nextTarget.y;
-                  proj.angle = Math.atan2(nextTarget.y - proj.y, nextTarget.x - proj.x);
-                } else {
-                  proj.targetId = "";
+                // Homing Ricochet to next target (skip for returning boomerang)
+                if (proj.type !== "boomerang" || !proj.isReturning) {
+                  const nextTarget = enemiesRef.current
+                    .filter((other) => other.hp > 0 && !proj.hitEnemyIds.includes(other.id) && getDistance(proj.x, proj.y, other.x, other.y) <= 120 && !(other.isCamo && !proj.camoDetection))
+                    .sort((a, b) => getDistance(proj.x, proj.y, a.x, a.y) - getDistance(proj.x, proj.y, b.x, b.y))[0];
+
+                  if (nextTarget) {
+                    proj.targetId = nextTarget.id;
+                    proj.lastTargetX = nextTarget.x;
+                    proj.lastTargetY = nextTarget.y;
+                    proj.angle = Math.atan2(nextTarget.y - proj.y, nextTarget.x - proj.x);
+                  } else {
+                    proj.targetId = "";
+                  }
                 }
               }
             }
@@ -2270,6 +2506,25 @@ export default function BratTDClient() {
         ctx.strokeStyle = `rgba(239, 68, 68, ${0.12 * pulse})`;
         ctx.lineWidth = 1;
         ctx.stroke();
+      });
+
+      // --- Draw Thrown Mines ---
+      mineProjectilesRef.current.forEach((mp) => {
+        const arcHeight = Math.sin(mp.progress * Math.PI) * 16;
+        // Ground shadow shrinks as the mine lands
+        ctx.beginPath();
+        ctx.arc(mp.x, mp.y + 2, 3 + (1 - mp.progress) * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.25 * (1 - mp.progress * 0.5)})`;
+        ctx.fill();
+        // Flying mine emoji
+        ctx.save();
+        ctx.translate(mp.x, mp.y - arcHeight);
+        ctx.rotate(mp.progress * Math.PI * 2);
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("💣", 0, 0);
+        ctx.restore();
       });
 
       // --- Draw Speed Trails (pink candy dust) ---
@@ -3329,11 +3584,11 @@ export default function BratTDClient() {
                     </div>
                     <div>
                       <span className="text-ink-mute">Шкода:</span>{" "}
-                      <span className="text-green-400 font-semibold">+{selectedPlacedTower.damageBuff || 0}%</span>
+                      <span className="text-green-400 font-semibold">+{formatStat(selectedPlacedTower.damageBuff || 0)}%</span>
                     </div>
                     <div>
                       <span className="text-ink-mute">Дальність веж:</span>{" "}
-                      <span className="text-on-primary font-semibold">+{rangeBuff}px / +{Math.round(rangeBuffPercent * 100)}%</span>
+                      <span className="text-on-primary font-semibold">+{formatStat(rangeBuff)}px / +{Math.round(rangeBuffPercent * 100)}%</span>
                     </div>
                     <div>
                       <span className="text-ink-mute">Пробиття броні:</span>{" "}
@@ -3356,13 +3611,15 @@ export default function BratTDClient() {
               const isLeadImmune = selectedPlacedTower.ignoresArmor || selectedPlacedTower.type !== "hammer";
               const effectiveDamage = getEffectiveTowerDamage(selectedPlacedTower);
               const effectiveRange = getEffectiveTowerRange(selectedPlacedTower);
+              const displayDamage = Math.round(effectiveDamage);
+              const displayDamageBonus = Math.round(effectiveDamage - selectedPlacedTower.damage);
               const dps = getExpectedDps({ ...selectedPlacedTower, damage: effectiveDamage });
               return (
                 <div className="grid grid-cols-2 gap-2 text-[11px] bg-black/40 border border-hairline-dark/50 p-2.5 rounded mb-4">
                   <div>
                     <span className="text-ink-mute">Шкода:</span>{" "}
-                    <span className="text-on-primary font-semibold">{effectiveDamage}</span>
-                    {effectiveDamage !== selectedPlacedTower.damage && <span className="text-green-400"> (+{effectiveDamage - selectedPlacedTower.damage})</span>}
+                    <span className="text-on-primary font-semibold">{displayDamage}</span>
+                    {displayDamageBonus !== 0 && <span className="text-green-400"> (+{displayDamageBonus})</span>}
                   </div>
                   <div>
                     <span className="text-ink-mute">Дальність:</span>{" "}
