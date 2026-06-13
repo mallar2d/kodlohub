@@ -504,7 +504,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
 export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   ordinary: {
     name: "Звичайний Брат",
-    hp: 25,
+    hp: 22,
     speed: 1.2,
     reward: 2,
     damage: 5,
@@ -515,7 +515,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   fast: {
     name: "Швидкий Брат",
-    hp: 15,
+    hp: 14,
     speed: 2.2,
     reward: 2,
     damage: 5,
@@ -528,7 +528,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Товстий Брат",
     hp: 120,
     speed: 0.7,
-    reward: 10,
+    reward: 8,
     damage: 15,
     color: "#f87171",
     borderColor: "#dc2626",
@@ -539,7 +539,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Брат у Куртці",
     hp: 50,
     speed: 1.0,
-    reward: 6,
+    reward: 5,
     damage: 10,
     color: "#38bdf8",
     borderColor: "#0284c7",
@@ -583,7 +583,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Рачковий Брат",
     hp: 40,
     speed: 1.1,
-    reward: 5,
+    reward: 3,
     damage: 8,
     color: "#fda4af",
     borderColor: "#e11d48",
@@ -595,7 +595,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Газовий Брат",
     hp: 80,
     speed: 0.9,
-    reward: 6,
+    reward: 4,
     damage: 10,
     color: "#86efac",
     borderColor: "#16a34a",
@@ -619,7 +619,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Камуфляжний Брат",
     hp: 25,
     speed: 1.5,
-    reward: 5,
+    reward: 4,
     damage: 8,
     color: "#065f46",
     borderColor: "#022c22",
@@ -631,7 +631,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Регенеративний Брат",
     hp: 35,
     speed: 1.0,
-    reward: 6,
+    reward: 4,
     damage: 10,
     color: "#db2777",
     borderColor: "#831843",
@@ -643,7 +643,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     name: "Свинцевий Брат",
     hp: 60,
     speed: 0.6,
-    reward: 8,
+    reward: 6,
     damage: 12,
     color: "#4b5563",
     borderColor: "#1f2937",
@@ -1131,48 +1131,81 @@ export const POST_46_WAVES: WaveSegment[][] = [
   ]
 ];
 
+// BTD-style wave scaling: more simple enemies, fewer MOAB-style elites.
+// Applied on top of the handcrafted WAVES / POST_46_WAVES definitions.
+function getWaveScaling(waveNumber: number, type: string): { countMult: number; delayMult: number } {
+  const swarm = ["ordinary", "fast"];
+  const massSpecial = ["camo", "regen", "rachky_brat", "gas_brat"];
+  const armored = ["coat", "heavy", "lead"];
+  const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer"];
+
+  if (swarm.includes(type)) {
+    return { countMult: 1.4 + waveNumber * 0.045, delayMult: 0.55 };
+  }
+  if (massSpecial.includes(type)) {
+    return { countMult: 1.15 + waveNumber * 0.03, delayMult: 0.7 };
+  }
+  if (armored.includes(type)) {
+    return { countMult: 1.05 + waveNumber * 0.02, delayMult: 0.8 };
+  }
+  if (miniBoss.includes(type)) {
+    return { countMult: 1.0 + waveNumber * 0.008, delayMult: 0.9 };
+  }
+  // boss / megaboss: keep counts rare
+  return { countMult: 1.0, delayMult: 1.0 };
+}
+
+function scaleWaveSegments(segments: WaveSegment[], waveNumber: number): WaveSegment[] {
+  return segments.map((seg) => {
+    const scaling = getWaveScaling(waveNumber, seg.type);
+    return {
+      ...seg,
+      count: Math.max(1, Math.floor(seg.count * scaling.countMult)),
+      spawnDelay: Math.max(150, Math.floor(seg.spawnDelay * scaling.delayMult))
+    };
+  });
+}
+
 export function getScaledWave(waveNumber: number): WaveSegment[] {
+  let baseSegments: WaveSegment[];
   if (waveNumber <= 46) {
-    return WAVES[waveNumber - 1];
+    baseSegments = WAVES[waveNumber - 1];
+  } else if (waveNumber <= 56) {
+    baseSegments = POST_46_WAVES[waveNumber - 47];
+  } else {
+    // Endless mode after the handcrafted post-game set.
+    const multiplier = Math.pow(1.06, waveNumber - 56);
+    const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer"];
+    baseSegments = [];
+
+    // Bosses every 5 waves
+    if (waveNumber % 5 === 0) {
+      const bossCount = Math.floor((waveNumber - 56) / 8) + 1;
+      baseSegments.push({ type: "boss", count: bossCount, spawnDelay: 3500, delayBeforeNext: 2000 });
+    }
+
+    // Megaboss every 12 waves
+    if (waveNumber % 12 === 0) {
+      baseSegments.push({ type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 2000 });
+    }
+
+    // 5-7 random segments (slower growth)
+    const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
+    for (let i = 0; i < segmentCount; i++) {
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
+      const count = Math.floor(baseCount * Math.sqrt(multiplier));
+      const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 56) * 0.05)));
+      baseSegments.push({
+        type: randomType,
+        count: count > 0 ? count : 1,
+        spawnDelay: delay,
+        delayBeforeNext: 800
+      });
+    }
   }
 
-  if (waveNumber <= 56) {
-    return POST_46_WAVES[waveNumber - 47];
-  }
-
-  // Endless mode after the handcrafted post-game set.
-  const multiplier = Math.pow(1.06, waveNumber - 56);
-
-  const types = ["ordinary", "fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "regen", "lead", "phantom", "exploder", "jumper", "shielded", "healer"];
-  const segments: WaveSegment[] = [];
-
-  // Bosses every 5 waves
-  if (waveNumber % 5 === 0) {
-    const bossCount = Math.floor((waveNumber - 56) / 8) + 1;
-    segments.push({ type: "boss", count: bossCount, spawnDelay: 3500, delayBeforeNext: 2000 });
-  }
-
-  // Megaboss every 12 waves
-  if (waveNumber % 12 === 0) {
-    segments.push({ type: "megaboss", count: 1, spawnDelay: 5000, delayBeforeNext: 2000 });
-  }
-
-  // 5-7 random segments (slower growth)
-  const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
-  for (let i = 0; i < segmentCount; i++) {
-    const randomType = types[Math.floor(Math.random() * types.length)];
-    const baseCount = randomType === "granite" || randomType === "heavy" ? 4 : 10;
-    const count = Math.floor(baseCount * Math.sqrt(multiplier));
-    const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 56) * 0.05)));
-    segments.push({
-      type: randomType,
-      count: count > 0 ? count : 1,
-      spawnDelay: delay,
-      delayBeforeNext: 800
-    });
-  }
-
-  return segments;
+  return scaleWaveSegments(baseSegments, waveNumber);
 }
 
 export function getEnemyStatsForWave(type: string, waveNumber: number): EnemyConfig {
