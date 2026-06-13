@@ -1140,18 +1140,20 @@ function getWaveScaling(waveNumber: number, type: string): { countMult: number; 
   const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer"];
 
   if (swarm.includes(type)) {
-    return { countMult: 1.4 + waveNumber * 0.045, delayMult: 0.55 };
+    // Wave 1: 0.87x, Wave 5: 1.13x, Wave 10: 1.45x, Wave 20: 2.1x, Wave 40: 3.4x
+    return { countMult: 0.8 + waveNumber * 0.065, delayMult: 0.6 };
   }
   if (massSpecial.includes(type)) {
-    return { countMult: 1.15 + waveNumber * 0.03, delayMult: 0.7 };
+    // Wave 1: ~1.0x, Wave 10: 1.3x, Wave 40: 2.2x
+    return { countMult: 0.95 + waveNumber * 0.035, delayMult: 0.75 };
   }
   if (armored.includes(type)) {
-    return { countMult: 1.05 + waveNumber * 0.02, delayMult: 0.8 };
+    // Wave 1: ~1.0x, Wave 10: 1.2x, Wave 40: 1.8x
+    return { countMult: 1.0 + waveNumber * 0.02, delayMult: 0.85 };
   }
   if (miniBoss.includes(type)) {
     return { countMult: 1.0 + waveNumber * 0.008, delayMult: 0.9 };
   }
-  // boss / megaboss: keep counts rare
   return { countMult: 1.0, delayMult: 1.0 };
 }
 
