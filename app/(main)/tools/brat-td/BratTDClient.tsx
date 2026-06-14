@@ -184,6 +184,8 @@ interface ActiveEnemy {
   isPhantomCamo?: boolean;
   isExploder?: boolean;
   isHealer?: boolean;
+  isFlying?: boolean;
+  knockbackMultiplier?: number;
   lastHitFrame?: number;
   tier?: number;
   damageReduce?: number;
@@ -2280,6 +2282,8 @@ export default function BratTDClient() {
       isPhantomCamo: baseConfig.isPhantomCamo,
       isExploder: baseConfig.isExploder,
       isHealer: baseConfig.isHealer,
+      isFlying: baseConfig.isFlying,
+      knockbackMultiplier: baseConfig.knockbackMultiplier,
       shieldHp: baseConfig.shieldHp,
       tier: baseConfig.tier,
       damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
@@ -3743,7 +3747,7 @@ export default function BratTDClient() {
             
             // Check collision distance
             const colDist = getDistance(proj.x, proj.y, enemy.x, enemy.y);
-            const hitRadius = proj.type === "gas" ? 11 : 8;
+            const hitRadius = proj.type === "gas" ? 12 : 8;
             if (colDist <= enemy.radius + hitRadius && !proj.hitEnemyIds.includes(enemy.id)) {
               // Hit!
               proj.hitEnemyIds.push(enemy.id);
