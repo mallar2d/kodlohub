@@ -105,6 +105,8 @@ interface PlacedTower {
   coffeeIgnoreArmorBuff?: number;
   coffeeBuffMultiplier?: number;
   targetingMode?: "first" | "last" | "strongest" | "nearest";
+  prioritizeCamo?: boolean;
+  prioritizeDrones?: boolean;
 }
 
 // Keys copied between PlacedTower and UpgradeStats during upgrade apply/preview.
@@ -2549,6 +2551,8 @@ export default function BratTDClient() {
       level: 1,
       totalKills: 0,
       camoDetection: config.camoDetection || false,
+      prioritizeCamo: false,
+      prioritizeDrones: false,
       pierce: config.pierce || 1,
       tackCount: config.tackCount,
       maxMines: config.maxMines,
@@ -3437,7 +3441,32 @@ export default function BratTDClient() {
               });
 
               if (targetsInRange.length > 0) {
-                targetsInRange.sort((a, b) => b.distanceTraveled - a.distanceTraveled);
+                targetsInRange.sort((a, b) => {
+                  let scoreA = 0;
+                  let scoreB = 0;
+                  if (tower.prioritizeCamo && isCamoCapable) {
+                    if (a.isCamo || a.isPhantomCamo) scoreA += 10;
+                    if (b.isCamo || b.isPhantomCamo) scoreB += 10;
+                  }
+                  if (tower.prioritizeDrones && ANTI_AIR_TOWER_TYPES.has(tower.type)) {
+                    if (a.isFlying) scoreA += 10;
+                    if (b.isFlying) scoreB += 10;
+                  }
+                  if (scoreA !== scoreB) {
+                    return scoreB - scoreA;
+                  }
+                  const mode = tower.targetingMode || "first";
+                  if (mode === "first") {
+                    return b.distanceTraveled - a.distanceTraveled;
+                  } else if (mode === "last") {
+                    return a.distanceTraveled - b.distanceTraveled;
+                  } else if (mode === "strongest") {
+                    return b.hp - a.hp;
+                  } else if (mode === "nearest") {
+                    return getDistance(tower.x, tower.y, a.x, a.y) - getDistance(tower.x, tower.y, b.x, b.y);
+                  }
+                  return 0;
+                });
                 const target = targetsInRange[0];
 
                 tower.cooldown = tower.fireRate * 60;
@@ -3549,17 +3578,33 @@ export default function BratTDClient() {
             });
 
             if (targetsInRange.length > 0) {
-              // Apply targeting mode
-              const mode = tower.targetingMode || "first";
-              if (mode === "first") {
-                targetsInRange.sort((a, b) => b.distanceTraveled - a.distanceTraveled);
-              } else if (mode === "last") {
-                targetsInRange.sort((a, b) => a.distanceTraveled - b.distanceTraveled);
-              } else if (mode === "strongest") {
-                targetsInRange.sort((a, b) => b.hp - a.hp);
-              } else if (mode === "nearest") {
-                targetsInRange.sort((a, b) => getDistance(tower.x, tower.y, a.x, a.y) - getDistance(tower.x, tower.y, b.x, b.y));
-              }
+              // Apply targeting mode and priorities
+              targetsInRange.sort((a, b) => {
+                let scoreA = 0;
+                let scoreB = 0;
+                if (tower.prioritizeCamo && isCamoCapable) {
+                  if (a.isCamo || a.isPhantomCamo) scoreA += 10;
+                  if (b.isCamo || b.isPhantomCamo) scoreB += 10;
+                }
+                if (tower.prioritizeDrones && ANTI_AIR_TOWER_TYPES.has(tower.type)) {
+                  if (a.isFlying) scoreA += 10;
+                  if (b.isFlying) scoreB += 10;
+                }
+                if (scoreA !== scoreB) {
+                  return scoreB - scoreA;
+                }
+                const mode = tower.targetingMode || "first";
+                if (mode === "first") {
+                  return b.distanceTraveled - a.distanceTraveled;
+                } else if (mode === "last") {
+                  return a.distanceTraveled - b.distanceTraveled;
+                } else if (mode === "strongest") {
+                  return b.hp - a.hp;
+                } else if (mode === "nearest") {
+                  return getDistance(tower.x, tower.y, a.x, a.y) - getDistance(tower.x, tower.y, b.x, b.y);
+                }
+                return 0;
+              });
               const target = targetsInRange[0];
 
               // Fire!
@@ -3775,14 +3820,21 @@ export default function BratTDClient() {
             projectileTrailRef.current = projectileTrailRef.current.slice(-200);
           }
 
-          // Boomerang: turn around at target/max range and fly back to the tower.
+          // Boomerang: turn around at target/max range and fly back to the tower in an arc.
           if (proj.type === "boomerang") {
             const originDx = (proj.originX ?? proj.x) - proj.x;
             const originDy = (proj.originY ?? proj.y) - proj.y;
             const distToOrigin = Math.hypot(originDx, originDy);
 
             if (proj.isReturning) {
-              proj.angle = Math.atan2(originDy, originDx);
+              const directAngle = Math.atan2(originDy, originDx);
+              if (distToOrigin <= 40) {
+                proj.angle = directAngle;
+              } else {
+                let diff = directAngle - proj.angle;
+                diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                proj.angle += diff * 0.08;
+              }
               if (distToOrigin <= proj.speed + 2) {
                 projectilesRef.current.splice(i, 1);
                 continue;
@@ -3796,7 +3848,7 @@ export default function BratTDClient() {
                 proj.targetId = "";
                 proj.turnX = proj.x;
                 proj.turnY = proj.y;
-                proj.angle = Math.atan2(originDy, originDx);
+                proj.angle = Math.atan2(originDy, originDx) + 0.8;
               }
             }
           }
@@ -4172,6 +4224,11 @@ export default function BratTDClient() {
                 hasSpliced = true;
                 break;
               } else {
+                // Clear targetId for non-chain projectiles so they don't lock onto the hit enemy
+                if (proj.type !== "chain") {
+                  proj.targetId = "";
+                }
+
                 // Boomerang: after moving away from the turnaround point, reset hit list so it can strike the same enemies again on the way back.
                 if (proj.type === "boomerang" && proj.isReturning && !proj.returnHitReset) {
                   const turnDx = proj.x - (proj.turnX ?? proj.x);
@@ -4182,8 +4239,8 @@ export default function BratTDClient() {
                   }
                 }
 
-                // Homing Ricochet to next target (skip for returning boomerang)
-                if (proj.type !== "boomerang" || !proj.isReturning) {
+                // Homing Ricochet to next target (only for chain)
+                if (proj.type === "chain") {
                   const nextTarget = enemiesRef.current
                     .filter((other) => other.hp > 0 && !proj.hitEnemyIds.includes(other.id) && getDistance(proj.x, proj.y, other.x, other.y) <= 120 && !(other.isCamo && !proj.camoDetection))
                     .sort((a, b) => getDistance(proj.x, proj.y, a.x, a.y) - getDistance(proj.x, proj.y, b.x, b.y))[0];
@@ -4934,15 +4991,15 @@ export default function BratTDClient() {
         {/* Top Control Bar */}
         <div className="card-dark p-4 flex flex-wrap items-center justify-between gap-4 border-hairline-dark">
           {/* Status Display */}
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-              <span className="micro-cap text-ink-mute">Нерви Кодла (HP)</span>
-              <div className="flex items-center gap-2 mt-1">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex flex-col h-[52px] justify-between">
+              <span className="micro-cap text-ink-mute whitespace-nowrap">Нерви Кодла (HP)</span>
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="rounded border border-red-900/70 bg-red-950/40 px-1.5 py-0.5 text-[10px] font-bold text-red-300">HP</span>
-                <span className={`text-xl font-bold font-[var(--font-display)] ${lives <= 35 ? "text-red-500 animate-pulse" : "text-on-primary"}`}>
+                <span className={`text-xl font-bold font-[var(--font-display)] ${lives <= 35 ? "text-red-500 animate-pulse" : "text-on-primary"} min-w-[3ch]`}>
                   {lives}
                 </span>
-                <div className="w-24 h-2 bg-zinc-800 rounded overflow-hidden">
+                <div className="w-16 h-2 bg-zinc-800 rounded overflow-hidden">
                   <div 
                     className={`h-full transition-all duration-200 ${lives <= 35 ? "bg-red-500" : "bg-green-500"}`} 
                     style={{ width: `${lives}%` }} 
@@ -4951,9 +5008,9 @@ export default function BratTDClient() {
               </div>
             </div>
 
-            <div className="flex flex-col">
-              <span className="micro-cap text-ink-mute">Nescafe Gold (Валюта)</span>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-col h-[52px] justify-between">
+              <span className="micro-cap text-ink-mute whitespace-nowrap">Nescafe Gold (Валюта)</span>
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="rounded border border-yellow-900/70 bg-yellow-950/40 px-1.5 py-0.5 text-[10px] font-bold text-yellow-300">GOLD</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-yellow-500">
                   {gold}
@@ -4961,9 +5018,9 @@ export default function BratTDClient() {
               </div>
             </div>
 
-            <div className="flex flex-col">
-              <span className="micro-cap text-ink-mute">Score</span>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-col h-[52px] justify-between">
+              <span className="micro-cap text-ink-mute whitespace-nowrap">Score</span>
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="rounded border border-purple-900/70 bg-purple-950/40 px-1.5 py-0.5 text-[10px] font-bold text-purple-300">PTS</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-purple-400">
                   {score}
@@ -4971,48 +5028,47 @@ export default function BratTDClient() {
               </div>
             </div>
 
-            <div className="flex flex-col min-w-[140px]">
-              <span className="micro-cap text-ink-mute">Накат Братви (Хвиля)</span>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-col min-w-[140px] h-[52px] justify-between">
+              <span className="micro-cap text-ink-mute whitespace-nowrap">Накат Братви (Хвиля)</span>
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="rounded border border-cyan-900/70 bg-cyan-950/40 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">WAVE</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-on-primary">
                   {wave} {isEndless && <span className="text-xs text-purple-400 font-normal">Endless</span>}
                 </span>
+                {isWaveActive && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    {(() => {
+                      const remainingEnemies = enemiesRef.current.length + spawnQueueRef.current.filter((s) => s.type).length;
+                      const remainingHp = enemiesRef.current.reduce((sum, e) => sum + e.hp, 0);
+                      const enemyPct = waveTotalEnemiesRef.current > 0 ? Math.max(0, Math.min(100, (remainingEnemies / waveTotalEnemiesRef.current) * 100)) : 0;
+                      return (
+                        <>
+                          <div className="w-14 h-1.5 bg-zinc-800 rounded overflow-hidden">
+                            <div className="h-full bg-cyan-500 transition-all duration-150" style={{ width: `${100 - enemyPct}%` }} />
+                          </div>
+                          <span className="text-[10px] text-ink-mute font-mono whitespace-nowrap">
+                            {remainingEnemies}/{waveTotalEnemiesRef.current} ({Math.round(remainingHp / 1000)}к HP)
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
-              {isWaveActive && (
-                <div className="mt-1 w-full">
-                  {(() => {
-                    const remainingEnemies = enemiesRef.current.length + spawnQueueRef.current.filter((s) => s.type).length;
-                    const remainingHp = enemiesRef.current.reduce((sum, e) => sum + e.hp, 0);
-                    const enemyPct = waveTotalEnemiesRef.current > 0 ? Math.max(0, Math.min(100, (remainingEnemies / waveTotalEnemiesRef.current) * 100)) : 0;
-                    const hpPct = waveTotalHpRef.current > 0 ? Math.max(0, Math.min(100, (remainingHp / waveTotalHpRef.current) * 100)) : 0;
-                    return (
-                      <div className="space-y-1">
-                        <div className="w-28 h-1.5 bg-zinc-800 rounded overflow-hidden">
-                          <div className="h-full bg-cyan-500 transition-all duration-150" style={{ width: `${100 - enemyPct}%` }} />
-                        </div>
-                        <div className="text-[10px] text-ink-mute font-mono">
-                          {remainingEnemies}/{waveTotalEnemiesRef.current} • {Math.round(remainingHp / 1000)}к HP
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
             </div>
 
             {(() => {
               const levelProgress = getPlayerLevelProgress(progression.totalXp);
               const pct = levelProgress.nextRequirement > 0 ? Math.min(100, (levelProgress.currentXp / levelProgress.nextRequirement) * 100) : 100;
               return (
-                <div className="flex flex-col min-w-[150px]">
-                  <span className="micro-cap text-ink-mute">Прогресія</span>
-                  <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-col min-w-[150px] h-[52px] justify-between">
+                  <span className="micro-cap text-ink-mute whitespace-nowrap">Прогресія</span>
+                  <div className="flex items-center gap-2 mt-0.5">
                     <span className="rounded border border-cyan-900/70 bg-cyan-950/40 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">LVL</span>
                     <span className="text-xl font-bold font-[var(--font-display)] text-cyan-300">LVL {progression.playerLevel}</span>
-                  </div>
-                  <div className="mt-1 w-32 h-1.5 bg-zinc-800 rounded overflow-hidden">
-                    <div className="h-full bg-cyan-400 transition-all duration-300" style={{ width: `${pct}%` }} />
+                    <div className="w-16 h-1.5 bg-zinc-800 rounded overflow-hidden">
+                      <div className="h-full bg-cyan-400 transition-all duration-300" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
                 </div>
               );
@@ -5385,7 +5441,9 @@ export default function BratTDClient() {
                   XP: {Math.floor(levelProgress.currentXp)} / {levelProgress.nextRequirement || "MAX"}
                 </p>
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {Object.entries(TOWER_CONFIGS).map(([towerType, cfg]) => (
+                  {Object.entries(TOWER_CONFIGS)
+                    .sort((a, b) => (TOWER_UNLOCK_LEVELS[a[0]] ?? 0) - (TOWER_UNLOCK_LEVELS[b[0]] ?? 0))
+                    .map(([towerType, cfg]) => (
                     <span
                       key={towerType}
                       className={`inline-flex h-6 w-6 items-center justify-center rounded border ${isTowerUnlocked(towerType, progression) ? "border-cyan-800 bg-cyan-950/30" : "border-hairline-dark bg-black/30 opacity-40"}`}
@@ -5415,7 +5473,7 @@ export default function BratTDClient() {
           // Upgrades Panel (appears when a placed tower is selected, replacing shop)
           <div className="card-dark p-4 border-hairline-dark bg-canvas-night-soft animate-slide-up">
             <div className="flex items-center justify-between border-b border-hairline-dark pb-3 mb-3">
-              <div>
+              <div className="flex-1 min-w-0 mr-4">
                 <h3 className="font-bold text-on-primary flex items-center gap-2 button-cap">
                   <span className="h-3 w-3 rounded-sm border border-white/20" style={{ backgroundColor: selectedPlacedTower.color }} />
                   {selectedPlacedTower.name}
@@ -5424,33 +5482,8 @@ export default function BratTDClient() {
                 <p className="text-[10px] text-cyan-300 mt-0.5">
                   Mastery XP: {Math.floor(progression.towerMastery[selectedPlacedTower.type]?.towerXp ?? 0)}
                 </p>
-                {!isSupportTowerType(selectedPlacedTower.type) && (
-                  <>
-                    {/* Targeting mode toggle */}
-                    <div className="flex items-center gap-1 mt-1">
-                      {(["first", "last", "strongest", "nearest"] as const).map((mode) => {
-                        const labels: Record<string, string> = { first: "Перший", last: "Останній", strongest: "Найсильніший", nearest: "Найближчий" };
-                        const isActive = (selectedPlacedTower.targetingMode || "first") === mode;
-                        return (
-                          <button
-                            key={mode}
-                            onClick={() => {
-                              const t = towersRef.current.find((t) => t.id === selectedPlacedTower.id);
-                              if (t) { t.targetingMode = mode; setSelectedTower({ ...t }); }
-                            }}
-                            className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
-                              isActive ? "border-cyan-500 text-cyan-400 bg-cyan-950/50" : "border-hairline-dark text-ink-mute hover:text-on-primary"
-                            }`}
-                          >
-                            {labels[mode]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={sellSelectedTower}
                   className="px-2.5 py-1 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-200 rounded text-xs micro-cap transition-colors"
@@ -5479,6 +5512,81 @@ export default function BratTDClient() {
                 </button>
               </div>
             </div>
+
+            {/* Targeting mode & priorities, placed here so they have their own line and don't squeeze the Sell button */}
+            {!isSupportTowerType(selectedPlacedTower.type) && (
+              <div className="flex flex-col gap-2 mb-4 border-b border-hairline-dark pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-ink-mute font-semibold">Ціль:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {(["first", "last", "strongest", "nearest"] as const).map((mode) => {
+                      const labels: Record<string, string> = { first: "Перший", last: "Останній", strongest: "Найсильніший", nearest: "Найближчий" };
+                      const isActive = (selectedPlacedTower.targetingMode || "first") === mode;
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => {
+                            const t = towersRef.current.find((t) => t.id === selectedPlacedTower.id);
+                            if (t) { t.targetingMode = mode; setSelectedTower({ ...t }); }
+                          }}
+                          className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                            isActive ? "border-cyan-500 text-cyan-400 bg-cyan-950/50" : "border-hairline-dark text-ink-mute hover:text-on-primary bg-black/20"
+                          }`}
+                        >
+                          {labels[mode]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Priority toggles for Camo and Drones */}
+                {(() => {
+                  const isCamoCapable = selectedPlacedTower.camoDetection || selectedPlacedTower.hasCamoBuff;
+                  const isAirCapable = ANTI_AIR_TOWER_TYPES.has(selectedPlacedTower.type);
+                  if (!isCamoCapable && !isAirCapable) return null;
+                  return (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-ink-mute font-semibold">Пріоритет:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {isCamoCapable && (
+                          <button
+                            onClick={() => {
+                              const t = towersRef.current.find((t) => t.id === selectedPlacedTower.id);
+                              if (t) {
+                                t.prioritizeCamo = !t.prioritizeCamo;
+                                setSelectedTower({ ...t });
+                              }
+                            }}
+                            className={`px-2 py-0.5 text-[10px] rounded border transition-colors flex items-center gap-1 ${
+                              selectedPlacedTower.prioritizeCamo ? "border-amber-500 text-amber-400 bg-amber-950/50" : "border-hairline-dark text-ink-mute hover:text-on-primary bg-black/20"
+                            }`}
+                          >
+                            👁️ Камуфляж
+                          </button>
+                        )}
+                        {isAirCapable && (
+                          <button
+                            onClick={() => {
+                              const t = towersRef.current.find((t) => t.id === selectedPlacedTower.id);
+                              if (t) {
+                                t.prioritizeDrones = !t.prioritizeDrones;
+                                setSelectedTower({ ...t });
+                              }
+                            }}
+                            className={`px-2 py-0.5 text-[10px] rounded border transition-colors flex items-center gap-1 ${
+                              selectedPlacedTower.prioritizeDrones ? "border-purple-500 text-purple-400 bg-purple-950/50" : "border-hairline-dark text-ink-mute hover:text-on-primary bg-black/20"
+                            }`}
+                          >
+                            🛸 Дрони
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Detailed Stats Grid */}
             {(() => {
@@ -5697,7 +5805,9 @@ export default function BratTDClient() {
           <div className="card-dark p-4 border-hairline-dark">
             <p className="micro-cap text-ink-mute mb-3">МАГАЗИН ПОДРО-ЮНІТІВ</p>
             <div className="flex flex-col gap-1.5">
-              {Object.entries(TOWER_CONFIGS).map(([type, config]) => {
+              {Object.entries(TOWER_CONFIGS)
+                .sort((a, b) => (TOWER_UNLOCK_LEVELS[a[0]] ?? 0) - (TOWER_UNLOCK_LEVELS[b[0]] ?? 0))
+                .map(([type, config]) => {
                 const canAfford = gold >= config.cost;
                 const towerUnlocked = isTowerUnlocked(type, progression);
                 const neededLevel = TOWER_UNLOCK_LEVELS[type] ?? 1;

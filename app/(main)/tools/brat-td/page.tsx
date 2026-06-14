@@ -2,8 +2,28 @@ import BratTDClient from "./BratTDClient";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BRAT TD",
-  description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.",
+  title: "BRAT TD — Накат Братви",
+  description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви. Захисти свій граніт від джонів та дрон-братів!",
+  openGraph: {
+    title: "BRAT TD — Накат Братви",
+    description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви. Захисти свій граніт від джонів та дрон-братів!",
+    url: "https://kodlohub.vercel.app/tools/brat-td",
+    images: [
+      {
+        url: "/og-brattd.png",
+        width: 1024,
+        height: 1024,
+        alt: "BRAT TD — Накат Братви",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BRAT TD — Накат Братви",
+    description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви.",
+    images: ["/og-brattd.png"],
+  },
 };
 
 export default function BratTDPage() {

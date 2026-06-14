@@ -5,7 +5,7 @@ export interface PathPoint {
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
-export const GAME_VERSION = "0.6.2";
+export const GAME_VERSION = "0.6.5";
 
 export const PATH: PathPoint[] = [
   { x: 0, y: 100 },
@@ -630,7 +630,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     fireRate: 1.25,
     color: "#d97706",
     emoji: "🪃",
-    pierce: 3,
+    pierce: 4,
     upgrades: {
       path1: [
         { id: "boomerang_sharp", name: "Гострі Краї", description: "Шкода бумеранга +6.", cost: 140, effect: (s) => ({ ...s, damage: s.damage + 6 }) },
