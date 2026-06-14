@@ -1640,35 +1640,35 @@ export default function BratTDClient() {
               const effectiveRange = getEffectiveTowerRange(tower);
 
               // Find a path segment within range
-              const maxMines = tower.maxMines ?? 15;
+              const maxMines = tower.maxMines ?? 10;
               const placedMines = minesRef.current.filter(m => m.towerId === tower.id).length;
               const flyingMines = mineProjectilesRef.current.filter(p => p.towerId === tower.id).length;
               if (placedMines + flyingMines < maxMines) {
-                // Pick a random path point near the tower
-                let bestX = tower.x, bestY = tower.y;
-                let found = false;
+                // Collect all valid path points within range
+                const validPoints: { x: number; y: number }[] = [];
                 for (let pi = 0; pi < PATH.length - 1; pi++) {
                   const a = PATH[pi], b = PATH[pi + 1];
-                  // Sample points along segment
-                  for (let t = 0; t <= 1; t += 0.2) {
+                  const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+                  const step = Math.max(6, segLen / 10);
+                  const steps = Math.ceil(segLen / step);
+                  for (let si = 0; si <= steps; si++) {
+                    const t = si / steps;
                     const px = a.x + (b.x - a.x) * t;
                     const py = a.y + (b.y - a.y) * t;
                     if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
-                      // Check no mine (placed or already thrown) is already here
                       const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30) ||
                         mineProjectilesRef.current.some(p => getDistance(p.targetX, p.targetY, px, py) < 30);
                       if (!tooClose) {
-                        bestX = px + (getPureRandom() - 0.5) * 10;
-                        bestY = py + (getPureRandom() - 0.5) * 10;
-                        found = true;
-                        break;
+                        validPoints.push({ x: px, y: py });
                       }
                     }
                   }
-                  if (found) break;
                 }
 
-                if (found) {
+                if (validPoints.length > 0) {
+                  const chosen = validPoints[Math.floor(getPureRandom() * validPoints.length)];
+                  const bestX = chosen.x + (getPureRandom() - 0.5) * 10;
+                  const bestY = chosen.y + (getPureRandom() - 0.5) * 10;
                   // Throw a mine projectile; it becomes a placed mine on landing
                   mineProjectilesRef.current.push({
                     id: getPureId(),
@@ -2004,8 +2004,8 @@ export default function BratTDClient() {
                 x: mp.targetX,
                 y: mp.targetY,
                 damage: mineDamage,
-                radius: 50 + (sourceTower.explodeDmg || 0),
-                triggerRadius: 15,
+                radius: 40 + (sourceTower.explodeDmg || 0),
+                triggerRadius: 12,
                 ignoresArmor: sourceTower.ignoresArmor,
                 armorPierce: sourceTower.coffeeIgnoreArmorBuff,
                 slowAmount: sourceTower.slowAmount,
@@ -2013,7 +2013,7 @@ export default function BratTDClient() {
                 freezeDuration: sourceTower.freezeDurationBonus,
                 disableAbilities: sourceTower.disableAbilities,
                 damageDebuff: sourceTower.damageDebuff ? 1.25 : undefined,
-                pierce: sourceTower.pierce || 3,
+                pierce: sourceTower.pierce || 2,
                 towerId: sourceTower.id,
                 hitEnemyIds: [],
                 explodes: !!sourceTower.mineExplodes,

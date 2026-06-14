@@ -426,15 +426,15 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   kladmen: {
     name: "Кладмен",
-    description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 15 мін.",
+    description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 10 мін.",
     cost: 400,
     range: 150,
-    damage: 12,
-    fireRate: 3.0,
+    damage: 8,
+    fireRate: 3.5,
     color: "#ef4444",
     emoji: "💣",
-    pierce: 3,
-    maxMines: 15,
+    pierce: 2,
+    maxMines: 10,
     upgrades: {
       path1: [
         { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +4.", cost: 248, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
@@ -625,7 +625,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   matryoshka: {
     name: "Брат-Матрьошка",
     hp: 150,
-    speed: 1.0,
+    speed: 0.65,
     reward: 12,
     damage: 15,
     color: "#fb923c",
@@ -641,7 +641,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   big_matryoshka: {
     name: "Велика Матрьошка",
     hp: 800,
-    speed: 0.65,
+    speed: 0.4,
     reward: 30,
     damage: 25,
     color: "#ea580c",
