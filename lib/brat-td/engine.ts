@@ -1625,9 +1625,25 @@ function processProjectiles(ctx: EngineContext): void {
       const colDist = ctx.cb.getDistance(proj.x, proj.y, enemy.x, enemy.y);
       const hitRadius = proj.type === "gas" ? 14 : 8;
       if (colDist <= enemy.radius + hitRadius && !proj.hitEnemyIds.includes(enemy.id)) {
+        // Prevent Tack Shooter (gas) shotgunning abuse:
+        // limit hits from the same gas tower to at most once per 15 frames for this enemy.
+        if (proj.type === "gas" && proj.towerId) {
+          const lastGasHit = enemy.lastGasHitFrameByTower?.[proj.towerId];
+          if (lastGasHit !== undefined && refs.frameCountRef.current - lastGasHit < 15) {
+            continue;
+          }
+        }
+
         // Hit!
         proj.hitEnemyIds.push(enemy.id);
         proj.pierce--;
+
+        if (proj.type === "gas" && proj.towerId) {
+          if (!enemy.lastGasHitFrameByTower) {
+            enemy.lastGasHitFrameByTower = {};
+          }
+          enemy.lastGasHitFrameByTower[proj.towerId] = refs.frameCountRef.current;
+        }
 
         if (proj.fireDoTDamage && proj.fireDoTDuration) {
           if (!enemy.fireDoTStacks) {

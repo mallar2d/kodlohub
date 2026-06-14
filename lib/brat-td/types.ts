@@ -352,6 +352,7 @@ export interface ActiveEnemy {
   knockbackImmune?: boolean;
   isDying?: boolean;
   deathFrame?: number;
+  lastGasHitFrameByTower?: Record<string, number>;
 }
 
 export interface Projectile {
