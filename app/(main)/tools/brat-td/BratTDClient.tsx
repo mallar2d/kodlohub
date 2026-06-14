@@ -9,6 +9,7 @@ import {
   TIER_SCALING,
   GAME_WIDTH,
   GAME_HEIGHT,
+  GAME_VERSION,
   PathPoint,
   Upgrade,
   UpgradeStats,
@@ -1381,6 +1382,16 @@ function saveLocalProgression(progress: ProgressionState) {
 
 function getTierUnlockKey(pathIndex: number, tier: number) {
   return `${pathIndex + 1}:${tier}`;
+}
+
+function formatAchievementReward(reward: { bonusStartGold?: number; bonusLives?: number; title?: string; frame?: string; effect?: string }) {
+  const parts: string[] = [];
+  if (reward.bonusStartGold) parts.push(`+${reward.bonusStartGold} старт ☕`);
+  if (reward.bonusLives) parts.push(`+${reward.bonusLives} ❤️`);
+  if (reward.title) parts.push(`титул: ${reward.title}`);
+  if (reward.frame) parts.push(`рамка: ${reward.frame}`);
+  if (reward.effect) parts.push("ефект T5");
+  return parts.join(" · ") || "косметика";
 }
 
 function loadSettings() {
@@ -4921,7 +4932,7 @@ export default function BratTDClient() {
               <>
                 <div className="flex items-center justify-between mb-2">
                   <p className="micro-cap text-ink-mute">ПРОГРЕСІЯ</p>
-                  <span className="text-xs font-bold text-cyan-300">LVL {progression.playerLevel}</span>
+                  <span className="text-xs font-bold text-cyan-300">v{GAME_VERSION} · LVL {progression.playerLevel}</span>
                 </div>
                 <div className="h-2 bg-zinc-800 rounded overflow-hidden mb-2">
                   <div
@@ -4957,6 +4968,41 @@ export default function BratTDClient() {
               </>
             );
           })()}
+        </div>
+
+        <div className="card-dark p-4 border-hairline-dark">
+          <div className="flex items-center justify-between mb-3">
+            <p className="micro-cap text-ink-mute">ДОСЯГНЕННЯ</p>
+            <span className="text-[10px] text-cyan-300 font-bold">
+              {progression.achievements.length}/{ACHIEVEMENTS.length}
+            </span>
+          </div>
+          <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+            {ACHIEVEMENTS.map((achievement) => {
+              const unlocked = progression.achievements.includes(achievement.id);
+              return (
+                <div
+                  key={achievement.id}
+                  className={`rounded border px-2.5 py-2 text-xs transition-colors ${
+                    unlocked
+                      ? "border-cyan-800 bg-cyan-950/25 text-on-primary"
+                      : "border-hairline-dark bg-black/25 text-on-primary-mute opacity-70"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="font-bold text-on-primary">{unlocked ? "🏆" : "🔒"} {achievement.name}</span>
+                    <span className={`shrink-0 text-[10px] micro-cap ${unlocked ? "text-cyan-300" : "text-ink-mute"}`}>
+                      {unlocked ? "OPEN" : "LOCKED"}
+                    </span>
+                  </div>
+                  <p className="leading-snug">{achievement.description}</p>
+                  <p className="mt-1 text-[10px] text-yellow-400 leading-snug">
+                    {formatAchievementReward(achievement.reward)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
         {selectedPlacedTower ? (
           // Upgrades Panel (appears when a placed tower is selected, replacing shop)
