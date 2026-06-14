@@ -203,14 +203,14 @@ export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
 };
 
 export const TIER_UNLOCK_COSTS: Record<number, number> = {
-  3: 300,
-  4: 1000,
-  5: 3000,
+  3: 525,
+  4: 2200,
+  5: 7500,
 };
 
 export function getPlayerLevelXpRequirement(level: number): number {
   if (level <= 1) return 0;
-  return Math.floor(120 * Math.pow(level, 1.4));
+  return Math.floor(148 * Math.pow(level, 1.4));
 }
 
 export function getPlayerLevelForXp(totalXp: number): number {
