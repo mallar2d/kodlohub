@@ -107,6 +107,7 @@ interface PlacedTower {
   targetingMode?: "first" | "last" | "strongest" | "nearest";
   prioritizeCamo?: boolean;
   prioritizeDrones?: boolean;
+  angle?: number;
 }
 
 // Keys copied between PlacedTower and UpgradeStats during upgrade apply/preview.
@@ -4510,20 +4511,26 @@ export default function BratTDClient() {
 
       // --- Draw Towers ---
       towersRef.current.forEach((tower) => {
-        let towerAngle = 0;
+        let towerAngle = tower.angle || 0;
         if (!isSupportTowerType(tower.type) && tower.type !== "gas") {
           let nearestEnemy: ActiveEnemy | null = null;
           let nearestDist = Infinity;
+          const isCamoCapable = tower.camoDetection || tower.hasCamoBuff;
           for (const enemy of enemiesRef.current) {
             if (enemy.hp <= 0) continue;
+            if (enemy.isCamo && !isCamoCapable) continue;
+            if (enemy.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) continue;
+            if (enemy.isFlying && !ANTI_AIR_TOWER_TYPES.has(tower.type)) continue;
+
             const d = getDistance(tower.x, tower.y, enemy.x, enemy.y);
-            if (d < nearestDist && d <= getEffectiveTowerRange(tower) * 1.5) {
+            if (d < nearestDist && d <= getEffectiveTowerRange(tower)) {
               nearestDist = d;
               nearestEnemy = enemy;
             }
           }
           if (nearestEnemy) {
             towerAngle = Math.atan2(nearestEnemy.y - tower.y, nearestEnemy.x - tower.x);
+            tower.angle = towerAngle;
           }
         }
         drawTowerSprite(ctx, tower, towerAngle, selectedPlacedTowerId === tower.id);
