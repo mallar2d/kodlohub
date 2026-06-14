@@ -11,8 +11,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/og-brattd.png",
-        width: 1024,
-        height: 1024,
+        width: 1731,
+        height: 909,
         alt: "BRAT TD — Накат Братви",
       },
     ],
