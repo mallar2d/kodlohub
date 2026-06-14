@@ -25,6 +25,8 @@ import {
 } from "./gameConfig";
 import type { EnemyModifier, Obstacle } from "./gameConfig";
 
+const ANTI_AIR_TOWER_TYPES = new Set(["candy", "infinix", "sniper", "chain", "monolith"]);
+
 interface PlacedTower {
   id: string;
   x: number;
@@ -1126,14 +1128,19 @@ function drawTowerMini(ctx: CanvasRenderingContext2D, x: number, y: number, type
 
 function drawEnemySprite(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, frame: number) {
   const r = enemy.radius;
+  const hoverOffset = enemy.isFlying ? 12 + Math.sin(frame * 0.12) * 4 : 0;
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   if (enemy.isCamo) ctx.globalAlpha = enemy.isPhantomCamo ? 0.52 : 0.72;
 
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  // Drop shadow (on the ground for flying enemies)
+  ctx.fillStyle = enemy.isFlying ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.28)";
   ctx.beginPath();
   ctx.ellipse(0, r * 0.78, r * 1.05, r * 0.35, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  // Draw flying body above the shadow
+  ctx.translate(0, -hoverOffset);
 
   const fill = enemy.color;
   const stroke = enemy.borderColor;
@@ -1151,6 +1158,29 @@ function drawEnemySprite(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, fram
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  } else if (enemy.type === "drone_brat" || enemy.type === "drone_brat_armored") {
+    // Drone body
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.1, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Rotor blades
+    ctx.strokeStyle = colorWithAlpha("#e2e8f0", 0.8);
+    ctx.lineWidth = 2;
+    const rotorWobble = Math.sin(frame * 0.4) * 3;
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.55, r * 0.9 + rotorWobble, r * 0.12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Drone eye
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.beginPath();
+    ctx.arc(r * 0.45, -r * 0.08, r * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    // Propeller blur
+    ctx.fillStyle = colorWithAlpha("#ffffff", 0.25);
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.55, r * 0.8, r * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else if (enemy.type === "matryoshka" || enemy.type === "big_matryoshka") {
     ctx.beginPath();
     ctx.ellipse(0, r * 0.08, r * 0.75, r * 1.05, 0, 0, Math.PI * 2);
@@ -3078,6 +3108,7 @@ export default function BratTDClient() {
           // Check mines
           for (let mi = minesRef.current.length - 1; mi >= 0; mi--) {
             const mine = minesRef.current[mi];
+            if (enemy.isFlying) continue; // flying enemies ignore mines
             if (getDistance(enemy.x, enemy.y, mine.x, mine.y) <= mine.triggerRadius) {
               // Camo mines only trigger on camo enemies if the tower can see camo
               if ((enemy.isCamo || enemy.isPhantomCamo) && !mine.camoDetection) continue;
@@ -3114,6 +3145,7 @@ export default function BratTDClient() {
                 let hitCount = 0;
                 enemiesRef.current.forEach((e) => {
                   if (e.hp <= 0 || hitCount >= mine.pierce) return;
+                  if (e.isFlying) return;
                   if ((e.isCamo || e.isPhantomCamo) && !mine.camoDetection) return;
                   if (getDistance(e.x, e.y, mine.x, mine.y) <= mine.radius) {
                     applyMineDamage(e, mine.damage);
@@ -3328,6 +3360,7 @@ export default function BratTDClient() {
               const targetsInRange = enemiesRef.current.filter((e) => {
                 if (e.isCamo && !isCamoCapable) return false;
                 if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
+                if (e.isFlying && !ANTI_AIR_TOWER_TYPES.has(tower.type)) return false;
                 return getDistance(tower.x, tower.y, e.x, e.y) <= getEffectiveTowerRange(tower);
               });
 
@@ -3439,6 +3472,7 @@ export default function BratTDClient() {
               if (e.isCamo && !isCamoCapable) return false;
               // Phantom camo requires higher level detection
               if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
+              if (e.isFlying && !ANTI_AIR_TOWER_TYPES.has(tower.type)) return false;
               return getDistance(tower.x, tower.y, e.x, e.y) <= getEffectiveTowerRange(tower);
             });
 
@@ -3744,16 +3778,22 @@ export default function BratTDClient() {
             const enemy = enemiesRef.current[eIdx];
             if (enemy.hp <= 0) continue;
             if (enemy.isCamo && !proj.camoDetection) continue;
+            if (enemy.isFlying && !ANTI_AIR_TOWER_TYPES.has(proj.type)) continue;
             
             // Check collision distance
             const colDist = getDistance(proj.x, proj.y, enemy.x, enemy.y);
-            const hitRadius = proj.type === "gas" ? 12 : 8;
+            const hitRadius = proj.type === "gas" ? 13 : 8;
             if (colDist <= enemy.radius + hitRadius && !proj.hitEnemyIds.includes(enemy.id)) {
               // Hit!
               proj.hitEnemyIds.push(enemy.id);
               proj.pierce--;
 
               let dmg = proj.type === "chain" ? Math.max(1, Math.floor(proj.damage)) : proj.damage;
+
+              // Chain deals reduced damage to flying enemies
+              if (proj.type === "chain" && enemy.isFlying) {
+                dmg = Math.max(1, Math.floor(dmg * 0.75));
+              }
 
               // Shield absorption
               if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
@@ -3995,7 +4035,7 @@ export default function BratTDClient() {
 
               // Apply knockback
               if (proj.knockbackChance && getPureRandom() < proj.knockbackChance && !enemy.knockbackImmune) {
-                const kbDist = proj.knockbackDistance || 50;
+                const kbDist = (proj.knockbackDistance || 50) * (enemy.knockbackMultiplier || 1);
                 enemy.distanceTraveled = Math.max(0, enemy.distanceTraveled - kbDist);
                 const route = getEnemyRoute(enemy);
                 const position = getRouteDistancePosition(route.points, enemy.distanceTraveled);
