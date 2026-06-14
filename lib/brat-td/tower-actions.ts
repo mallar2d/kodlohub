@@ -185,6 +185,10 @@ export function tryPlaceTower(
     tackCount: config.tackCount,
     maxMines: config.maxMines,
     targetingMode: "first",
+    fireDoTDamage: config.fireDoTDamage,
+    fireDoTDuration: config.fireDoTDuration,
+    fireDoTMaxStacks: config.fireDoTMaxStacks,
+    antiRegenFactor: config.antiRegenFactor,
   };
   if (type === "coffee") {
     newTower.buffMultiplier = 0.05;
