@@ -5,7 +5,7 @@ export interface PathPoint {
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
-export const GAME_VERSION = "0.5.2";
+export const GAME_VERSION = "0.6";
 
 export const PATH: PathPoint[] = [
   { x: 0, y: 100 },
@@ -147,6 +147,8 @@ export interface EnemyConfig {
   shieldHp?: number;
   shieldRegenDelay?: number;
   isHealer?: boolean;
+  isFlying?: boolean;
+  knockbackMultiplier?: number;
   tier?: number; // 1-5, scales stats
   stunImmune?: boolean;
   knockbackImmune?: boolean;
@@ -963,6 +965,33 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     isHealer: true,
     description: "Лікує сусідніх ворогів на 3 HP/с. Пріоритетна ціль!"
   },
+  drone_brat: {
+    name: "Брат-Дрон",
+    hp: 38,
+    speed: 1.5,
+    reward: 4,
+    damage: 8,
+    color: "#22d3ee",
+    borderColor: "#0891b2",
+    radius: 12,
+    isFlying: true,
+    knockbackMultiplier: 2,
+    description: "Літаючий брат. Ігнорує міни, молотки та наземні атаки. Б'є Candy Launcher, Infinix, Sniper, Chain (75%), Monolith."
+  },
+  drone_brat_armored: {
+    name: "Броньований Дрон",
+    hp: 55,
+    speed: 1.35,
+    reward: 6,
+    damage: 10,
+    color: "#94a3b8",
+    borderColor: "#475569",
+    radius: 13,
+    isFlying: true,
+    isArmored: true,
+    knockbackMultiplier: 2,
+    description: "Броньований літаючий брат. Стійкий до фізичної шкоди, але все ще вразливий до енергетичних атак."
+  },
   megaboss: {
     name: "Мега-Бос",
     hp: 6000,
@@ -1095,23 +1124,26 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 8, spawnDelay: 2000, delayBeforeNext: 1200 },
     { type: "ordinary", count: 20, spawnDelay: 800 }
   ],
-  // Wave 17: Lead + heavy
+  // Wave 17: Lead + heavy + first drones
   [
     { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 1000 },
     { type: "lead", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
+    { type: "drone_brat", count: 8, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "fast", count: 18, spawnDelay: 500 }
   ],
-  // Wave 18: Lead + heavy + coat
+  // Wave 18: Lead + heavy + coat + drones
   [
     { type: "lead", count: 10, spawnDelay: 1600, delayBeforeNext: 1000 },
     { type: "heavy", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
-    { type: "coat", count: 10, spawnDelay: 1400 }
+    { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "drone_brat", count: 10, spawnDelay: 850 }
   ],
-  // Wave 19: Mixed armor
+  // Wave 19: Mixed armor + drone swarm
   [
     { type: "lead", count: 12, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "drone_brat", count: 12, spawnDelay: 800, delayBeforeNext: 800 },
     { type: "fast", count: 20, spawnDelay: 450, delayBeforeNext: 800 },
     { type: "matryoshka", count: 4, spawnDelay: 1400 }
   ],
@@ -1250,12 +1282,13 @@ export const WAVES: WaveSegment[][] = [
     { type: "matryoshka", count: 4, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "ordinary", count: 15, spawnDelay: 900, modifiers: ["regen"] }
   ],
-  // Wave 37: Jumper + camo + phantom
+  // Wave 37: Jumper + camo + phantom + drones
   [
     { type: "jumper", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "phantom", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
     { type: "camo", count: 20, spawnDelay: 700, delayBeforeNext: 800 },
     { type: "shielded", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "drone_brat", count: 10, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "matryoshka", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "fast", count: 25, spawnDelay: 400 }
   ],
@@ -1301,13 +1334,14 @@ export const WAVES: WaveSegment[][] = [
     { type: "mega_shielded", count: 3, spawnDelay: 1800 }
   ],
   // === COMBO WAVES 41-46: Synergy enemy combinations ===
-  // Wave 41: COMBO - Camo+Lead (невидимі + імунні до молотків)
+  // Wave 41: COMBO - Camo+Lead + drone swarm
   [
     { type: "camo", count: 25, spawnDelay: 600, delayBeforeNext: 600 },
     { type: "lead", count: 20, spawnDelay: 800, delayBeforeNext: 600 },
     { type: "camo", count: 15, spawnDelay: 500, delayBeforeNext: 600 },
     { type: "lead", count: 15, spawnDelay: 700, delayBeforeNext: 600 },
     { type: "phantom", count: 10, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "drone_brat", count: 12, spawnDelay: 700, delayBeforeNext: 600, modifiers: ["lead"] },
     { type: "matryoshka", count: 6, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "lead", count: 4, spawnDelay: 1300, delayBeforeNext: 600, modifiers: ["ceramic"] },
     { type: "fast", count: 30, spawnDelay: 350 }
@@ -1325,12 +1359,13 @@ export const WAVES: WaveSegment[][] = [
     { type: "matryoshka", count: 3, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "big_matryoshka", count: 2, spawnDelay: 1400 }
   ],
-  // Wave 43: COMBO - Shielded+Exploder (щит + вибух при смерті)
+  // Wave 43: COMBO - Shielded+Exploder + armored drones
   [
     { type: "shielded", count: 15, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "exploder", count: 12, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "shielded", count: 12, spawnDelay: 1000, delayBeforeNext: 600 },
     { type: "exploder", count: 10, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "drone_brat_armored", count: 10, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "rachky_brat", count: 20, spawnDelay: 600, delayBeforeNext: 500 },
     { type: "gas_brat", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
     { type: "mega_shielded", count: 5, spawnDelay: 1400, delayBeforeNext: 500 },
@@ -1379,6 +1414,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "rachky_brat", count: 16, spawnDelay: 650, delayBeforeNext: 400 },
     { type: "gas_brat", count: 12, spawnDelay: 850, delayBeforeNext: 400 },
     { type: "matryoshka", count: 8, spawnDelay: 850, delayBeforeNext: 400 },
+    { type: "drone_brat_armored", count: 8, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "drone_brat", count: 8, spawnDelay: 750, delayBeforeNext: 400, modifiers: ["lead"] },
     { type: "coat", count: 6, spawnDelay: 1050, delayBeforeNext: 400, modifiers: ["ceramic"] },
     { type: "drowned", count: 5, spawnDelay: 1050, delayBeforeNext: 400 },
     { type: "big_matryoshka", count: 2, spawnDelay: 2400, delayBeforeNext: 400 },
@@ -1391,6 +1428,7 @@ export const POST_46_WAVES: WaveSegment[][] = [
     { type: "phantom", count: 14, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "lead", count: 16, spawnDelay: 700, delayBeforeNext: 500 },
     { type: "camo", count: 24, spawnDelay: 450, delayBeforeNext: 500 },
+    { type: "drone_brat", count: 8, spawnDelay: 800, delayBeforeNext: 500, modifiers: ["lead"] },
     { type: "matryoshka", count: 8, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "ordinary", count: 5, spawnDelay: 1200, modifiers: ["ceramic"] }
   ],
@@ -1398,6 +1436,7 @@ export const POST_46_WAVES: WaveSegment[][] = [
     { type: "shielded", count: 14, spawnDelay: 950, delayBeforeNext: 500 },
     { type: "exploder", count: 12, spawnDelay: 1000, delayBeforeNext: 500 },
     { type: "gas_brat", count: 14, spawnDelay: 750, delayBeforeNext: 500 },
+    { type: "drone_brat_armored", count: 8, spawnDelay: 900, delayBeforeNext: 500 },
     { type: "mega_shielded", count: 6, spawnDelay: 1350, delayBeforeNext: 500 },
     { type: "drowned", count: 6, spawnDelay: 1050 }
   ],
@@ -1406,11 +1445,13 @@ export const POST_46_WAVES: WaveSegment[][] = [
     { type: "ordinary", count: 26, spawnDelay: 550, delayBeforeNext: 500, modifiers: ["regen"] },
     { type: "healer", count: 8, spawnDelay: 1100, delayBeforeNext: 500 },
     { type: "jumper", count: 7, spawnDelay: 1000, delayBeforeNext: 500, modifiers: ["ceramic"] },
+    { type: "drone_brat", count: 8, spawnDelay: 750, delayBeforeNext: 500, modifiers: ["lead"] },
     { type: "drowned", count: 6, spawnDelay: 1050 }
   ],
   [
     { type: "granite", count: 16, spawnDelay: 1200, delayBeforeNext: 500 },
     { type: "coat", count: 18, spawnDelay: 800, delayBeforeNext: 500 },
+    { type: "drone_brat_armored", count: 10, spawnDelay: 850, delayBeforeNext: 500 },
     { type: "boss", count: 2, spawnDelay: 2600, delayBeforeNext: 500 },
     { type: "big_matryoshka", count: 2, spawnDelay: 2400, delayBeforeNext: 500 },
     { type: "matryoshka", count: 8, spawnDelay: 800 }
@@ -1419,6 +1460,7 @@ export const POST_46_WAVES: WaveSegment[][] = [
     { type: "megaboss", count: 1, spawnDelay: 4800, delayBeforeNext: 500 },
     { type: "shielded", count: 16, spawnDelay: 900, delayBeforeNext: 500 },
     { type: "phantom", count: 14, spawnDelay: 850, delayBeforeNext: 500 },
+    { type: "drone_brat", count: 8, spawnDelay: 750, delayBeforeNext: 500, modifiers: ["lead"] },
     { type: "big_matryoshka", count: 2, spawnDelay: 2500, delayBeforeNext: 500 },
     { type: "mega_shielded", count: 6, spawnDelay: 1300 }
   ],
@@ -1469,7 +1511,7 @@ const GLOBAL_WAVE_ENEMY_COUNT_MULTIPLIER = 1.5;
 // Applied on top of the handcrafted WAVES / POST_46_WAVES definitions.
 function getWaveScaling(waveNumber: number, type: string): { countMult: number; delayMult: number } {
   const swarm = ["ordinary", "fast"];
-  const massSpecial = ["camo", "rachky_brat", "gas_brat", "matryoshka"];
+  const massSpecial = ["camo", "rachky_brat", "gas_brat", "matryoshka", "drone_brat"];
   const armored = ["coat", "heavy", "lead", "drowned"];
   const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer", "big_matryoshka", "mega_shielded"];
 
@@ -1520,7 +1562,7 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
     // Endless mode after the handcrafted post-game set.
     const multiplier = Math.pow(1.08, waveNumber - 56);
     const earlyEndlessTypes = ["fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "drowned", "mega_shielded"];
-    const deepEndlessTypes = ["heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "drowned", "big_matryoshka", "mega_shielded"];
+    const deepEndlessTypes = ["heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "drowned", "big_matryoshka", "mega_shielded", "drone_brat", "drone_brat_armored"];
     const types = waveNumber >= 70 ? deepEndlessTypes : earlyEndlessTypes;
     baseSegments = [];
 
@@ -1539,7 +1581,7 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
     const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
     for (let i = 0; i < segmentCount; i++) {
       const randomType = types[Math.floor(Math.random() * types.length)];
-      const baseCount = randomType === "big_matryoshka" || randomType === "mega_shielded" ? 2 : randomType === "granite" || randomType === "heavy" ? 4 : randomType === "matryoshka" || randomType === "drowned" ? 6 : 10;
+      const baseCount = randomType === "big_matryoshka" || randomType === "mega_shielded" ? 2 : randomType === "granite" || randomType === "heavy" ? 4 : randomType === "matryoshka" || randomType === "drowned" || randomType === "drone_brat_armored" ? 5 : randomType === "drone_brat" ? 8 : 10;
       const modifiers: EnemyModifier[] = [];
       if (waveNumber >= 58 && Math.random() < 0.28) modifiers.push("regen");
       if (waveNumber >= 62 && Math.random() < 0.22) modifiers.push("ceramic");
@@ -1577,11 +1619,12 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
   let radius = base.radius;
   let onDeath = base.onDeath;
   let isArmored = base.isArmored;
-  let isSuperArmored = base.isSuperArmored;
+  const isSuperArmored = base.isSuperArmored;
   let isRegen = base.isRegen;
   let isLead = base.isLead;
   let isCamo = base.isCamo;
   let isPhantomCamo = base.isPhantomCamo;
+  const isFlying = base.isFlying || false;
 
   // Tier inheritance: higher tiers gain abilities
   if (tierData.inheritsRegen && !isRegen && isModifierUnlocked("regen", waveNumber)) {
@@ -1658,6 +1701,16 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
     isLead,
     isCamo,
     isPhantomCamo,
+    isExploder: base.isExploder,
+    isHealer: base.isHealer,
+    isGlitching: base.isGlitching,
+    glitchDistance: base.glitchDistance,
+    isSpawningTrail: base.isSpawningTrail,
+    isSlowingTowers: base.isSlowingTowers,
+    isFlying,
+    knockbackMultiplier: base.knockbackMultiplier,
+    stunImmune: base.stunImmune,
+    knockbackImmune: base.knockbackImmune,
     tier,
     shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.08, waveNumber - 56) : 1) * tierData.hpMult)) : undefined,
   };
@@ -1668,7 +1721,7 @@ export const EMOJI_MAP: Record<string, string> = {
   ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
   infinix_brat: "👾", matryoshka: "🪆", big_matryoshka: "🪆", ceramic: "🏺", drowned: "🫧", mega_shielded: "🏰", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
   camo: "🦹", regen: "💗", lead: "🔩",
-  phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹",
+  phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹", drone_brat: "🛸", drone_brat_armored: "🛡️🛸",
   sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿",
   boomerang: "🪃"
 };
