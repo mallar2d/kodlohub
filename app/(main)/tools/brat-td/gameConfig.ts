@@ -15,7 +15,7 @@ import { createSeededRandom } from "@/lib/brat-td/seeded-random";
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
-export const GAME_VERSION = "0.6.6";
+export const GAME_VERSION = "0.7";
 export const DEFAULT_DIFFICULTY_KEY: "easy" | "normal" | "hard" = "normal";
 
 export const PATH: PathPoint[] = [
