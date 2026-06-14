@@ -2391,7 +2391,58 @@ export default function BratTDClient() {
       }
     });
 
-    spawnQueueRef.current = queue;
+    // Interleave gas_brat and healer enemies evenly throughout the queue
+    const INTERLEAVE_TYPES = new Set(["gas_brat", "healer"]);
+    const interleaved: typeof queue = [];
+    const mainQueue: typeof queue = [];
+    for (const entry of queue) {
+      if (entry.type && INTERLEAVE_TYPES.has(entry.type)) {
+        interleaved.push(entry);
+      } else {
+        mainQueue.push(entry);
+      }
+    }
+    if (interleaved.length > 0 && mainQueue.length > 0) {
+      const mainEnemyCount = mainQueue.filter((e) => e.type).length;
+      if (mainEnemyCount > 0) {
+        const step = mainEnemyCount / (interleaved.length + 1);
+        let insertIdx = 0;
+        let placed = 0;
+        let enemyCount = 0;
+        for (let i = 0; i < mainQueue.length; i++) {
+          if (mainQueue[i].type) enemyCount++;
+          while (placed < interleaved.length && enemyCount >= Math.ceil(step * (placed + 1))) {
+            insertIdx = i + 1 + placed;
+            placed++;
+          }
+        }
+        // Rebuild: insert interleaved entries at calculated positions
+        const result: typeof queue = [];
+        let interleavedIdx = 0;
+        enemyCount = 0;
+        for (let i = 0; i < mainQueue.length; i++) {
+          result.push(mainQueue[i]);
+          if (mainQueue[i].type) {
+            enemyCount++;
+            while (interleavedIdx < interleaved.length && enemyCount >= Math.ceil(step * (interleavedIdx + 1))) {
+              result.push(interleaved[interleavedIdx]);
+              interleavedIdx++;
+            }
+          }
+        }
+        // Append any remaining interleaved entries
+        while (interleavedIdx < interleaved.length) {
+          result.push(interleaved[interleavedIdx]);
+          interleavedIdx++;
+        }
+        spawnQueueRef.current = result;
+      } else {
+        spawnQueueRef.current = [...interleaved];
+      }
+    } else {
+      spawnQueueRef.current = queue;
+    }
+
     waveStartLivesRef.current = livesRef.current;
     waveKillsRef.current = 0;
     spawnTimerRef.current = 0;
