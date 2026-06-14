@@ -5056,23 +5056,6 @@ export default function BratTDClient() {
                 )}
               </div>
             </div>
-
-            {(() => {
-              const levelProgress = getPlayerLevelProgress(progression.totalXp);
-              const pct = levelProgress.nextRequirement > 0 ? Math.min(100, (levelProgress.currentXp / levelProgress.nextRequirement) * 100) : 100;
-              return (
-                <div className="flex flex-col min-w-[150px] h-[52px] justify-between">
-                  <span className="micro-cap text-ink-mute whitespace-nowrap">Прогресія</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="rounded border border-cyan-900/70 bg-cyan-950/40 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">LVL</span>
-                    <span className="text-xl font-bold font-[var(--font-display)] text-cyan-300">LVL {progression.playerLevel}</span>
-                    <div className="w-16 h-1.5 bg-zinc-800 rounded overflow-hidden">
-                      <div className="h-full bg-cyan-400 transition-all duration-300" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
 
           {/* Action buttons */}
