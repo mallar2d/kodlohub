@@ -32,14 +32,6 @@ export const SETTINGS_KEY = "brat_td_settings";
 /** localStorage key for the progression state. */
 export const PROGRESSION_KEY = "brat_td_progress";
 
-/**
- * Bump this whenever the save format changes in a way that requires old
- * saves to be discarded (e.g. security patch, incompatible schema change).
- * Stored separately from the progression data so it can be checked before
- * parsing.
- */
-export const PROGRESSION_SCHEMA_VERSION = "2";
-
 /** Default settings shape used when no persisted value exists. */
 export type GameSettings = {
   volume: number;
