@@ -2955,6 +2955,7 @@ export default function BratTDClient() {
                   isPhantomCamo: baseConfig.isPhantomCamo,
                   isExploder: baseConfig.isExploder,
                   isHealer: baseConfig.isHealer,
+                  isFlying: baseConfig.isFlying,
                   shieldHp: baseConfig.shieldHp,
                   tier: baseConfig.tier,
                   damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
@@ -3944,8 +3945,8 @@ export default function BratTDClient() {
                 dmg = Math.floor(dmg * 1.5);
               }
 
-              // Lead armor hammer immunity
-              if (enemy.isLead && proj.type === "hammer" && !proj.ignoresArmor) {
+              // Lead armor immunity (hammer and gas/tack shooter)
+              if (enemy.isLead && (proj.type === "hammer" || proj.type === "gas") && !proj.ignoresArmor) {
                 dmg = 0;
                 spawnFloatingText(enemy.x, enemy.y - 15, "IMMUNE 🔩", "#94a3b8");
                 spawnHitParticles(enemy.x, enemy.y, "#9ca3af", 5);
