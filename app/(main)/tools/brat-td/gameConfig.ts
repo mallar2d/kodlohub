@@ -208,7 +208,7 @@ export const TIER_UNLOCK_COSTS: Record<number, number> = {
 
 export function getPlayerLevelXpRequirement(level: number): number {
   if (level <= 1) return 0;
-  return Math.floor(100 * Math.pow(level, 1.4));
+  return Math.floor(120 * Math.pow(level, 1.4));
 }
 
 export function getPlayerLevelForXp(totalXp: number): number {
