@@ -569,6 +569,10 @@ export default function BratTDClient() {
   }, [gold]);
 
   useEffect(() => {
+    goldRef.current = gold;
+  }, [gold]);
+
+  useEffect(() => {
     let animationId: number;
     const updateGame = () => {
       engineUpdateGame(buildEngineContext());
