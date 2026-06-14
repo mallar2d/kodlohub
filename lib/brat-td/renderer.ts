@@ -1207,6 +1207,21 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, rc: RenderContext) {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+    if (enemy.fireDoTStacks && enemy.fireDoTStacks.length > 0) {
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(249, 115, 22, 0.6)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      for (let fi = 0; fi < 3; fi++) {
+        const offsetAngle = (rc.frame * 0.1 + fi * 2.1) % (Math.PI * 2);
+        const fx = enemy.x + Math.sin(offsetAngle) * (enemy.radius * 0.5);
+        const fy = enemy.y - (enemy.radius * 0.3) - ((rc.frame + fi * 20) % 15);
+        ctx.fillStyle = fi % 2 === 0 ? "#f97316" : "#facc15";
+        ctx.fillRect(fx - 1.5, fy - 1.5, 3, 3);
+      }
+    }
     if (enemy.isCamo) {
       ctx.globalAlpha = 0.4;
       ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
@@ -1283,6 +1298,7 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, rc: RenderContext) {
     if (enemy.slowDuration > 0) pips.push({ color: "#3b82f6" });
     if (enemy.gasSlowDuration > 0) pips.push({ color: "#22c55e" });
     if (enemy.freezeDuration > 0) pips.push({ color: "#93c5fd" });
+    if (enemy.fireDoTStacks && enemy.fireDoTStacks.length > 0) pips.push({ color: "#f97316" });
     if (enemy.isRegen) pips.push({ color: "#f472b6" });
     if (enemy.hasCopilotBug) pips.push({ color: "#a855f7" });
     const visiblePips = rc.settings.effectLimits ? pips.slice(0, 3) : pips;

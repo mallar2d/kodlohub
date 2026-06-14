@@ -260,6 +260,13 @@ export interface PlacedTower {
   angle?: number;
 }
 
+export interface FireDoTStack {
+  damage: number;
+  duration: number;
+  maxDuration: number;
+  antiRegenFactor: number;
+}
+
 export interface ActiveEnemy {
   id: string;
   type: string;
@@ -283,6 +290,7 @@ export interface ActiveEnemy {
   candySlowFactor?: number;
   freezeDuration: number; // in frames
   gasSlowDuration: number; // in frames
+  fireDoTStacks?: FireDoTStack[];
   gasSlowFactor?: number;
   damageDebuff?: number; // multiplier
   abilitiesDisabledDuration?: number; // in frames
@@ -331,6 +339,11 @@ export interface Projectile {
   emoji: string;
   color: string;
   towerId?: string;
+  // Fire DoT stats
+  fireDoTDamage?: number;
+  fireDoTDuration?: number;
+  fireDoTMaxStacks?: number;
+  antiRegenFactor?: number;
   // inherited stats
   critChance?: number;
   isAoESlow?: boolean;

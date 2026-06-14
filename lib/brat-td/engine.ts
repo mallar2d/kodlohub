@@ -638,6 +638,8 @@ function processEnemies(ctx: EngineContext): void {
   for (let i = refs.enemiesRef.current.length - 1; i >= 0; i--) {
     const enemy = refs.enemiesRef.current[i];
 
+    let activeAntiRegen = 0;
+
     // Check if frozen
     if (enemy.freezeDuration > 0) {
       enemy.freezeDuration--;
@@ -652,6 +654,30 @@ function processEnemies(ctx: EngineContext): void {
     }
     if ((enemy.abilitiesDisabledDuration || 0) > 0) {
       enemy.abilitiesDisabledDuration = (enemy.abilitiesDisabledDuration || 0) - 1;
+    }
+
+    // Process Fire DoT Stacks
+    if (enemy.fireDoTStacks && enemy.fireDoTStacks.length > 0) {
+      let totalTickDamage = 0;
+      for (let sIdx = enemy.fireDoTStacks.length - 1; sIdx >= 0; sIdx--) {
+        const stack = enemy.fireDoTStacks[sIdx];
+        stack.duration--;
+        if (stack.duration % 60 === 0) {
+          const tickDmg = stack.damage / (stack.maxDuration / 60);
+          totalTickDamage += tickDmg;
+        }
+        if (stack.antiRegenFactor > activeAntiRegen) {
+          activeAntiRegen = stack.antiRegenFactor;
+        }
+        if (stack.duration <= 0) {
+          enemy.fireDoTStacks.splice(sIdx, 1);
+        }
+      }
+      if (totalTickDamage > 0) {
+        enemy.hp -= totalTickDamage;
+        ctx.cb.spawnFloatingText(enemy.x + (getPureRandom() - 0.5) * 10, enemy.y - 15, `🔥 -${totalTickDamage.toFixed(1)}`, "#f97316", 13);
+        ctx.cb.spawnHitParticles(enemy.x, enemy.y, "#f97316", 2);
+      }
     }
 
     // Shield regeneration for shielded enemies
@@ -739,8 +765,10 @@ function processEnemies(ctx: EngineContext): void {
 
     // Regen healing (flat + % of max HP so it stays relevant late game)
     if (enemy.isRegen && enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.freezeDuration <= 0) {
-      const regenAmount = HEALER_BASE_HEAL + enemy.maxHp * HEALER_HP_SCALING;
-      enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenAmount);
+      const regenAmount = (HEALER_BASE_HEAL + enemy.maxHp * HEALER_HP_SCALING) * (1 - activeAntiRegen);
+      if (regenAmount > 0) {
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenAmount);
+      }
     }
 
     // Healer: heals nearby allies (flat + % scaling, allows overhealing up to 150% of ally's max HP)
@@ -749,7 +777,18 @@ function processEnemies(ctx: EngineContext): void {
       refs.enemiesRef.current.forEach((ally) => {
         const maxOverheal = ally.maxHp * MAX_OVERHEAL_MULTIPLIER;
         if (ally.id !== enemy.id && ally.hp > 0 && ally.hp < maxOverheal && ctx.cb.getDistance(enemy.x, enemy.y, ally.x, ally.y) <= 80) {
-          ally.hp = Math.min(maxOverheal, ally.hp + healAmount);
+          let allyAntiRegen = 0;
+          if (ally.fireDoTStacks) {
+            for (const stack of ally.fireDoTStacks) {
+              if (stack.antiRegenFactor > allyAntiRegen) {
+                allyAntiRegen = stack.antiRegenFactor;
+              }
+            }
+          }
+          const actualHeal = healAmount * (1 - allyAntiRegen);
+          if (actualHeal > 0) {
+            ally.hp = Math.min(maxOverheal, ally.hp + actualHeal);
+          }
         }
       });
     }
@@ -1194,7 +1233,10 @@ function processTowers(ctx: EngineContext): void {
         const projId = getPureId();
         const dx = target.x - tower.x;
         const dy = target.y - tower.y;
-        const angle = Math.atan2(dy, dx);
+        let angle = Math.atan2(dy, dx);
+        if (tower.type === "flamethrower") {
+          angle += (getPureRandom() - 0.5) * 0.08;
+        }
 
         const newProj: Projectile = {
           id: projId,
@@ -1207,6 +1249,10 @@ function processTowers(ctx: EngineContext): void {
           emoji: tower.emoji,
           color: tower.color,
           towerId: tower.id,
+          fireDoTDamage: tower.fireDoTDamage,
+          fireDoTDuration: tower.fireDoTDuration,
+          fireDoTMaxStacks: tower.fireDoTMaxStacks,
+          antiRegenFactor: tower.antiRegenFactor,
           critChance: tower.critChance,
           isAoESlow: tower.isAoESlow,
           damageDebuff: tower.damageDebuff,
@@ -1498,6 +1544,22 @@ function processProjectiles(ctx: EngineContext): void {
         // Hit!
         proj.hitEnemyIds.push(enemy.id);
         proj.pierce--;
+
+        if (proj.fireDoTDamage && proj.fireDoTDuration) {
+          if (!enemy.fireDoTStacks) {
+            enemy.fireDoTStacks = [];
+          }
+          enemy.fireDoTStacks.push({
+            damage: proj.fireDoTDamage,
+            duration: proj.fireDoTDuration,
+            maxDuration: proj.fireDoTDuration,
+            antiRegenFactor: proj.antiRegenFactor || 0
+          });
+          const maxStacks = proj.fireDoTMaxStacks || 3;
+          if (enemy.fireDoTStacks.length > maxStacks) {
+            enemy.fireDoTStacks.shift();
+          }
+        }
 
         let dmg = proj.type === "chain" ? Math.max(1, Math.floor(proj.damage)) : proj.damage;
 
