@@ -189,6 +189,11 @@ export function tryPlaceTower(
     fireDoTDuration: config.fireDoTDuration,
     fireDoTMaxStacks: config.fireDoTMaxStacks,
     antiRegenFactor: config.antiRegenFactor,
+    fireExplodeOnDeath: config.fireExplodeOnDeath,
+    fireExplodeDmg: config.fireExplodeDmg,
+    fireExplodeRadius: config.fireExplodeRadius,
+    fireSpreadChance: config.fireSpreadChance,
+    fireDropPuddle: config.fireDropPuddle,
   };
   if (type === "coffee") {
     newTower.buffMultiplier = 0.05;

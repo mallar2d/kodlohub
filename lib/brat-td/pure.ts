@@ -114,7 +114,8 @@ export const UPGRADE_STAT_KEYS: (keyof UpgradeStats)[] = [
   "tackCount", "maxMines", "mineExplodes", "knockbackChance", "knockbackDistance",
   "microStunDuration", "wallBounce", "tripleShot", "quadShot", "everyNthTriple",
   "spreadChance", "spreadDamageBonus", "gachaDamageMultiplier", "conditionalTripleWithPierce",
-  "fireDoTDamage", "fireDoTDuration", "fireDoTMaxStacks", "antiRegenFactor"
+  "fireDoTDamage", "fireDoTDuration", "fireDoTMaxStacks", "antiRegenFactor",
+  "fireExplodeOnDeath", "fireExplodeDmg", "fireExplodeRadius", "fireSpreadChance", "fireDropPuddle"
 ];
 
 /** Project a placed tower down to a flat UpgradeStats snapshot. */

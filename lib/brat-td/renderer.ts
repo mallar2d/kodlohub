@@ -1411,6 +1411,31 @@ function drawFloatingTexts(ctx: CanvasRenderingContext2D, rc: RenderContext) {
 
 function drawMines(ctx: CanvasRenderingContext2D, rc: RenderContext) {
   rc.mines.forEach((mine) => {
+    if (mine.isFirePuddle) {
+      const pulse = Math.sin(rc.frame * 0.15) * 0.15 + 0.85;
+      
+      ctx.beginPath();
+      ctx.arc(mine.x, mine.y, mine.triggerRadius * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(249, 115, 22, ${0.2 * pulse})`;
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(mine.x, mine.y, mine.triggerRadius * 0.6 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(234, 88, 12, 0.5)";
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.fill();
+      ctx.stroke();
+
+      for (let j = 0; j < 2; j++) {
+        const sparkY = mine.y - ((rc.frame + j * 30) % 20);
+        const sparkX = mine.x + Math.sin(rc.frame * 0.1 + j * Math.PI) * 10;
+        ctx.fillStyle = j % 2 === 0 ? "#f97316" : "#facc15";
+        ctx.fillRect(sparkX - 1, sparkY - 1, 2, 2);
+      }
+      return;
+    }
+
     const pulse = Math.sin(rc.frame * 0.15) * 0.3 + 0.7;
     drawMineSprite(ctx, mine.x, mine.y, 5.5, "#ef4444", pulse);
     ctx.beginPath();

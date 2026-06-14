@@ -73,6 +73,11 @@ export interface UpgradeStats {
   fireDoTDuration?: number;
   fireDoTMaxStacks?: number;
   antiRegenFactor?: number;
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireSpreadChance?: number;
+  fireDropPuddle?: boolean;
 }
 
 export interface Upgrade {
@@ -101,6 +106,11 @@ export interface TowerStats {
   fireDoTDuration?: number;
   fireDoTMaxStacks?: number;
   antiRegenFactor?: number;
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireSpreadChance?: number;
+  fireDropPuddle?: boolean;
 }
 
 export interface TowerConfig extends TowerStats {
@@ -245,6 +255,11 @@ export interface PlacedTower {
   fireDoTDuration?: number;
   fireDoTMaxStacks?: number;
   antiRegenFactor?: number;
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireSpreadChance?: number;
+  fireDropPuddle?: boolean;
   mineExplodes?: boolean;
   hasCamoBuff?: boolean;
   hasCoffeeBuff?: boolean;
@@ -266,6 +281,12 @@ export interface FireDoTStack {
   maxDuration: number;
   tickTimer: number;
   antiRegenFactor: number;
+  fireSpreadChance?: number;
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireDropPuddle?: boolean;
+  fireDoTMaxStacks?: number;
 }
 
 export interface ActiveEnemy {
@@ -292,6 +313,10 @@ export interface ActiveEnemy {
   freezeDuration: number; // in frames
   gasSlowDuration: number; // in frames
   fireDoTStacks?: FireDoTStack[];
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireDropPuddle?: boolean;
   gasSlowFactor?: number;
   damageDebuff?: number; // multiplier
   abilitiesDisabledDuration?: number; // in frames
@@ -345,6 +370,11 @@ export interface Projectile {
   fireDoTDuration?: number;
   fireDoTMaxStacks?: number;
   antiRegenFactor?: number;
+  fireExplodeOnDeath?: boolean;
+  fireExplodeDmg?: number;
+  fireExplodeRadius?: number;
+  fireSpreadChance?: number;
+  fireDropPuddle?: boolean;
   // inherited stats
   critChance?: number;
   isAoESlow?: boolean;
@@ -449,6 +479,10 @@ export interface Mine {
   hitEnemyIds: string[]; // enemies already damaged by this trap
   explodes: boolean;
   camoDetection?: boolean;
+  isFirePuddle?: boolean;
+  firePuddleStacks?: FireDoTStack[];
+  decayTimer?: number;
+  fireDoTMaxStacks?: number;
 }
 
 export interface MineProjectile {

@@ -667,6 +667,26 @@ function processEnemies(ctx: EngineContext): void {
           const tickDmg = stack.damage / (stack.maxDuration / 60);
           totalTickDamage += tickDmg;
           stack.tickTimer = 60;
+
+          if (stack.fireSpreadChance && getPureRandom() < stack.fireSpreadChance) {
+            const spreadRange = 60;
+            const neighbors = refs.enemiesRef.current.filter(
+              (other) => other.id !== enemy.id && other.hp > 0 && !other.isFlying && ctx.cb.getDistance(enemy.x, enemy.y, other.x, other.y) <= spreadRange
+            );
+            if (neighbors.length > 0) {
+              const targetNeighbor = neighbors[Math.floor(getPureRandom() * neighbors.length)];
+              targetNeighbor.fireDoTStacks = targetNeighbor.fireDoTStacks || [];
+              const neighborMax = stack.fireDoTMaxStacks || 3;
+              if (targetNeighbor.fireDoTStacks.length < neighborMax) {
+                targetNeighbor.fireDoTStacks.push({
+                  ...stack,
+                  duration: stack.maxDuration,
+                  tickTimer: 60
+                });
+                ctx.cb.spawnHitParticles(targetNeighbor.x, targetNeighbor.y, "#f97316", 4);
+              }
+            }
+          }
         }
         if (stack.antiRegenFactor > activeAntiRegen) {
           activeAntiRegen = stack.antiRegenFactor;
@@ -795,10 +815,43 @@ function processEnemies(ctx: EngineContext): void {
       });
     }
 
-    // Check mines
+    // Check mines & fire puddles
     for (let mi = refs.minesRef.current.length - 1; mi >= 0; mi--) {
       const mine = refs.minesRef.current[mi];
-      if (enemy.isFlying) continue; // flying enemies ignore mines
+      if (enemy.isFlying) continue; // flying enemies ignore mines and puddles
+      
+      if (mine.isFirePuddle) {
+        const colDist = ctx.cb.getDistance(enemy.x, enemy.y, mine.x, mine.y);
+        // Collision: enemy radius + puddle triggerRadius
+        if (colDist <= enemy.radius + mine.triggerRadius) {
+          if (mine.firePuddleStacks && mine.firePuddleStacks.length > 0) {
+            enemy.fireDoTStacks = enemy.fireDoTStacks || [];
+            let instantDmg = 0;
+            const maxStacks = mine.fireDoTMaxStacks || 3;
+            
+            mine.firePuddleStacks.forEach((stack) => {
+              if (enemy.fireDoTStacks!.length < maxStacks) {
+                enemy.fireDoTStacks!.push({
+                  ...stack,
+                  duration: stack.maxDuration,
+                  tickTimer: 60
+                });
+                instantDmg += stack.damage;
+              }
+            });
+            
+            if (instantDmg > 0) {
+              enemy.hp -= instantDmg;
+              ctx.cb.spawnFloatingText(enemy.x, enemy.y - 15, `💥🔥 -${instantDmg.toFixed(1)}`, "#ea580c", 14);
+              ctx.cb.spawnHitParticles(enemy.x, enemy.y, "#ea580c", 8);
+            }
+          }
+          refs.minesRef.current.splice(mi, 1);
+          continue;
+        }
+        continue;
+      }
+      
       if (ctx.cb.getDistance(enemy.x, enemy.y, mine.x, mine.y) <= mine.triggerRadius) {
         // Camo mines only trigger on camo enemies if the tower can see camo
         if ((enemy.isCamo || enemy.isPhantomCamo) && !mine.camoDetection) continue;
@@ -877,6 +930,27 @@ function processEnemies(ctx: EngineContext): void {
         radius: 40,
         life: 120 // 2 seconds
       }, trailCap);
+    }
+  }
+
+  // Process fire puddles decay
+  for (let mi = refs.minesRef.current.length - 1; mi >= 0; mi--) {
+    const mine = refs.minesRef.current[mi];
+    if (mine.isFirePuddle) {
+      mine.decayTimer = (mine.decayTimer ?? 60) - 1;
+      if (mine.decayTimer <= 0) {
+        if (mine.firePuddleStacks && mine.firePuddleStacks.length > 0) {
+          mine.firePuddleStacks.pop(); // Remove 1 stack (1 stack per second)
+          if (mine.firePuddleStacks.length === 0) {
+            refs.minesRef.current.splice(mi, 1);
+            continue;
+          }
+        } else {
+          refs.minesRef.current.splice(mi, 1);
+          continue;
+        }
+        mine.decayTimer = 60; // reset
+      }
     }
   }
 }
@@ -1258,6 +1332,11 @@ function processTowers(ctx: EngineContext): void {
           fireDoTDuration: tower.fireDoTDuration,
           fireDoTMaxStacks: tower.fireDoTMaxStacks,
           antiRegenFactor: tower.antiRegenFactor,
+          fireExplodeOnDeath: tower.fireExplodeOnDeath,
+          fireExplodeDmg: tower.fireExplodeDmg,
+          fireExplodeRadius: tower.fireExplodeRadius,
+          fireSpreadChance: tower.fireSpreadChance,
+          fireDropPuddle: tower.fireDropPuddle,
           critChance: tower.critChance,
           isAoESlow: tower.isAoESlow,
           damageDebuff: tower.damageDebuff,
@@ -1554,6 +1633,14 @@ function processProjectiles(ctx: EngineContext): void {
           if (!enemy.fireDoTStacks) {
             enemy.fireDoTStacks = [];
           }
+          if (proj.fireExplodeOnDeath) {
+            enemy.fireExplodeOnDeath = true;
+            enemy.fireExplodeDmg = proj.fireExplodeDmg;
+            enemy.fireExplodeRadius = proj.fireExplodeRadius;
+          }
+          if (proj.fireDropPuddle) {
+            enemy.fireDropPuddle = true;
+          }
           const maxStacks = proj.fireDoTMaxStacks || 3;
           if (enemy.fireDoTStacks.length < maxStacks) {
             enemy.fireDoTStacks.push({
@@ -1561,7 +1648,13 @@ function processProjectiles(ctx: EngineContext): void {
               duration: proj.fireDoTDuration,
               maxDuration: proj.fireDoTDuration,
               tickTimer: 60,
-              antiRegenFactor: proj.antiRegenFactor || 0
+              antiRegenFactor: proj.antiRegenFactor || 0,
+              fireSpreadChance: proj.fireSpreadChance,
+              fireExplodeOnDeath: proj.fireExplodeOnDeath,
+              fireExplodeDmg: proj.fireExplodeDmg,
+              fireExplodeRadius: proj.fireExplodeRadius,
+              fireDropPuddle: proj.fireDropPuddle,
+              fireDoTMaxStacks: proj.fireDoTMaxStacks
             });
           } else {
             // Find stack with the lowest duration and refresh it
@@ -1576,6 +1669,12 @@ function processProjectiles(ctx: EngineContext): void {
             enemy.fireDoTStacks[minDurIdx].duration = proj.fireDoTDuration;
             enemy.fireDoTStacks[minDurIdx].damage = proj.fireDoTDamage;
             enemy.fireDoTStacks[minDurIdx].antiRegenFactor = proj.antiRegenFactor || 0;
+            enemy.fireDoTStacks[minDurIdx].fireSpreadChance = proj.fireSpreadChance;
+            enemy.fireDoTStacks[minDurIdx].fireExplodeOnDeath = proj.fireExplodeOnDeath;
+            enemy.fireDoTStacks[minDurIdx].fireExplodeDmg = proj.fireExplodeDmg;
+            enemy.fireDoTStacks[minDurIdx].fireExplodeRadius = proj.fireExplodeRadius;
+            enemy.fireDoTStacks[minDurIdx].fireDropPuddle = proj.fireDropPuddle;
+            enemy.fireDoTStacks[minDurIdx].fireDoTMaxStacks = proj.fireDoTMaxStacks;
           }
         }
 
@@ -1955,6 +2054,42 @@ function processDeadEnemies(ctx: EngineContext): void {
 function handleEnemyDeath(ctx: EngineContext, enemy: ActiveEnemy, index: number): void {
   const refs = ctx.refs;
   refs.waveKillsRef.current++;
+
+  // Check Fire DoT death explosion (P2T4)
+  if (enemy.fireExplodeOnDeath) {
+    const dmg = enemy.fireExplodeDmg || 40;
+    const rad = enemy.fireExplodeRadius || 60;
+    ctx.cb.spawnFloatingText(enemy.x, enemy.y - 15, "🔥 ВИБУХ!", "#f97316");
+    ctx.cb.spawnHitParticles(enemy.x, enemy.y, "#f97316", 15, "square");
+    refs.enemiesRef.current.forEach((other) => {
+      if (other.id !== enemy.id && other.hp > 0 && ctx.cb.getDistance(enemy.x, enemy.y, other.x, other.y) <= rad) {
+        other.hp -= dmg;
+        ctx.cb.spawnHitParticles(other.x, other.y, "#f97316", 4);
+      }
+    });
+  }
+
+  // Check Fire DoT ground puddle drop (P1T4)
+  if (enemy.fireDropPuddle && enemy.fireDoTStacks && enemy.fireDoTStacks.length > 0) {
+    const puddleCap = ARRAY_CAPS.MINES * (refs.settingsRef.current.effectLimits ? 1 : 2);
+    pushWithCap(refs.minesRef.current, {
+      id: `puddle_${getPureId()}`,
+      x: enemy.x,
+      y: enemy.y,
+      damage: 0,
+      radius: 0,
+      triggerRadius: 24, // collection radius
+      ignoresArmor: true,
+      pierce: 999,
+      towerId: "",
+      hitEnemyIds: [],
+      explodes: false,
+      isFirePuddle: true,
+      firePuddleStacks: [...enemy.fireDoTStacks],
+      decayTimer: 60,
+      fireDoTMaxStacks: enemy.fireDoTStacks[0].fireDoTMaxStacks || 3
+    }, puddleCap);
+  }
   if (enemy.type === "boss") ctx.cb.addPlayerXp(100);
   if (enemy.type === "megaboss") ctx.cb.addPlayerXp(300);
   // Reward gold

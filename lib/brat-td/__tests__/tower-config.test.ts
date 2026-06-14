@@ -249,14 +249,51 @@ describe('TOWER_CONFIGS: flamethrower (DoT anti-regen specialist)', () => {
     }
   });
 
-  it('path3 (DoT focus) increases fireDoTMaxStacks at tier 5 (T5 unlocks 5 stacks)', () => {
+  it('path3 (DoT focus) increases fireDoTMaxStacks at tier 5 (T5 unlocks 5 stacks on baseStats, but cumulative path reaches 7)', () => {
     const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
     const t5 = flame.upgrades.path3[4];
     const result = t5.effect({ ...baseStats });
     expect(result.fireDoTMaxStacks).toBe(5);
+
+    // Cumulative test
+    let currentStats = {
+      range: flame.range,
+      damage: flame.damage,
+      fireRate: flame.fireRate,
+      fireDoTDamage: flame.fireDoTDamage,
+      fireDoTDuration: flame.fireDoTDuration,
+      fireDoTMaxStacks: flame.fireDoTMaxStacks,
+    };
+    for (const upgrade of flame.upgrades.path3) {
+      currentStats = { ...currentStats, ...upgrade.effect(currentStats) };
+    }
+    expect(currentStats.fireDoTMaxStacks).toBe(7);
   });
 
-  it('DoT stacks cap at 3 by default (cannot exceed 3 without T5 upgrade)', () => {
+  it('DoT stacks cap at 3 by default (cannot exceed 3 without upgrades)', () => {
     expect(flame.fireDoTMaxStacks).toBe(3);
+  });
+
+  it('path1 tier 4 (flame_volcano) drops fire puddles on enemy death', () => {
+    const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
+    const t4 = flame.upgrades.path1[3];
+    const result = t4.effect({ ...baseStats });
+    expect(result.fireDropPuddle).toBe(true);
+  });
+
+  it('path2 tier 4 (flame_tornado) causes fire death explosion', () => {
+    const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
+    const t4 = flame.upgrades.path2[3];
+    const result = t4.effect({ ...baseStats });
+    expect(result.fireExplodeOnDeath).toBe(true);
+    expect(result.fireExplodeDmg).toBe(40);
+    expect(result.fireExplodeRadius).toBe(60);
+  });
+
+  it('path3 tier 4 (flame_pure_burn) sets fire spread chance', () => {
+    const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
+    const t4 = flame.upgrades.path3[3];
+    const result = t4.effect({ ...baseStats });
+    expect(result.fireSpreadChance).toBe(0.25);
   });
 });
