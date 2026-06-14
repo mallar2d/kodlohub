@@ -132,7 +132,7 @@ export default function BratTDClient() {
   const [isWaveActive, setIsWaveActive] = useState(false);
   const [gameStatus, setGameStatus] = useState<"idle" | "playing" | "gameover" | "victory">("idle");
   const [isPaused, setIsPaused] = useState(false);
-  const [gameSpeed, setGameSpeed] = useState<1 | 2 | 3>(1);
+  const [gameSpeed, setGameSpeed] = useState<1 | 2 | 3 | 5>(1);
   const [isEndless, setIsEndless] = useState(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [score, setScore] = useState(0);
@@ -195,7 +195,7 @@ export default function BratTDClient() {
   const isWaveActiveRef = useRef(false);
   const gameStatusRef = useRef<"idle" | "playing" | "gameover" | "victory">("idle");
   const isPausedRef = useRef(false);
-  const gameSpeedRef = useRef<1 | 2 | 3>(1);
+  const gameSpeedRef = useRef<1 | 2 | 3 | 5>(1);
   const isAutoStartRef = useRef(false);
   const scoreRef = useRef(0);
   const frameCountRef = useRef(0);
@@ -211,8 +211,6 @@ export default function BratTDClient() {
   const pendingEventsRef = useRef<EnginePendingEvent[]>([]);
 
   useGameSync({
-    lives: { value: lives, ref: livesRef },
-    gold: { value: gold, ref: goldRef },
     wave: { value: wave, ref: waveRef },
     isWaveActive: { value: isWaveActive, ref: isWaveActiveRef },
     gameStatus: { value: gameStatus, ref: gameStatusRef },
@@ -729,7 +727,7 @@ export default function BratTDClient() {
           remainingHp={remainingHp}
           totalEnemies={waveTotalEnemiesRef.current}
           onTogglePause={() => setIsPaused((p) => !p)}
-          onCycleSpeed={() => setGameSpeed((prev) => (prev === 1 ? 2 : prev === 2 ? 3 : 1))}
+          onCycleSpeed={() => setGameSpeed((prev) => (prev === 1 ? 2 : prev === 2 ? 3 : prev === 3 ? 5 : 1))}
           onToggleAutoStart={() => setIsAutoStart((p) => !p)}
           onStartNextWave={startNextWave}
           onStartGame={startGame}

@@ -67,7 +67,7 @@ export interface EngineRefs {
   isWaveActiveRef: { current: boolean };
   gameStatusRef: { current: "idle" | "playing" | "gameover" | "victory" };
   isPausedRef: { current: boolean };
-  gameSpeedRef: { current: 1 | 2 | 3 };
+  gameSpeedRef: { current: 1 | 2 | 3 | 5 };
   isAutoStartRef: { current: boolean };
   scoreRef: { current: number };
   screenShakeRef: { current: { x: number; y: number; intensity: number; duration: number } };

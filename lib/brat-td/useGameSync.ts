@@ -10,14 +10,15 @@ export type SyncTarget<T> = {
 };
 
 export type UseGameSyncConfig = {
-  // All 18 reactive fields that need to be mirrored into refs.
-  lives: SyncTarget<number>;
-  gold: SyncTarget<number>;
+  // Reactive fields that need to be mirrored into refs.
+  // NOTE: lives and gold are NOT here — they are owned and written by the game
+  // engine directly to their refs. Including them here would cause useGameSync
+  // to overwrite fresh engine values with stale React state every 150ms.
   wave: SyncTarget<number>;
   isWaveActive: SyncTarget<boolean>;
   gameStatus: SyncTarget<"idle" | "playing" | "gameover" | "victory">;
   isPaused: SyncTarget<boolean>;
-  gameSpeed: SyncTarget<1 | 2 | 3>;
+  gameSpeed: SyncTarget<1 | 2 | 3 | 5>;
   isAutoStart: SyncTarget<boolean>;
   score: SyncTarget<number>;
   selectedShopTower: SyncTarget<string | null>;
@@ -51,8 +52,6 @@ export function useGameSync(config: UseGameSyncConfig): void {
   useEffect(() => {
     const tick = () => {
       const c = configRef.current;
-      c.lives.ref.current = c.lives.value;
-      c.gold.ref.current = c.gold.value;
       c.wave.ref.current = c.wave.value;
       c.isWaveActive.ref.current = c.isWaveActive.value;
       c.gameStatus.ref.current = c.gameStatus.value;

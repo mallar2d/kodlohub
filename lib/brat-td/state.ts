@@ -32,6 +32,14 @@ export const SETTINGS_KEY = "brat_td_settings";
 /** localStorage key for the progression state. */
 export const PROGRESSION_KEY = "brat_td_progress";
 
+/**
+ * Bump this whenever the save format changes in a way that requires old
+ * saves to be discarded (e.g. security patch, incompatible schema change).
+ * Stored separately from the progression data so it can be checked before
+ * parsing.
+ */
+export const PROGRESSION_SCHEMA_VERSION = "2";
+
 /** Default settings shape used when no persisted value exists. */
 export type GameSettings = {
   volume: number;
@@ -302,12 +310,13 @@ export function mergeProgression(
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * Loads the saved progression from localStorage. Returns `null` config shape
- * (= default progression) when running on the server, missing, or broken.
+ * Loads the saved progression from localStorage. Returns the default
+ * progression when running on the server, missing, or broken.
  *
- * Note: callers must pass a config when normalising the result. The default
- * fallback returned here is intentionally un-normalised (the caller will
- * normalise with its own config).
+ * Also checks the PROGRESSION_SCHEMA_VERSION. If the stored version
+ * doesn't match the current version (e.g. after a security patch), the
+ * saved progression is discarded and replaced with defaults to prevent
+ * old cheated saves from persisting.
  */
 export function loadLocalProgression(
   towerConfigs: Record<string, TowerConfig>,
@@ -315,6 +324,13 @@ export function loadLocalProgression(
 ): ProgressionState {
   if (typeof window === "undefined") return getDefaultProgression(towerConfigs, mapConfigs);
   try {
+    const savedVersion = localStorage.getItem(PROGRESSION_KEY + "_version");
+    if (savedVersion !== PROGRESSION_SCHEMA_VERSION) {
+      // Schema changed — discard the old save to prevent cheated data from persisting.
+      localStorage.removeItem(PROGRESSION_KEY);
+      localStorage.setItem(PROGRESSION_KEY + "_version", PROGRESSION_SCHEMA_VERSION);
+      return getDefaultProgression(towerConfigs, mapConfigs);
+    }
     const raw = localStorage.getItem(PROGRESSION_KEY);
     return raw ? (JSON.parse(raw) as ProgressionState) : getDefaultProgression(towerConfigs, mapConfigs);
   } catch {
@@ -327,6 +343,7 @@ export function saveLocalProgression(progress: ProgressionState): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(PROGRESSION_KEY, JSON.stringify(progress));
+    localStorage.setItem(PROGRESSION_KEY + "_version", PROGRESSION_SCHEMA_VERSION);
   } catch (err) {
     console.warn("[brat-td] saveLocalProgression:", err);
   }

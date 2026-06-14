@@ -15,7 +15,7 @@ export interface GameHUDProps {
   isEndless: boolean;
   isWaveActive: boolean;
   isPaused: boolean;
-  gameSpeed: 1 | 2 | 3;
+  gameSpeed: 1 | 2 | 3 | 5;
   isAutoStart: boolean;
   gameStatus: "idle" | "playing" | "gameover" | "victory";
   // Refs (read-only) for the enemy counter
