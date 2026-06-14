@@ -3945,8 +3945,8 @@ export default function BratTDClient() {
                 dmg = Math.floor(dmg * 1.5);
               }
 
-              // Lead armor immunity (hammer and gas/tack shooter)
-              if (enemy.isLead && (proj.type === "hammer" || proj.type === "gas") && !proj.ignoresArmor) {
+              // Lead armor immunity (hammer, gas/tack shooter, and chain/electra)
+              if (enemy.isLead && (proj.type === "hammer" || proj.type === "gas" || proj.type === "chain") && !proj.ignoresArmor) {
                 dmg = 0;
                 spawnFloatingText(enemy.x, enemy.y - 15, "IMMUNE 🔩", "#94a3b8");
                 spawnHitParticles(enemy.x, enemy.y, "#9ca3af", 5);
