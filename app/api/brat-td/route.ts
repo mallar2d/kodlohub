@@ -12,10 +12,19 @@ type LeaderboardRow = {
   score: number;
   wave: number;
   created_at: string;
+  difficulty: string;
+  is_endless: boolean;
+  duration_seconds: number | null;
+  version: string | null;
+  active_title: string | null;
+  active_frame: string | null;
+  map_id: string | null;
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
 };
+
+type LeaderboardKind = "best_score" | "normal_wave" | "hard_wave" | "endless_wave" | "fastest_victory";
 
 type ProgressPayload = {
   playerLevel: number;
@@ -26,18 +35,40 @@ type ProgressPayload = {
   bonusLives: number;
   towerMastery: Record<string, { towerXp: number; unlockedTiers: string[]; highestTierAchieved: number }>;
   mapCompletions?: Record<string, string[]>;
+  unlockedTitles?: string[];
+  unlockedFrames?: string[];
+  unlockedEffects?: string[];
+  activeTitle?: string | null;
+  activeFrame?: string | null;
+  activeEffect?: string | null;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const admin = createAdminClient();
 
-    const { data: topRows } = await admin
+    const url = new URL(request.url);
+    const leaderboardKind = (url.searchParams.get("leaderboard") ?? "best_score") as LeaderboardKind;
+
+    let query = admin
       .from("brat_td_scores")
-      .select("user_id, player_name, score, wave, created_at")
-      .order("score", { ascending: false })
+      .select("user_id, player_name, score, wave, created_at, difficulty, is_endless, duration_seconds, version, active_title, active_frame, map_id")
       .limit(LEADERBOARD_LIMIT);
+
+    if (leaderboardKind === "normal_wave") {
+      query = query.eq("difficulty", "normal").order("wave", { ascending: false }).order("score", { ascending: false });
+    } else if (leaderboardKind === "hard_wave") {
+      query = query.eq("difficulty", "hard").order("wave", { ascending: false }).order("score", { ascending: false });
+    } else if (leaderboardKind === "endless_wave") {
+      query = query.eq("is_endless", true).order("wave", { ascending: false }).order("score", { ascending: false });
+    } else if (leaderboardKind === "fastest_victory") {
+      query = query.gte("wave", 46).not("duration_seconds", "is", null).order("duration_seconds", { ascending: true }).order("score", { ascending: false });
+    } else {
+      query = query.order("score", { ascending: false });
+    }
+
+    const { data: topRows } = await query;
 
     const topIds = [...new Set((topRows ?? []).map((r) => r.user_id))];
 
@@ -73,7 +104,7 @@ export async function GET() {
     if (user) {
       const { data: progressRow } = await admin
         .from("brat_td_progress")
-        .select("player_level, total_xp, unlocked_towers, achievements, bonus_start_gold, bonus_lives, map_completions")
+        .select("player_level, total_xp, unlocked_towers, achievements, bonus_start_gold, bonus_lives, map_completions, unlocked_titles, unlocked_frames, unlocked_effects, active_title, active_frame, active_effect")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -91,6 +122,12 @@ export async function GET() {
           bonusStartGold: progressRow.bonus_start_gold ?? 0,
           bonusLives: progressRow.bonus_lives ?? 0,
           mapCompletions: progressRow.map_completions ?? {},
+          unlockedTitles: progressRow.unlocked_titles ?? [],
+          unlockedFrames: progressRow.unlocked_frames ?? [],
+          unlockedEffects: progressRow.unlocked_effects ?? [],
+          activeTitle: progressRow.active_title ?? null,
+          activeFrame: progressRow.active_frame ?? null,
+          activeEffect: progressRow.active_effect ?? null,
           towerMastery: Object.fromEntries((masteryRows ?? []).map((row) => [
             row.tower_key,
             {
@@ -139,6 +176,12 @@ export async function PATCH(request: Request) {
         bonus_start_gold: progress.bonusStartGold,
         bonus_lives: progress.bonusLives,
         map_completions: progress.mapCompletions ?? {},
+        unlocked_titles: progress.unlockedTitles ?? [],
+        unlocked_frames: progress.unlockedFrames ?? [],
+        unlocked_effects: progress.unlockedEffects ?? [],
+        active_title: progress.activeTitle ?? null,
+        active_frame: progress.activeFrame ?? null,
+        active_effect: progress.activeEffect ?? null,
         updated_at: new Date().toISOString(),
       });
 
@@ -192,10 +235,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { playerName, score, wave } = body as {
+    const { playerName, score, wave, difficulty, isEndless, durationSeconds, version, activeTitle, activeFrame, mapId } = body as {
       playerName?: string;
       score?: number;
       wave?: number;
+      difficulty?: string;
+      isEndless?: boolean;
+      durationSeconds?: number;
+      version?: string;
+      activeTitle?: string | null;
+      activeFrame?: string | null;
+      mapId?: string;
     };
 
     if (typeof score !== "number" || typeof wave !== "number") {
@@ -213,6 +263,13 @@ export async function POST(request: Request) {
         player_name: name,
         score,
         wave,
+        difficulty: difficulty === "easy" || difficulty === "normal" || difficulty === "hard" ? difficulty : "normal",
+        is_endless: Boolean(isEndless),
+        duration_seconds: typeof durationSeconds === "number" ? Math.max(0, Math.floor(durationSeconds)) : null,
+        version: version ?? null,
+        active_title: activeTitle ?? null,
+        active_frame: activeFrame ?? null,
+        map_id: mapId ?? null,
       })
       .select("id, player_name, score, wave, created_at")
       .single();

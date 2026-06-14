@@ -342,7 +342,23 @@ interface LeaderboardEntry {
   wave: number;
   date: string;
   isGlobal?: boolean;
+  difficulty?: DifficultyKey;
+  isEndless?: boolean;
+  durationSeconds?: number | null;
+  activeTitle?: string | null;
+  activeFrame?: string | null;
+  mapId?: string | null;
 }
+
+type LeaderboardKind = "best_score" | "normal_wave" | "hard_wave" | "endless_wave" | "fastest_victory";
+
+const LEADERBOARD_TABS: { key: LeaderboardKind; label: string }[] = [
+  { key: "best_score", label: "Score" },
+  { key: "normal_wave", label: "Normal" },
+  { key: "hard_wave", label: "Hard" },
+  { key: "endless_wave", label: "Endless" },
+  { key: "fastest_victory", label: "Fastest" },
+];
 
 type TowerMasteryProgress = {
   towerXp: number;
@@ -359,6 +375,31 @@ type ProgressionState = {
   bonusLives: number;
   towerMastery: Record<string, TowerMasteryProgress>;
   mapCompletions: Record<string, DifficultyKey[]>;
+  unlockedTitles: string[];
+  unlockedFrames: string[];
+  unlockedEffects: string[];
+  activeTitle: string | null;
+  activeFrame: string | null;
+  activeEffect: string | null;
+};
+
+type AchievementToast = {
+  id: string;
+  name: string;
+  description: string;
+  reward: string;
+};
+
+type SessionSummary = {
+  playerXp: number;
+  towerXp: Record<string, number>;
+  achievements: string[];
+  startLevel: number;
+  endLevel: number;
+  startUnlockedTowers: string[];
+  endUnlockedTowers: string[];
+  durationSeconds: number;
+  endlessMultiplier: number;
 };
 
 type DifficultyKey = "easy" | "normal" | "hard";
@@ -1302,7 +1343,26 @@ function getDefaultProgression(): ProgressionState {
     bonusLives: 0,
     towerMastery,
     mapCompletions: Object.fromEntries(MAP_CONFIGS.map((map) => [map.id, [] as DifficultyKey[]])),
+    unlockedTitles: [],
+    unlockedFrames: [],
+    unlockedEffects: [],
+    activeTitle: null,
+    activeFrame: null,
+    activeEffect: null,
   };
+}
+
+function getAchievementCosmetics(achievementIds: string[]) {
+  const titles: string[] = [];
+  const frames: string[] = [];
+  const effects: string[] = [];
+  achievementIds.forEach((id) => {
+    const reward = ACHIEVEMENTS.find((a) => a.id === id)?.reward;
+    if (reward?.title) titles.push(reward.title);
+    if (reward?.frame) frames.push(reward.frame);
+    if (reward?.effect) effects.push(reward.effect);
+  });
+  return { titles, frames, effects };
 }
 
 function normalizeProgression(progress?: Partial<ProgressionState> | null): ProgressionState {
@@ -1325,15 +1385,26 @@ function normalizeProgression(progress?: Partial<ProgressionState> | null): Prog
     if (!MAP_CONFIGS.some((map) => map.id === mapId) || !Array.isArray(completions)) return;
     mapCompletions[mapId] = Array.from(new Set(completions.filter((key): key is DifficultyKey => key === "easy" || key === "normal" || key === "hard")));
   });
+  const achievements = Array.from(new Set(progress?.achievements ?? []));
+  const cosmetics = getAchievementCosmetics(achievements);
+  const unlockedTitles = Array.from(new Set([...(progress?.unlockedTitles ?? []), ...cosmetics.titles]));
+  const unlockedFrames = Array.from(new Set([...(progress?.unlockedFrames ?? []), ...cosmetics.frames]));
+  const unlockedEffects = Array.from(new Set([...(progress?.unlockedEffects ?? []), ...cosmetics.effects]));
   return {
     playerLevel,
     totalXp,
     unlockedTowers: Array.from(new Set([...(progress?.unlockedTowers ?? []), ...unlockedByLevel, "hammer", "boomerang"])),
-    achievements: Array.from(new Set(progress?.achievements ?? [])),
+    achievements,
     bonusStartGold: Math.min(500, Math.max(0, Math.floor(progress?.bonusStartGold ?? 0))),
     bonusLives: Math.max(0, Math.floor(progress?.bonusLives ?? 0)),
     towerMastery,
     mapCompletions,
+    unlockedTitles,
+    unlockedFrames,
+    unlockedEffects,
+    activeTitle: progress?.activeTitle && unlockedTitles.includes(progress.activeTitle) ? progress.activeTitle : null,
+    activeFrame: progress?.activeFrame && unlockedFrames.includes(progress.activeFrame) ? progress.activeFrame : null,
+    activeEffect: progress?.activeEffect && unlockedEffects.includes(progress.activeEffect) ? progress.activeEffect : null,
   };
 }
 
@@ -1355,6 +1426,12 @@ function mergeProgression(a: ProgressionState, b: ProgressionState): Progression
     unlockedTowers: Array.from(new Set([...a.unlockedTowers, ...b.unlockedTowers])),
     bonusStartGold: Math.max(a.bonusStartGold, b.bonusStartGold),
     bonusLives: Math.max(a.bonusLives, b.bonusLives),
+    unlockedTitles: Array.from(new Set([...a.unlockedTitles, ...b.unlockedTitles])),
+    unlockedFrames: Array.from(new Set([...a.unlockedFrames, ...b.unlockedFrames])),
+    unlockedEffects: Array.from(new Set([...a.unlockedEffects, ...b.unlockedEffects])),
+    activeTitle: b.activeTitle ?? a.activeTitle,
+    activeFrame: b.activeFrame ?? a.activeFrame,
+    activeEffect: b.activeEffect ?? a.activeEffect,
     towerMastery,
     mapCompletions: Object.fromEntries(MAP_CONFIGS.map((map) => [
       map.id,
@@ -1392,6 +1469,85 @@ function formatAchievementReward(reward: { bonusStartGold?: number; bonusLives?:
   if (reward.frame) parts.push(`рамка: ${reward.frame}`);
   if (reward.effect) parts.push("ефект T5");
   return parts.join(" · ") || "косметика";
+}
+
+function formatSeconds(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function SessionSummaryPanel({ summary }: { summary: SessionSummary }) {
+  const towerTypes = Object.keys(summary.towerXp).sort((a, b) => summary.towerXp[b] - summary.towerXp[a]);
+  const leveledUp = summary.endLevel > summary.startLevel;
+  const newTowers = summary.endUnlockedTowers.filter((t) => !summary.startUnlockedTowers.includes(t));
+  return (
+    <div className="w-full max-w-sm bg-zinc-900/90 border border-hairline-dark rounded p-4 mb-4 text-left">
+      <p className="micro-cap text-cyan-400 mb-2">ПІДСУМОК СЕСІЇ</p>
+      <div className="space-y-1 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-ink-mute">Player XP</span>
+          <span className="font-bold text-cyan-300">+{Math.floor(summary.playerXp)}</span>
+        </div>
+        {leveledUp && (
+          <div className="text-yellow-400 font-bold">⬆️ LVL {summary.startLevel} → LVL {summary.endLevel}</div>
+        )}
+        {newTowers.length > 0 && (
+          <div className="text-green-400 text-xs">
+            Нові вежі: {newTowers.map((t) => TOWER_CONFIGS[t]?.emoji ?? "?").join(" ")}
+          </div>
+        )}
+        {summary.achievements.length > 0 && (
+          <div className="text-yellow-400 text-xs">Досягнень: {summary.achievements.length}</div>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="text-ink-mute">Час гри</span>
+          <span className="font-bold text-on-primary">{formatSeconds(summary.durationSeconds)}</span>
+        </div>
+        {summary.endlessMultiplier < 1 && (
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-ink-mute">Endless XP mult</span>
+            <span className="font-bold text-purple-300">{(summary.endlessMultiplier * 100).toFixed(0)}%</span>
+          </div>
+        )}
+        {towerTypes.length > 0 && (
+          <div className="pt-2 border-t border-hairline-dark/50 mt-2">
+            <p className="text-[10px] text-ink-mute mb-1">TOWER XP</p>
+            <div className="flex flex-wrap gap-2">
+              {towerTypes.slice(0, 5).map((towerType) => (
+                <span key={towerType} className="text-xs bg-black/40 px-1.5 py-0.5 rounded border border-hairline-dark/50">
+                  {TOWER_CONFIGS[towerType]?.emoji ?? "?"} +{Math.floor(summary.towerXp[towerType])}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardPreview({ entries }: { entries: LeaderboardEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="w-full max-w-xs mb-4 text-left">
+      <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
+      <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
+        {entries.map((e, i) => (
+          <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="w-5 text-right font-bold shrink-0">{i + 1}.</span>
+              <span className="truncate">
+                {e.activeTitle && <span className="text-cyan-300 mr-1">[{e.activeTitle}]</span>}
+                {e.name}
+              </span>
+            </span>
+            <span className="font-bold shrink-0">{e.score}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function loadSettings() {
@@ -1441,42 +1597,63 @@ function saveLocalLeaderboard(entries: LeaderboardEntry[]) {
 
 function addToLocalLeaderboard(name: string, score: number, wave: number): LeaderboardEntry[] {
   const entries = getLocalLeaderboard();
-  entries.push({ name, score, wave, date: new Date().toISOString().split("T")[0] });
+  const progress = loadLocalProgression();
+  entries.push({
+    name,
+    score,
+    wave,
+    date: new Date().toISOString().split("T")[0],
+    difficulty: "normal",
+    activeTitle: progress.activeTitle,
+    activeFrame: progress.activeFrame,
+  });
   entries.sort((a, b) => b.score - a.score);
   const top10 = entries.slice(0, 10);
   saveLocalLeaderboard(top10);
   return top10;
 }
 
-async function fetchGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
+async function fetchGlobalLeaderboard(kind: LeaderboardKind = "best_score"): Promise<LeaderboardEntry[]> {
   try {
-    const res = await fetch("/api/brat-td");
+    const res = await fetch(`/api/brat-td?leaderboard=${kind}`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string }) => ({
+    return (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string; difficulty?: DifficultyKey; is_endless?: boolean; duration_seconds?: number | null; active_title?: string | null; active_frame?: string | null; map_id?: string | null }) => ({
       name: e.player_name,
       score: e.score,
       wave: e.wave,
       date: e.created_at?.split("T")[0] ?? "",
       isGlobal: true,
+      difficulty: e.difficulty,
+      isEndless: e.is_endless,
+      durationSeconds: e.duration_seconds,
+      activeTitle: e.active_title,
+      activeFrame: e.active_frame,
+      mapId: e.map_id,
     }));
   } catch {
     return [];
   }
 }
 
-async function fetchBratTdData(): Promise<{ leaderboard: LeaderboardEntry[]; progress: ProgressionState | null }> {
+async function fetchBratTdData(kind: LeaderboardKind = "best_score"): Promise<{ leaderboard: LeaderboardEntry[]; progress: ProgressionState | null }> {
   try {
-    const res = await fetch("/api/brat-td");
+    const res = await fetch(`/api/brat-td?leaderboard=${kind}`);
     if (!res.ok) return { leaderboard: [], progress: null };
     const data = await res.json();
     return {
-      leaderboard: (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string }) => ({
+      leaderboard: (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string; difficulty?: DifficultyKey; is_endless?: boolean; duration_seconds?: number | null; active_title?: string | null; active_frame?: string | null; map_id?: string | null }) => ({
         name: e.player_name,
         score: e.score,
         wave: e.wave,
         date: e.created_at?.split("T")[0] ?? "",
         isGlobal: true,
+        difficulty: e.difficulty,
+        isEndless: e.is_endless,
+        durationSeconds: e.duration_seconds,
+        activeTitle: e.active_title,
+        activeFrame: e.active_frame,
+        mapId: e.map_id,
       })),
       progress: data.progress ? normalizeProgression(data.progress) : null,
     };
@@ -1498,12 +1675,12 @@ async function saveCloudProgression(progress: ProgressionState): Promise<boolean
   }
 }
 
-async function submitGlobalScore(playerName: string, score: number, wave: number): Promise<boolean> {
+async function submitGlobalScore(playerName: string, score: number, wave: number, meta: { difficulty: DifficultyKey; isEndless: boolean; durationSeconds: number; version: string; activeTitle: string | null; activeFrame: string | null; mapId: string }): Promise<boolean> {
   try {
     const res = await fetch("/api/brat-td", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerName, score, wave }),
+      body: JSON.stringify({ playerName, score, wave, ...meta }),
     });
     return res.ok;
   } catch {
@@ -1555,10 +1732,13 @@ export default function BratTDClient() {
   const [draggedTowerType, setDraggedTowerType] = useState<string | null>(null);
   const [draggedTowerPos, setDraggedTowerPos] = useState<{ x: number; y: number } | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardKind, setLeaderboardKind] = useState<LeaderboardKind>("best_score");
   const [playerName, setPlayerName] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [progression, setProgression] = useState<ProgressionState>(() => getDefaultProgression());
   const [progressionLoaded, setProgressionLoaded] = useState(false);
+  const [achievementToasts, setAchievementToasts] = useState<AchievementToast[]>([]);
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
 
   const selectedShopTowerRef = useRef<string | null>(null);
   const hoveredShopTowerRef = useRef<string | null>(null);
@@ -1572,6 +1752,13 @@ export default function BratTDClient() {
   const progressionRef = useRef<ProgressionState>(getDefaultProgression());
   const waveStartLivesRef = useRef(100);
   const waveKillsRef = useRef(0);
+  const gameStartFrameRef = useRef(0);
+  const sessionPlayerXpRef = useRef(0);
+  const sessionTowerXpRef = useRef<Record<string, number>>({});
+  const sessionAchievementsRef = useRef<string[]>([]);
+  const sessionStartLevelRef = useRef(1);
+  const sessionStartUnlockedTowersRef = useRef<string[]>(["hammer", "boomerang"]);
+  const sessionSummaryDoneRef = useRef(false);
 
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
@@ -1629,7 +1816,7 @@ export default function BratTDClient() {
   useEffect(() => {
     const load = async () => {
       const local = getLocalLeaderboard();
-      const { leaderboard: global, progress } = await fetchBratTdData();
+      const { leaderboard: global, progress } = await fetchBratTdData(leaderboardKind);
       setLeaderboard(mergeLeaderboards(global, local));
       const localProgress = loadLocalProgression();
       const mergedProgress = progress ? mergeProgression(localProgress, progress) : localProgress;
@@ -1639,6 +1826,15 @@ export default function BratTDClient() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      const local = leaderboardKind === "best_score" ? getLocalLeaderboard() : [];
+      const global = await fetchGlobalLeaderboard(leaderboardKind);
+      setLeaderboard(mergeLeaderboards(global, local));
+    };
+    loadLeaderboard();
+  }, [leaderboardKind]);
 
   useEffect(() => {
     if (!progressionLoaded) return;
@@ -1664,6 +1860,38 @@ export default function BratTDClient() {
   // Set status message with log
   const pushLog = (msg: string) => {
     setStatusMessage(msg);
+  };
+
+  const enqueueAchievementToast = (achievementId: string) => {
+    const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
+    if (!achievement) return;
+    const toast: AchievementToast = {
+      id: `${achievement.id}-${Date.now()}`,
+      name: achievement.name,
+      description: achievement.description,
+      reward: formatAchievementReward(achievement.reward),
+    };
+    setAchievementToasts((prev) => [...prev.slice(-2), toast]);
+    window.setTimeout(() => {
+      setAchievementToasts((prev) => prev.filter((item) => item.id !== toast.id));
+    }, 4800);
+  };
+
+  const buildSessionSummary = () => {
+    if (sessionSummaryDoneRef.current) return;
+    sessionSummaryDoneRef.current = true;
+    const endProgress = progressionRef.current;
+    setSessionSummary({
+      playerXp: sessionPlayerXpRef.current,
+      towerXp: { ...sessionTowerXpRef.current },
+      achievements: [...sessionAchievementsRef.current],
+      startLevel: sessionStartLevelRef.current,
+      endLevel: endProgress.playerLevel,
+      startUnlockedTowers: [...sessionStartUnlockedTowersRef.current],
+      endUnlockedTowers: [...endProgress.unlockedTowers],
+      durationSeconds: Math.max(0, Math.floor((frameCountRef.current - gameStartFrameRef.current) / 60)),
+      endlessMultiplier: getEndlessXpMultiplier(waveRef.current),
+    });
   };
 
   const getActiveMap = () => getMapById(selectedMapIdRef.current);
@@ -1700,15 +1928,24 @@ export default function BratTDClient() {
   const applyAchievementRewards = (achievementIds: string[], progress: ProgressionState) => {
     let bonusStartGold = progress.bonusStartGold;
     let bonusLives = progress.bonusLives;
+    const titles = [...progress.unlockedTitles];
+    const frames = [...progress.unlockedFrames];
+    const effects = [...progress.unlockedEffects];
     achievementIds.forEach((achievementId) => {
       const reward = ACHIEVEMENTS.find((a) => a.id === achievementId)?.reward;
       bonusStartGold += reward?.bonusStartGold ?? 0;
       bonusLives += reward?.bonusLives ?? 0;
+      if (reward?.title && !titles.includes(reward.title)) titles.push(reward.title);
+      if (reward?.frame && !frames.includes(reward.frame)) frames.push(reward.frame);
+      if (reward?.effect && !effects.includes(reward.effect)) effects.push(reward.effect);
     });
     return {
       ...progress,
       bonusStartGold: Math.min(500, bonusStartGold),
       bonusLives,
+      unlockedTitles: titles,
+      unlockedFrames: frames,
+      unlockedEffects: effects,
     };
   };
 
@@ -1724,6 +1961,8 @@ export default function BratTDClient() {
       progressionRef.current = next;
       freshIds.forEach((id) => {
         const achievement = ACHIEVEMENTS.find((a) => a.id === id);
+        sessionAchievementsRef.current = Array.from(new Set([...sessionAchievementsRef.current, id]));
+        enqueueAchievementToast(id);
         pushLog(`🏆 Досягнення: ${achievement?.name ?? id}!`);
       });
       return next;
@@ -1735,6 +1974,7 @@ export default function BratTDClient() {
     const difficultyMult = difficultyRef.current === "hard" ? 1.5 : 1;
     const endlessMult = getEndlessXpMultiplier(waveRef.current);
     const gained = Math.max(1, Math.floor(rawXp * difficultyMult * endlessMult));
+    sessionPlayerXpRef.current += gained;
     setProgression((prev) => {
       const beforeLevel = prev.playerLevel;
       const next = normalizeProgression({ ...prev, totalXp: prev.totalXp + gained });
@@ -1754,6 +1994,7 @@ export default function BratTDClient() {
 
   const addTowerXp = (towerType: string, amount: number) => {
     if (amount <= 0 || !TOWER_CONFIGS[towerType]) return;
+    sessionTowerXpRef.current[towerType] = (sessionTowerXpRef.current[towerType] ?? 0) + amount;
     setProgression((prev) => {
       const mastery = prev.towerMastery[towerType] ?? { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 };
       const next = normalizeProgression({
@@ -2077,6 +2318,15 @@ export default function BratTDClient() {
     setIsEndless(false);
     setScore(0);
     waveKillsRef.current = 0;
+    gameStartFrameRef.current = frameCountRef.current;
+    sessionPlayerXpRef.current = 0;
+    sessionTowerXpRef.current = {};
+    sessionAchievementsRef.current = [];
+    sessionStartLevelRef.current = progress.playerLevel;
+    sessionStartUnlockedTowersRef.current = [...progress.unlockedTowers];
+    sessionSummaryDoneRef.current = false;
+    setSessionSummary(null);
+    setAchievementToasts([]);
     setSelectedShopTower(null);
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
@@ -2653,6 +2903,7 @@ export default function BratTDClient() {
               markCurrentMapCompleted();
               gameStatusRef.current = "victory";
               setGameStatus("victory");
+              setTimeout(buildSessionSummary, 0);
             } else {
               const nextWave = clearedWave + 1;
               waveRef.current = nextWave;
@@ -2786,6 +3037,7 @@ export default function BratTDClient() {
                   if (newLives <= 0) {
                     gameStatusRef.current = "gameover";
                     setGameStatus("gameover");
+                    setTimeout(buildSessionSummary, 0);
                     pushLog("Кодло не вивезло. Братва прорвала оборону.");
                   }
                   return newLives;
@@ -4469,10 +4721,19 @@ export default function BratTDClient() {
     // Always save locally
     addToLocalLeaderboard(name, score, finalWave);
     // Try to save globally (works if authenticated)
-    await submitGlobalScore(name, score, finalWave);
+    const meta = {
+      difficulty: difficultyRef.current,
+      isEndless: isEndless,
+      durationSeconds: sessionSummary?.durationSeconds ?? Math.max(0, Math.floor((frameCountRef.current - gameStartFrameRef.current) / 60)),
+      version: GAME_VERSION,
+      activeTitle: progressionRef.current.activeTitle,
+      activeFrame: progressionRef.current.activeFrame,
+      mapId: selectedMapIdRef.current,
+    };
+    await submitGlobalScore(name, score, finalWave, meta);
     // Reload merged leaderboard
     const local = getLocalLeaderboard();
-    const global = await fetchGlobalLeaderboard();
+    const global = await fetchGlobalLeaderboard(leaderboardKind);
     setLeaderboard(mergeLeaderboards(global, local));
     setScoreSubmitted(true);
   };
@@ -4481,6 +4742,24 @@ export default function BratTDClient() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      {/* Achievement Toasts */}
+      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        {achievementToasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="bg-zinc-900/95 border border-cyan-500/40 rounded p-3 shadow-lg shadow-cyan-950/30 animate-slide-up min-w-[220px] max-w-[280px]"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🏆</span>
+              <span className="text-xs font-bold text-cyan-300 micro-cap">Досягнення відкрито</span>
+            </div>
+            <p className="text-sm font-bold text-on-primary">{toast.name}</p>
+            <p className="text-[11px] text-on-primary-mute leading-snug">{toast.description}</p>
+            <p className="text-[10px] text-yellow-400 mt-1">{toast.reward}</p>
+          </div>
+        ))}
+      </div>
+
       {/* LEFT: Game Scene Area */}
       <div className="lg:col-span-3 flex flex-col gap-4">
         {/* Top Control Bar */}
@@ -4677,6 +4956,9 @@ export default function BratTDClient() {
               <p className="text-yellow-400 font-bold text-lg mb-4">
                 Score: {score} | Хвиль: {wave - 1}
               </p>
+              {sessionSummary && (
+                <SessionSummaryPanel summary={sessionSummary} />
+              )}
               {!scoreSubmitted ? (
                 <div className="flex gap-2 mb-4">
                   <input
@@ -4695,22 +4977,7 @@ export default function BratTDClient() {
               ) : (
                 <p className="text-green-400 text-sm mb-4">Збережено!</p>
               )}
-              {leaderboard.length > 0 && (
-                <div className="w-full max-w-xs mb-4 text-left">
-                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
-                  <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
-                    {leaderboard.map((e, i) => (
-                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
-                        <span className="flex items-center gap-2">
-                          <span className="w-5 text-right font-bold">{i + 1}.</span>
-                          <span className="truncate max-w-[120px]">{e.name}</span>
-                        </span>
-                        <span className="font-bold">{e.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <LeaderboardPreview entries={leaderboard} />
               <button onClick={handleRestart} className="btn-ghost text-red-400 hover:text-white">
                 Зіграти ще раз
               </button>
@@ -4727,6 +4994,9 @@ export default function BratTDClient() {
               <p className="text-yellow-400 font-bold text-lg mb-4">
                 Фінальний Score: {score}
               </p>
+              {sessionSummary && (
+                <SessionSummaryPanel summary={sessionSummary} />
+              )}
               {!scoreSubmitted ? (
                 <div className="flex gap-2 mb-4">
                   <input
@@ -4745,22 +5015,7 @@ export default function BratTDClient() {
               ) : (
                 <p className="text-green-400 text-sm mb-4">Збережено!</p>
               )}
-              {leaderboard.length > 0 && (
-                <div className="w-full max-w-xs mb-4 text-left">
-                  <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
-                  <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
-                    {leaderboard.map((e, i) => (
-                      <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
-                        <span className="flex items-center gap-2">
-                          <span className="w-5 text-right font-bold">{i + 1}.</span>
-                          <span className="truncate max-w-[120px]">{e.name}</span>
-                        </span>
-                        <span className="font-bold">{e.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <LeaderboardPreview entries={leaderboard} />
               <div className="flex gap-4">
                 <button onClick={handleEndless} className="px-6 py-3 bg-yellow-600 text-white rounded hover:bg-yellow-500 button-cap">
                   Нескінченна гра
@@ -4838,16 +5093,33 @@ export default function BratTDClient() {
           <div className="card-dark p-3 border-hairline-dark">
             <div className="flex items-center justify-between gap-3 mb-2">
               <p className="micro-cap text-ink-mute">ЛЕДЕРБОРД</p>
-              <p className="text-[10px] text-ink-mute">нижче екрана гри</p>
+              <div className="flex gap-1">
+                {LEADERBOARD_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setLeaderboardKind(tab.key)}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                      leaderboardKind === tab.key
+                        ? "bg-cyan-950/60 text-cyan-300 border border-cyan-700"
+                        : "text-ink-mute hover:text-on-primary border border-transparent"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
               {leaderboard.slice(0, 10).map((e, i) => (
                 <div key={`${e.name}-${e.score}-${i}`} className={`flex items-center justify-between gap-2 rounded border border-hairline-dark/70 bg-black/35 px-2 py-1.5 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="w-5 shrink-0 text-right font-bold">{i + 1}.</span>
-                    <span className="truncate">{e.name}</span>
+                    <span className="truncate">
+                      {e.activeTitle && <span className="text-cyan-300 mr-1">[{e.activeTitle}]</span>}
+                      {e.name}
+                    </span>
                   </span>
-                  <span className="shrink-0 font-bold">{e.score}</span>
+                  <span className="shrink-0 font-bold">{leaderboardKind === "fastest_victory" ? formatSeconds(e.durationSeconds ?? 0) : e.score}</span>
                 </div>
               ))}
             </div>
@@ -5385,6 +5657,59 @@ export default function BratTDClient() {
             })}
           </div>
         </div>
+
+        {(progression.unlockedTitles.length > 0 || progression.unlockedFrames.length > 0 || progression.unlockedEffects.length > 0) && (
+          <div className="card-dark p-4 border-hairline-dark">
+            <p className="micro-cap text-ink-mute mb-3">КОСМЕТИКА</p>
+            <div className="space-y-3">
+              {progression.unlockedTitles.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-ink-mute mb-1">Титул</p>
+                  <select
+                    className="w-full px-2 py-1.5 bg-black/40 border border-hairline-dark rounded text-xs text-on-primary"
+                    value={progression.activeTitle ?? ""}
+                    onChange={(e) => setProgression((prev) => normalizeProgression({ ...prev, activeTitle: e.target.value || null }))}
+                  >
+                    <option value="">— немає —</option>
+                    {progression.unlockedTitles.map((title) => (
+                      <option key={title} value={title}>{title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {progression.unlockedFrames.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-ink-mute mb-1">Рамка</p>
+                  <select
+                    className="w-full px-2 py-1.5 bg-black/40 border border-hairline-dark rounded text-xs text-on-primary"
+                    value={progression.activeFrame ?? ""}
+                    onChange={(e) => setProgression((prev) => normalizeProgression({ ...prev, activeFrame: e.target.value || null }))}
+                  >
+                    <option value="">— немає —</option>
+                    {progression.unlockedFrames.map((frame) => (
+                      <option key={frame} value={frame}>{frame}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {progression.unlockedEffects.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-ink-mute mb-1">Ефект</p>
+                  <select
+                    className="w-full px-2 py-1.5 bg-black/40 border border-hairline-dark rounded text-xs text-on-primary"
+                    value={progression.activeEffect ?? ""}
+                    onChange={(e) => setProgression((prev) => normalizeProgression({ ...prev, activeEffect: e.target.value || null }))}
+                  >
+                    <option value="">— немає —</option>
+                    {progression.unlockedEffects.map((effect) => (
+                      <option key={effect} value={effect}>{effect}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="card-dark p-4 border-hairline-dark">
           <p className="micro-cap text-ink-mute mb-3">НАЛАШТУВАННЯ</p>
