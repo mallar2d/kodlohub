@@ -624,7 +624,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   matryoshka: {
     name: "Брат-Матрьошка",
-    hp: 280,
+    hp: 150,
     speed: 1.0,
     reward: 12,
     damage: 15,
@@ -640,7 +640,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   big_matryoshka: {
     name: "Велика Матрьошка",
-    hp: 1200,
+    hp: 800,
     speed: 0.65,
     reward: 30,
     damage: 25,
@@ -952,7 +952,8 @@ export const WAVES: WaveSegment[][] = [
   // Wave 8: First Coat
   [
     { type: "ordinary", count: 18, spawnDelay: 900, delayBeforeNext: 1200 },
-    { type: "coat", count: 8, spawnDelay: 1800 }
+    { type: "coat", count: 8, spawnDelay: 1800, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 2, spawnDelay: 1600 }
   ],
   // Wave 9: Coat + heavy
   [
@@ -975,7 +976,8 @@ export const WAVES: WaveSegment[][] = [
   // Wave 12: Heavy + fast pressure
   [
     { type: "heavy", count: 6, spawnDelay: 2200, delayBeforeNext: 1200 },
-    { type: "fast", count: 18, spawnDelay: 500 }
+    { type: "fast", count: 18, spawnDelay: 500, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 3, spawnDelay: 1500 }
   ],
   // Wave 13: Coat + ordinary
   [
@@ -993,7 +995,8 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 1000 },
     { type: "heavy", count: 6, spawnDelay: 2000, delayBeforeNext: 800 },
-    { type: "fast", count: 22, spawnDelay: 400 }
+    { type: "fast", count: 22, spawnDelay: 400, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1600 }
   ],
   // === WAVE 16: LEAD intro ===
   // Wave 16: First Lead
@@ -1018,7 +1021,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 12, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 800 },
-    { type: "fast", count: 20, spawnDelay: 450 }
+    { type: "fast", count: 20, spawnDelay: 450, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1400 }
   ],
   // === WAVE 20: INFINIX_BRAT + CAMO intro ===
   // Wave 20: First Infinix Brat + First Camo
@@ -1038,7 +1042,8 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 1000 },
     { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 800 },
-    { type: "ordinary", count: 20, spawnDelay: 700 }
+    { type: "ordinary", count: 20, spawnDelay: 700, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1400 }
   ],
   // Wave 23: Glitch chaos
   [
@@ -1060,11 +1065,12 @@ export const WAVES: WaveSegment[][] = [
     { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "matryoshka", count: 4, spawnDelay: 1600 }
   ],
-  // Wave 26: Regen + infinix
+// Wave 26: Regen + infinix
   [
     { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
-    { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 800, modifiers: ["regen"] },
-    { type: "lead", count: 10, spawnDelay: 1500 }
+    { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "lead", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 3, spawnDelay: 1600 }
   ],
   // Wave 27: Regen wall
   [
@@ -1080,6 +1086,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "gas_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "healer", count: 6, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "drowned", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "big_matryoshka", count: 1, spawnDelay: 2200, delayBeforeNext: 600 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
   // Wave 29: Support + armor
@@ -1096,7 +1103,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "heavy", count: 4, spawnDelay: 1600, delayBeforeNext: 800, modifiers: ["ceramic"] },
     { type: "drowned", count: 2, spawnDelay: 1700, delayBeforeNext: 800 },
-    { type: "infinix_brat", count: 12, spawnDelay: 1100 }
+    { type: "infinix_brat", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1600 }
   ],
   // Wave 31: Support chaos
   [
@@ -1111,6 +1119,7 @@ export const WAVES: WaveSegment[][] = [
   [
     { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 1000 },
     { type: "phantom", count: 6, spawnDelay: 1500, delayBeforeNext: 1000 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2200, delayBeforeNext: 800 },
     { type: "mega_shielded", count: 3, spawnDelay: 2200, delayBeforeNext: 800 },
     { type: "exploder", count: 5, spawnDelay: 1800 }
   ],
@@ -1119,6 +1128,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "granite", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
     { type: "camo", count: 18, spawnDelay: 800, delayBeforeNext: 800 },
     { type: "phantom", count: 8, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "fast", count: 25, spawnDelay: 400 }
   ],
   // Wave 34: Exploder + regen
@@ -1133,6 +1143,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "granite", count: 12, spawnDelay: 1600, delayBeforeNext: 800 },
     { type: "phantom", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "lead", count: 15, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 2200, delayBeforeNext: 800 },
     { type: "exploder", count: 6, spawnDelay: 1600, delayBeforeNext: 800 },
     { type: "healer", count: 8, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "mega_shielded", count: 5, spawnDelay: 1600, delayBeforeNext: 800 },
@@ -1145,6 +1156,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "jumper", count: 6, spawnDelay: 1800, delayBeforeNext: 1000 },
     { type: "shielded", count: 6, spawnDelay: 1800, delayBeforeNext: 1000 },
     { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 4, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "ordinary", count: 15, spawnDelay: 900, modifiers: ["regen"] }
   ],
   // Wave 37: Jumper + camo + phantom
@@ -1153,6 +1165,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "phantom", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
     { type: "camo", count: 20, spawnDelay: 700, delayBeforeNext: 800 },
     { type: "shielded", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "matryoshka", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "fast", count: 25, spawnDelay: 400 }
   ],
   // Wave 38: Shielded wall + support
@@ -1217,7 +1230,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "camo", count: 20, spawnDelay: 600, delayBeforeNext: 600 },
     { type: "ordinary", count: 5, spawnDelay: 1200, delayBeforeNext: 600, modifiers: ["ceramic", "regen"] },
     { type: "drowned", count: 4, spawnDelay: 1300, delayBeforeNext: 600 },
-    { type: "infinix_brat", count: 15, spawnDelay: 900 }
+    { type: "infinix_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
+    { type: "matryoshka", count: 3, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "big_matryoshka", count: 2, spawnDelay: 1400 }
   ],
   // Wave 43: COMBO - Shielded+Exploder (щит + вибух при смерті)
   [
@@ -1229,6 +1244,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "gas_brat", count: 15, spawnDelay: 800, delayBeforeNext: 500 },
     { type: "mega_shielded", count: 5, spawnDelay: 1400, delayBeforeNext: 500 },
     { type: "shielded", count: 5, spawnDelay: 1200, delayBeforeNext: 500, modifiers: ["ceramic"] },
+    { type: "big_matryoshka", count: 1, spawnDelay: 1800, delayBeforeNext: 500 },
+    { type: "matryoshka", count: 5, spawnDelay: 1400, delayBeforeNext: 500 },
     { type: "granite", count: 10, spawnDelay: 1500 }
   ],
   // Wave 44: COMBO - Granite+Lead (подвійна броня)
