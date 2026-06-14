@@ -797,7 +797,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     radius: 20,
     isArmored: true,
     isRegen: true,
-    shieldHp: 400,
+    shieldHp: 200,
     shieldRegenDelay: 360,
     stunImmune: true,
     knockbackImmune: true,
@@ -1715,7 +1715,7 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
     stunImmune: base.stunImmune,
     knockbackImmune: base.knockbackImmune,
     tier,
-    shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.08, waveNumber - 56) : 1) * tierData.hpMult)) : undefined,
+    shieldHp: base.shieldHp ? Math.max(40, Math.floor(base.shieldHp * (waveNumber > 56 ? Math.pow(1.08, waveNumber - 56) : 1) * (tier === 1 ? 1.0 : tierData.hpMult * 0.7))) : undefined,
   };
 }
 

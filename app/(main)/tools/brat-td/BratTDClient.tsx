@@ -185,6 +185,7 @@ interface ActiveEnemy {
   isLead?: boolean;
   isCeramic?: boolean;
   shieldHp?: number;
+  maxShieldHp?: number;
   shieldRegenTimer?: number;
   isPhantomCamo?: boolean;
   isExploder?: boolean;
@@ -2100,10 +2101,14 @@ export default function BratTDClient() {
     if (gold >= 5000) awardAchievements(["rich"]);
   }, [gold]);
 
-  const applyDifficultyToEnemy = <T extends { hp: number; maxHp?: number; speed: number; reward: number; damage: number }>(enemy: T): T => {
+  const applyDifficultyToEnemy = <T extends { hp: number; maxHp?: number; speed: number; reward: number; damage: number; shieldHp?: number; maxShieldHp?: number }>(enemy: T): T => {
     const config = DIFFICULTY_CONFIG[difficultyRef.current];
     enemy.hp = Math.max(1, Math.floor(enemy.hp * config.hpMult));
     if (enemy.maxHp !== undefined) enemy.maxHp = enemy.hp;
+    if (enemy.shieldHp !== undefined) {
+      enemy.shieldHp = Math.max(1, Math.floor(enemy.shieldHp * config.hpMult));
+      enemy.maxShieldHp = enemy.shieldHp;
+    }
     enemy.speed *= config.speedMult;
     enemy.reward = Math.max(1, Math.floor(enemy.reward * config.rewardMult));
     enemy.damage = Math.max(1, Math.floor(enemy.damage * (difficultyRef.current === "hard" ? 1.15 : difficultyRef.current === "easy" ? 0.85 : 1)));
@@ -2323,6 +2328,7 @@ export default function BratTDClient() {
       isFlying: baseConfig.isFlying,
       knockbackMultiplier: baseConfig.knockbackMultiplier,
       shieldHp: baseConfig.shieldHp,
+      maxShieldHp: baseConfig.shieldHp,
       tier: baseConfig.tier,
       damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
       stunImmune: baseConfig.stunImmune,
@@ -2957,6 +2963,7 @@ export default function BratTDClient() {
                   isHealer: baseConfig.isHealer,
                   isFlying: baseConfig.isFlying,
                   shieldHp: baseConfig.shieldHp,
+                  maxShieldHp: baseConfig.shieldHp,
                   tier: baseConfig.tier,
                   damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
                   stunImmune: baseConfig.stunImmune,
@@ -3095,7 +3102,7 @@ export default function BratTDClient() {
             if (enemy.shieldRegenTimer === undefined) enemy.shieldRegenTimer = 360;
             enemy.shieldRegenTimer--;
             if (enemy.shieldRegenTimer <= 0) {
-              enemy.shieldHp = 80; // Regenerate shield
+              enemy.shieldHp = enemy.maxShieldHp || 80; // Regenerate shield
               enemy.shieldRegenTimer = undefined;
               spawnFloatingText(enemy.x, enemy.y - 20, "🛡️ ЩИТ!", "#0ea5e9");
             }
@@ -4762,7 +4769,7 @@ export default function BratTDClient() {
 
         // Shield bar
         if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {
-          const shieldRatio = enemy.shieldHp / 80;
+          const shieldRatio = enemy.shieldHp / (enemy.maxShieldHp || 80);
           ctx.fillStyle = "#1e3a5f";
           ctx.fillRect(barX, barY - 5, barW, 3);
           ctx.fillStyle = "#0ea5e9";
