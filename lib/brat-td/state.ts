@@ -123,7 +123,7 @@ export function normalizeProgression(
   }
 ): ProgressionState {
   const base = getDefaultProgression(config.towerConfigs, config.mapConfigs);
-  const totalXp = Math.min(5000000, Math.max(0, Math.floor(progress?.totalXp ?? base.totalXp)));
+  const totalXp = Math.max(0, Math.floor(progress?.totalXp ?? base.totalXp));
   const playerLevel = config.getPlayerLevelForXp(totalXp);
   const unlockedByLevel = Object.entries(config.towerUnlockLevels)
     .filter(([, level]) => playerLevel >= level)

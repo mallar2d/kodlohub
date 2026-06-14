@@ -68,7 +68,7 @@ export function getTierForWave(waveNumber: number): number {
   return 8;
 }
 
-export const PLAYER_LEVEL_CAP = 50;
+export const PLAYER_LEVEL_CAP = 9999;
 
 export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
   hammer: 1,
@@ -87,13 +87,13 @@ export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
 
 export const TIER_UNLOCK_COSTS: Record<number, number> = {
   3: 788,
-  4: 5500,
-  5: 26250,
+  4: 2750,
+  5: 10500,
 };
 
 export function getPlayerLevelXpRequirement(level: number): number {
   if (level <= 1) return 0;
-  return Math.floor(148 * Math.pow(level, 1.4));
+  return Math.floor(82 * Math.pow(level, 1.4));
 }
 
 export function getPlayerLevelForXp(totalXp: number): number {

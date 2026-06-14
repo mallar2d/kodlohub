@@ -17,7 +17,7 @@ import {
 import { MAP_CONFIGS } from '@/lib/brat-td/maps';
 import { normalizeProgression } from '@/lib/brat-td/state';
 
-describe('XP formula: 148 * level^1.4', () => {
+describe('XP formula: 82 * level^1.4', () => {
   it('returns 0 for level 1 (no XP needed to be level 1)', () => {
     expect(getPlayerLevelXpRequirement(1)).toBe(0);
   });
@@ -27,34 +27,31 @@ describe('XP formula: 148 * level^1.4', () => {
     expect(getPlayerLevelXpRequirement(-1)).toBe(0);
   });
 
-  it('level 2 requires floor(148 * 2^1.4) = 369 XP', () => {
-    // 148 * 2^1.4 = 148 * 2.6390... = 390.6..., floor = 390
-    const expected = Math.floor(148 * Math.pow(2, 1.4));
+  it('level 2 requires floor(82 * 2^1.4) = 216 XP', () => {
+    const expected = Math.floor(82 * Math.pow(2, 1.4));
     expect(getPlayerLevelXpRequirement(2)).toBe(expected);
     // Spot-check: must be in the right range
-    expect(getPlayerLevelXpRequirement(2)).toBeGreaterThanOrEqual(385);
-    expect(getPlayerLevelXpRequirement(2)).toBeLessThanOrEqual(395);
+    expect(getPlayerLevelXpRequirement(2)).toBeGreaterThanOrEqual(210);
+    expect(getPlayerLevelXpRequirement(2)).toBeLessThanOrEqual(225);
   });
 
-  it('level 3 requires floor(148 * 3^1.4) ≈ 776 XP', () => {
-    // 148 * 3^1.4 = 148 * 4.6555... = 689.0...
-    const expected = Math.floor(148 * Math.pow(3, 1.4));
+  it('level 3 requires floor(82 * 3^1.4) ≈ 381 XP', () => {
+    const expected = Math.floor(82 * Math.pow(3, 1.4));
     expect(getPlayerLevelXpRequirement(3)).toBe(expected);
-    expect(getPlayerLevelXpRequirement(3)).toBeGreaterThanOrEqual(685);
-    expect(getPlayerLevelXpRequirement(3)).toBeLessThanOrEqual(700);
+    expect(getPlayerLevelXpRequirement(3)).toBeGreaterThanOrEqual(375);
+    expect(getPlayerLevelXpRequirement(3)).toBeLessThanOrEqual(390);
   });
 
-  it('level 4 requires floor(148 * 4^1.4) ≈ 1249 XP', () => {
-    const expected = Math.floor(148 * Math.pow(4, 1.4));
+  it('level 4 requires floor(82 * 4^1.4) ≈ 571 XP', () => {
+    const expected = Math.floor(82 * Math.pow(4, 1.4));
     expect(getPlayerLevelXpRequirement(4)).toBe(expected);
   });
 
-  it('level 5 requires floor(148 * 5^1.4) ≈ 1908 XP', () => {
-    // 148 * 5^1.4 = 148 * 9.518... = 1408.7... → floor = 1408
-    const expected = Math.floor(148 * Math.pow(5, 1.4));
+  it('level 5 requires floor(82 * 5^1.4) ≈ 780 XP', () => {
+    const expected = Math.floor(82 * Math.pow(5, 1.4));
     expect(getPlayerLevelXpRequirement(5)).toBe(expected);
-    expect(getPlayerLevelXpRequirement(5)).toBeGreaterThanOrEqual(1400);
-    expect(getPlayerLevelXpRequirement(5)).toBeLessThanOrEqual(1450);
+    expect(getPlayerLevelXpRequirement(5)).toBeGreaterThanOrEqual(770);
+    expect(getPlayerLevelXpRequirement(5)).toBeLessThanOrEqual(790);
   });
 
   it('XP requirements strictly increase with level', () => {
@@ -84,9 +81,9 @@ describe('getPlayerLevelForXp', () => {
     expect(getPlayerLevelForXp(totalXp)).toBe(3);
   });
 
-  it('caps at PLAYER_LEVEL_CAP (50) regardless of massive XP', () => {
-    expect(PLAYER_LEVEL_CAP).toBe(50);
-    expect(getPlayerLevelForXp(1_000_000_000)).toBe(PLAYER_LEVEL_CAP);
+  it('caps at PLAYER_LEVEL_CAP (9999) regardless of massive XP', () => {
+    expect(PLAYER_LEVEL_CAP).toBe(9999);
+    expect(getPlayerLevelForXp(1_000_000_000_000)).toBe(PLAYER_LEVEL_CAP);
   });
 });
 
@@ -104,7 +101,7 @@ describe('getPlayerLevelProgress', () => {
   });
 
   it('returns nextRequirement = 0 at level cap', () => {
-    const totalXp = 1_000_000_000;
+    const totalXp = 1_000_000_000_000;
     const progress = getPlayerLevelProgress(totalXp);
     expect(progress.level).toBe(PLAYER_LEVEL_CAP);
     expect(progress.nextRequirement).toBe(0);
@@ -160,12 +157,12 @@ describe('TIER_UNLOCK_COSTS', () => {
     expect(TIER_UNLOCK_COSTS[3]).toBe(788);
   });
 
-  it('T4 unlock costs 5500', () => {
-    expect(TIER_UNLOCK_COSTS[4]).toBe(5500);
+  it('T4 unlock costs 2750', () => {
+    expect(TIER_UNLOCK_COSTS[4]).toBe(2750);
   });
 
-  it('T5 unlock costs 26250', () => {
-    expect(TIER_UNLOCK_COSTS[5]).toBe(26250);
+  it('T5 unlock costs 10500', () => {
+    expect(TIER_UNLOCK_COSTS[5]).toBe(10500);
   });
 
   it('tier costs strictly increase from T3 → T4 → T5', () => {
