@@ -733,8 +733,8 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   big_matryoshka: {
     name: "Велика Матрьошка",
-    hp: 800,
-    speed: 0.4,
+    hp: 500,
+    speed: 0.35,
     reward: 30,
     damage: 25,
     color: "#ea580c",
@@ -773,7 +773,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   drowned: {
     name: "Брат-Драунед",
-    hp: 500,
+    hp: 250,
     speed: 1.1,
     reward: 15,
     damage: 18,
