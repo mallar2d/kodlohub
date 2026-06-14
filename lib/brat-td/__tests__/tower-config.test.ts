@@ -210,14 +210,14 @@ describe('TOWER_CONFIGS: BTD6 crosspathing rules', () => {
 describe('TOWER_CONFIGS: flamethrower (DoT anti-regen specialist)', () => {
   const flame = TOWER_CONFIGS.flamethrower;
 
-  it('has expected base stats (cost 500, range 120, fire rate 0.12, damage 2)', () => {
+  it('has expected base stats (cost 500, range 120, fire rate 0.12, damage 3)', () => {
     expect(flame).toBeDefined();
     expect(flame.name).toBe('Вогнемет Подро');
     expect(flame.emoji).toBe('🔥');
     expect(flame.cost).toBe(500);
     expect(flame.range).toBe(120);
     expect(flame.fireRate).toBe(0.12);
-    expect(flame.damage).toBe(2);
+    expect(flame.damage).toBe(3);
   });
 
   it('has Fire DoT base values: 8 damage over 4s, max 3 stacks', () => {

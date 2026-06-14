@@ -528,7 +528,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Палить братів вогнем. Наносить шкоду отрутою тривалу в часі (DoT) — ідеально проти регенів.",
     cost: 500,
     range: 120,
-    damage: 2,
+    damage: 3,
     fireRate: 0.12,
     color: "#dc2626", // Red-orange (fire)
     emoji: "🔥",
@@ -539,11 +539,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     upgrades: {
       path1: [
         // Damage path: increases hit damage (direct)
-        { id: "flame_hotter", name: "Гарячіше Полум'я", description: "Шкода прямого влучання +1.5.", cost: 220, effect: (s) => ({ ...s, damage: s.damage + 1.5 }) },
-        { id: "flame_inferno", name: "Інферно Підпал", description: "Шкода +3, DoT шкода +4.", cost: 480, effect: (s) => ({ ...s, damage: s.damage + 3, fireDoTDamage: (s.fireDoTDamage || 8) + 4 }) },
-        { id: "flame_napalm", name: "Напалм Коростишівський", description: "Шкода +6, DoT шкода +8, ігнорує броню.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 6, fireDoTDamage: (s.fireDoTDamage || 8) + 8, ignoresArmor: true }) },
-        { id: "flame_volcano", name: "Вулкан Подро", description: "Шкода +12, DoT шкода +16, вибух 50px при влучанні (30 шкоди), вороги залишають калюжу вогню після смерті.", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 12, fireDoTDamage: (s.fireDoTDamage || 8) + 16, explodeDmg: 30, fireDropPuddle: true }) },
-        { id: "flame_hellfire", name: "Пекельне Полум'я", description: "Шкода +30, DoT шкода +40, DoT тривалість +2с, пробиття +2.", cost: 12000, effect: (s) => ({ ...s, damage: s.damage + 30, fireDoTDamage: (s.fireDoTDamage || 8) + 40, fireDoTDuration: (s.fireDoTDuration || 240) + 120, pierce: (s.pierce || 1) + 2 }) }
+        { id: "flame_hotter", name: "Гарячіше Полум'я", description: "Шкода прямого влучання +2.5.", cost: 220, effect: (s) => ({ ...s, damage: s.damage + 2.5 }) },
+        { id: "flame_inferno", name: "Інферно Підпал", description: "Шкода +5, DoT шкода +6.", cost: 480, effect: (s) => ({ ...s, damage: s.damage + 5, fireDoTDamage: (s.fireDoTDamage || 8) + 6 }) },
+        { id: "flame_napalm", name: "Напалм Коростишівський", description: "Шкода +10, DoT шкода +12, ігнорує броню.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 10, fireDoTDamage: (s.fireDoTDamage || 8) + 12, ignoresArmor: true }) },
+        { id: "flame_volcano", name: "Вулкан Подро", description: "Шкода +20, DoT шкода +24, вибух 50px при влучанні (30 шкоди), вороги залишають калюжу вогню після смерті.", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 20, fireDoTDamage: (s.fireDoTDamage || 8) + 24, explodeDmg: 30, fireDropPuddle: true }) },
+        { id: "flame_hellfire", name: "Пекельне Полум'я", description: "Шкода +50, DoT шкода +60, DoT тривалість +2с, пробиття +2.", cost: 12000, effect: (s) => ({ ...s, damage: s.damage + 50, fireDoTDamage: (s.fireDoTDamage || 8) + 60, fireDoTDuration: (s.fireDoTDuration || 240) + 120, pierce: (s.pierce || 1) + 2 }) }
       ],
       path2: [
         // Speed/Range path: faster firing and bigger range
@@ -551,15 +551,15 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "flame_blast", name: "Вогняний Вибух", description: "Швидкість +20%, дальність +15px.", cost: 420, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, range: s.range + 15 }) },
         { id: "flame_storm", name: "Вогняний Шторм", description: "Швидкість +30%, дальність +20px, DoT тривалість +1с.", cost: 1026, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, range: s.range + 20, fireDoTDuration: (s.fireDoTDuration || 240) + 60 }) },
         { id: "flame_tornado", name: "Вогняний Торнадо", description: "Швидкість +40%, дальність +25px, DoT тривалість +2с, підпалені вороги вибухають при смерті.", cost: 2970, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60, range: s.range + 25, fireDoTDuration: (s.fireDoTDuration || 240) + 120, fireExplodeOnDeath: true, fireExplodeDmg: 40, fireExplodeRadius: 60 }) },
-        { id: "flame_apocalypse", name: "Вогняний Апокаліпсис", description: "Швидкість +60%, дальність +40px, DoT шкода +20.", cost: 10800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.50, range: s.range + 40, fireDoTDamage: (s.fireDoTDamage || 8) + 20 }) }
+        { id: "flame_apocalypse", name: "Вогняний Апокаліпсис", description: "Швидкість +60%, дальність +40px, DoT шкода +30.", cost: 10800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.50, range: s.range + 40, fireDoTDamage: (s.fireDoTDamage || 8) + 30 }) }
       ],
       path3: [
         // DoT focus path: stronger DoT effects, anti-regen specialist
-        { id: "flame_ember", name: "Тління", description: "DoT шкода +3.", cost: 180, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 3 }) },
-        { id: "flame_coal", name: "Розжарене Вугілля", description: "DoT шкода +6, DoT тривалість +0.5с, макс. стаків +1 (до 4).", cost: 400, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 6, fireDoTDuration: (s.fireDoTDuration || 240) + 30, fireDoTMaxStacks: (s.fireDoTMaxStacks || 3) + 1 }) },
-        { id: "flame_anti_regen", name: "Анти-Реген Підсилення", description: "DoT шкода +12, вороги з DoT отримують +25% шкоди, макс. стаків +1 (до 5).", cost: 1100, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 12, damageDebuff: 1.25, fireDoTMaxStacks: (s.fireDoTMaxStacks || 3) + 1 }) },
-        { id: "flame_pure_burn", name: "Чисте Горіння", description: "DoT шкода +20, DoT тривалість +1.5с, вороги з DoT втрачають реген на 50%, вогонь перекидається на сусідів (25%).", cost: 3200, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 20, fireDoTDuration: (s.fireDoTDuration || 240) + 90, antiRegenFactor: 0.5, fireSpreadChance: 0.25 }) },
-        { id: "flame_sun", name: "Сонячне Пекло", description: "DoT шкода +45, DoT тривалість +3с, макс. стаків +2 (до 7), вимикає реген повністю.", cost: 11500, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 45, fireDoTDuration: (s.fireDoTDuration || 240) + 180, fireDoTMaxStacks: ((s.fireDoTMaxStacks as number) || 3) + 2, antiRegenFactor: 1.0 }) }
+        { id: "flame_ember", name: "Тління", description: "DoT шкода +5.", cost: 180, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 5 }) },
+        { id: "flame_coal", name: "Розжарене Вугілля", description: "DoT шкода +10, DoT тривалість +0.5с, макс. стаків +1 (до 4).", cost: 400, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 10, fireDoTDuration: (s.fireDoTDuration || 240) + 30, fireDoTMaxStacks: (s.fireDoTMaxStacks || 3) + 1 }) },
+        { id: "flame_anti_regen", name: "Анти-Реген Підсилення", description: "DoT шкода +20, вороги з DoT отримують +25% шкоди, макс. стаків +1 (до 5).", cost: 1100, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 20, damageDebuff: 1.25, fireDoTMaxStacks: (s.fireDoTMaxStacks || 3) + 1 }) },
+        { id: "flame_pure_burn", name: "Чисте Горіння", description: "DoT шкода +35, DoT тривалість +1.5с, вороги з DoT втрачають реген на 50%, вогонь перекидається на сусідів (25%).", cost: 3200, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 35, fireDoTDuration: (s.fireDoTDuration || 240) + 90, antiRegenFactor: 0.5, fireSpreadChance: 0.25 }) },
+        { id: "flame_sun", name: "Сонячне Пекло", description: "DoT шкода +80, DoT тривалість +3с, макс. стаків +2 (до 7), вимикає реген повністю.", cost: 11500, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 80, fireDoTDuration: (s.fireDoTDuration || 240) + 180, fireDoTMaxStacks: ((s.fireDoTMaxStacks as number) || 3) + 2, antiRegenFactor: 1.0 }) }
       ]
     }
   }
