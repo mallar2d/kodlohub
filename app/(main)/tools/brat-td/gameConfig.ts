@@ -416,7 +416,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
     cost: 350,
     range: 82,
-    damage: 10,
+    damage: 11.5,
     fireRate: 0.9,
     color: "#22c55e", // Green
     emoji: "💨",
@@ -451,7 +451,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Снайпер з дальністю на всю карту. Бачить камуфляж, б'є боляче, але рідко.",
     cost: 400,
     range: 1000,
-    damage: 108,
+    damage: 162,
     fireRate: 3.0,
     color: "#f43f5e",
     emoji: "🎯",
