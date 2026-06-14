@@ -19,8 +19,8 @@ import { playSound, SoundEvent } from "@/lib/brat-td/audio";
 import {
   DEFAULT_SETTINGS,
   type GameSettings,
-  useGameSync,
   getDefaultProgression,
+  normalizeProgression,
   mergeProgression,
   loadLocalProgression,
   saveLocalProgression,
@@ -34,6 +34,7 @@ import {
   submitGlobalScore,
   mergeLeaderboards,
 } from "@/lib/brat-td/state";
+import { useGameSync } from "@/lib/brat-td/useGameSync";
 import { getPureId, getPureRandom, getMapById, getRouteById, getRouteDistancePosition, getDistance, getWaveRouteIds, isPositionOnPath, MAP_CONFIGS, DEFAULT_MAP_ID } from "@/lib/brat-td/maps";
 import { isSupportTowerType, applyDifficultyToEnemy, DIFFICULTY_CONFIG } from "@/lib/brat-td/pure";
 import {
@@ -349,7 +350,7 @@ export default function BratTDClient() {
       const localProgress = loadLocalProgression(TOWER_CONFIGS, MAP_CONFIGS);
       const mergedProgress = progress
         ? mergeProgression(localProgress, progress, PROGRESSION_CONFIG)
-        : localProgress;
+        : normalizeProgression(localProgress, PROGRESSION_CONFIG);
       setProgression(mergedProgress);
       progressionRef.current = mergedProgress;
       setProgressionLoaded(true);

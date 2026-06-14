@@ -8,7 +8,7 @@
 //  this module remains free of direct imports from the React client.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useRef, useState } from "react";
+
 import type {
   DifficultyKey,
   LeaderboardEntry,
@@ -123,19 +123,63 @@ export function normalizeProgression(
   }
 ): ProgressionState {
   const base = getDefaultProgression(config.towerConfigs, config.mapConfigs);
-  const totalXp = Math.max(0, Math.floor(progress?.totalXp ?? base.totalXp));
+  const totalXp = Math.min(5000000, Math.max(0, Math.floor(progress?.totalXp ?? base.totalXp)));
   const playerLevel = config.getPlayerLevelForXp(totalXp);
   const unlockedByLevel = Object.entries(config.towerUnlockLevels)
     .filter(([, level]) => playerLevel >= level)
     .map(([towerType]) => towerType);
+
+  // Filter achievements based on player level to prevent cheating
+  let achievements = Array.from(new Set(progress?.achievements ?? []));
+  if (playerLevel < 10) achievements = achievements.filter((id) => id !== "level_10");
+  if (playerLevel < 25) achievements = achievements.filter((id) => id !== "level_25");
+  if (playerLevel < 30) achievements = achievements.filter((id) => id !== "all_towers");
+  if (playerLevel < 50) achievements = achievements.filter((id) => id !== "level_50");
+
+  // Recompute bonusStartGold and bonusLives strictly based on unlocked achievements
+  let calculatedGold = 0;
+  let calculatedLives = 0;
+  achievements.forEach((id) => {
+    const reward = config.achievements.find((a) => a.id === id)?.reward;
+    if (reward) {
+      calculatedGold += reward.bonusStartGold ?? 0;
+      calculatedLives += reward.bonusLives ?? 0;
+    }
+  });
+  const bonusStartGold = Math.min(500, calculatedGold);
+  const bonusLives = calculatedLives;
+
   const towerMastery = { ...base.towerMastery };
   Object.entries(progress?.towerMastery ?? {}).forEach(([towerType, mastery]) => {
+    if (!towerMastery[towerType]) return;
+
+    // Enforce path continuity and playerLevel requirements for unlocks
+    const validTiers: string[] = [];
+    const unlockedSet = new Set(mastery.unlockedTiers ?? []);
+
+    for (let path = 1; path <= 3; path++) {
+      const hasT3 = unlockedSet.has(`${path}:3`);
+      const hasT4 = unlockedSet.has(`${path}:4`);
+      const hasT5 = unlockedSet.has(`${path}:5`) && playerLevel >= 25;
+
+      if (hasT3) {
+        validTiers.push(`${path}:3`);
+        if (hasT4) {
+          validTiers.push(`${path}:4`);
+          if (hasT5) {
+            validTiers.push(`${path}:5`);
+          }
+        }
+      }
+    }
+
     towerMastery[towerType] = {
-      towerXp: Math.max(0, Number(mastery.towerXp ?? 0)),
-      unlockedTiers: Array.from(new Set(mastery.unlockedTiers ?? [])),
+      towerXp: Math.min(1000000, Math.max(0, Number(mastery.towerXp ?? 0))),
+      unlockedTiers: validTiers,
       highestTierAchieved: Math.max(2, Math.floor(mastery.highestTierAchieved ?? 2)),
     };
   });
+
   const mapCompletions = Object.fromEntries(
     config.mapConfigs.map((map) => [map.id, [] as DifficultyKey[]])
   ) as Record<string, DifficultyKey[]>;
@@ -149,7 +193,7 @@ export function normalizeProgression(
       )
     );
   });
-  const achievements = Array.from(new Set(progress?.achievements ?? []));
+
   const cosmetics = getAchievementCosmetics(achievements, config.achievements);
   const unlockedTitles = Array.from(
     new Set([...(progress?.unlockedTitles ?? []), ...cosmetics.titles])
@@ -160,15 +204,22 @@ export function normalizeProgression(
   const unlockedEffects = Array.from(
     new Set([...(progress?.unlockedEffects ?? []), ...cosmetics.effects])
   );
+
+  // Validate unlockedTowers level requirements
+  const unlockedTowers = Array.from(
+    new Set([...(progress?.unlockedTowers ?? []), ...unlockedByLevel, "hammer", "boomerang"])
+  ).filter((towerType) => {
+    const reqLevel = config.towerUnlockLevels[towerType];
+    return reqLevel === undefined || playerLevel >= reqLevel;
+  });
+
   return {
     playerLevel,
     totalXp,
-    unlockedTowers: Array.from(
-      new Set([...(progress?.unlockedTowers ?? []), ...unlockedByLevel, "hammer", "boomerang"])
-    ),
+    unlockedTowers,
     achievements,
-    bonusStartGold: Math.min(500, Math.max(0, Math.floor(progress?.bonusStartGold ?? 0))),
-    bonusLives: Math.max(0, Math.floor(progress?.bonusLives ?? 0)),
+    bonusStartGold,
+    bonusLives,
     towerMastery,
     mapCompletions,
     unlockedTitles,
@@ -521,88 +572,4 @@ export function mergeLeaderboards(
   return unique.slice(0, 10);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  useGameSync — replaces the 18 individual state→ref `useEffect` watchers
-//  with a single 150ms polling loop. Behaviour is identical: the loop
-//  copies every tracked state value into its matching ref on every tick,
-//  guaranteeing the rAF loop never reads a stale value.
-// ─────────────────────────────────────────────────────────────────────────
 
-/**
- * A single state→ref sync target. `value` is the live React state and
- * `ref` is the mutable mirror that the game loop reads from. The hook
- * writes `value` into `ref.current` on every poll.
- */
-export type SyncTarget<T> = {
-  value: T;
-  ref: { current: T };
-};
-
-export type UseGameSyncConfig = {
-  // All 18 reactive fields that need to be mirrored into refs.
-  lives: SyncTarget<number>;
-  gold: SyncTarget<number>;
-  wave: SyncTarget<number>;
-  isWaveActive: SyncTarget<boolean>;
-  gameStatus: SyncTarget<"idle" | "playing" | "gameover" | "victory">;
-  isPaused: SyncTarget<boolean>;
-  gameSpeed: SyncTarget<1 | 2 | 3>;
-  isAutoStart: SyncTarget<boolean>;
-  score: SyncTarget<number>;
-  selectedShopTower: SyncTarget<string | null>;
-  mousePos: SyncTarget<{ x: number; y: number }>;
-  isMouseOnCanvas: SyncTarget<boolean>;
-  draggedTowerType: SyncTarget<string | null>;
-  draggedTowerPos: SyncTarget<{ x: number; y: number } | null>;
-  difficulty: SyncTarget<DifficultyKey>;
-  selectedMapId: SyncTarget<string>;
-  settings: SyncTarget<GameSettings>;
-  progression: SyncTarget<ProgressionState>;
-  // Tick interval — keep at 150ms (6 Hz) to match the original behaviour.
-  intervalMs?: number;
-};
-
-/**
- * Replaces the 18 individual `useEffect(() => { ref.current = state; }, [state])`
- * watchers with a single setInterval loop. Each tracked field is mirrored
- * into its ref on every tick. This is functionally identical to the
- * original 18 useEffects (each just did `ref.current = state`).
- *
- * The 150ms cadence matches the existing periodic React refresh that
- * pushes the game loop's ref writes back into React state — keeping the
- * two intervals in lockstep avoids any visible lag.
- */
-export function useGameSync(config: UseGameSyncConfig): void {
-  // Read the latest values on every tick — never re-subscribe.
-  const configRef = useRef(config);
-  configRef.current = config;
-
-  useEffect(() => {
-    const tick = () => {
-      const c = configRef.current;
-      c.lives.ref.current = c.lives.value;
-      c.gold.ref.current = c.gold.value;
-      c.wave.ref.current = c.wave.value;
-      c.isWaveActive.ref.current = c.isWaveActive.value;
-      c.gameStatus.ref.current = c.gameStatus.value;
-      c.isPaused.ref.current = c.isPaused.value;
-      c.gameSpeed.ref.current = c.gameSpeed.value;
-      c.isAutoStart.ref.current = c.isAutoStart.value;
-      c.score.ref.current = c.score.value;
-      c.selectedShopTower.ref.current = c.selectedShopTower.value;
-      c.mousePos.ref.current = c.mousePos.value;
-      c.isMouseOnCanvas.ref.current = c.isMouseOnCanvas.value;
-      c.draggedTowerType.ref.current = c.draggedTowerType.value;
-      c.draggedTowerPos.ref.current = c.draggedTowerPos.value;
-      c.difficulty.ref.current = c.difficulty.value;
-      c.selectedMapId.ref.current = c.selectedMapId.value;
-      c.settings.ref.current = c.settings.value;
-      c.progression.ref.current = c.progression.value;
-    };
-
-    // Run once immediately so the refs are primed before the first rAF tick.
-    tick();
-    const id = setInterval(tick, config.intervalMs ?? 150);
-    return () => clearInterval(id);
-  }, [config.intervalMs]);
-}

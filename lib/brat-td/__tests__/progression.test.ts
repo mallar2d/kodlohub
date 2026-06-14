@@ -4,6 +4,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  TOWER_CONFIGS,
+  ACHIEVEMENTS,
   TOWER_UNLOCK_LEVELS,
   TIER_UNLOCK_COSTS,
   PLAYER_LEVEL_CAP,
@@ -12,6 +14,8 @@ import {
   getPlayerLevelProgress,
   getEndlessXpMultiplier,
 } from '@/app/(main)/tools/brat-td/gameConfig';
+import { MAP_CONFIGS } from '@/lib/brat-td/maps';
+import { normalizeProgression } from '@/lib/brat-td/state';
 
 describe('XP formula: 148 * level^1.4', () => {
   it('returns 0 for level 1 (no XP needed to be level 1)', () => {
@@ -200,5 +204,72 @@ describe('getEndlessXpMultiplier', () => {
     expect(getEndlessXpMultiplier(57)).toBeCloseTo(0.5 * Math.pow(0.95, 1), 5);
     // wave 67: band=2 → 0.5 * 0.95^2 ≈ 0.451
     expect(getEndlessXpMultiplier(67)).toBeCloseTo(0.5 * Math.pow(0.95, 2), 5);
+  });
+});
+
+describe('Progression State: Server-side validation & normalization', () => {
+  const normConfig = {
+    towerConfigs: TOWER_CONFIGS,
+    mapConfigs: MAP_CONFIGS,
+    achievements: ACHIEVEMENTS,
+    getPlayerLevelForXp,
+    towerUnlockLevels: TOWER_UNLOCK_LEVELS,
+  };
+
+  it('rejects custom/cheated starting gold and lives, recalculating strictly from achievements', () => {
+    const rawPayload = {
+      totalXp: 1000,
+      achievements: ['first_wave', 'tower_farm'],
+      bonusStartGold: 5000, // cheat!
+      bonusLives: 9999,      // cheat!
+    };
+    const res = normalizeProgression(rawPayload as any, normConfig);
+    // first_wave reward is 50, tower_farm reward is 25. Total = 75.
+    expect(res.bonusStartGold).toBe(75);
+    // No achievements give bonus lives, so it should be 0.
+    expect(res.bonusLives).toBe(0);
+  });
+
+  it('rejects locked towers that exceed player level unlock requirements', () => {
+    const rawPayload = {
+      totalXp: 0, // Level 1
+      unlockedTowers: ['hammer', 'boomerang', 'monolith', 'bankomat'], // Monolith requires lvl 30, bankomat 25
+    };
+    const res = normalizeProgression(rawPayload as any, normConfig);
+    expect(res.unlockedTowers).toContain('hammer');
+    expect(res.unlockedTowers).toContain('boomerang');
+    expect(res.unlockedTowers).not.toContain('monolith');
+    expect(res.unlockedTowers).not.toContain('bankomat');
+  });
+
+  it('rejects path upgrades (T3/T4/T5) if continuity rules are broken or level requirement for T5 is not met', () => {
+    const rawPayload = {
+      totalXp: 0, // Level 1 (cannot unlock T5, which requires level 25)
+      towerMastery: {
+        hammer: {
+          towerXp: 0,
+          unlockedTiers: ['1:3', '1:5', '2:4'], // P1T5 has no T4, P2T4 has no T3
+          highestTierAchieved: 2,
+        }
+      }
+    };
+    const res = normalizeProgression(rawPayload as any, normConfig);
+    const hammerMastery = res.towerMastery.hammer;
+    expect(hammerMastery.unlockedTiers).toContain('1:3');
+    // '1:5' is rejected because player level < 25 and P1T4 is not unlocked
+    expect(hammerMastery.unlockedTiers).not.toContain('1:5');
+    // '2:4' is rejected because P2T3 is not unlocked
+    expect(hammerMastery.unlockedTiers).not.toContain('2:4');
+  });
+
+  it('filters out level achievements if the player level is too low', () => {
+    const rawPayload = {
+      totalXp: 0, // Level 1
+      achievements: ['level_10', 'level_50', 'first_wave'],
+    };
+    const res = normalizeProgression(rawPayload as any, normConfig);
+    expect(res.achievements).toContain('first_wave');
+    expect(res.achievements).not.toContain('level_10');
+    expect(res.achievements).not.toContain('level_50');
   });
 });

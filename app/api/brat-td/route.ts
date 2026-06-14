@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { LEADERBOARD_LIMIT } from "@/app/(main)/tools/brat-td/gameConfig";
+import {
+  LEADERBOARD_LIMIT,
+  TOWER_CONFIGS,
+  ACHIEVEMENTS,
+  getPlayerLevelForXp,
+  TOWER_UNLOCK_LEVELS,
+} from "@/app/(main)/tools/brat-td/gameConfig";
+import { MAP_CONFIGS } from "@/lib/brat-td/maps";
+import { normalizeProgression } from "@/lib/brat-td/state";
 
 export const revalidate = 0;
 
@@ -158,10 +166,18 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json() as { progress?: ProgressPayload };
-    const progress = body.progress;
-    if (!progress || typeof progress.totalXp !== "number" || typeof progress.playerLevel !== "number") {
+    const rawProgress = body.progress;
+    if (!rawProgress || typeof rawProgress.totalXp !== "number" || typeof rawProgress.playerLevel !== "number") {
       return NextResponse.json({ error: "Невірні дані прогресії" }, { status: 400 });
     }
+
+    const progress = normalizeProgression(rawProgress as any, {
+      towerConfigs: TOWER_CONFIGS,
+      mapConfigs: MAP_CONFIGS,
+      achievements: ACHIEVEMENTS,
+      getPlayerLevelForXp,
+      towerUnlockLevels: TOWER_UNLOCK_LEVELS,
+    });
 
     const admin = createAdminClient();
     const { error: progressError } = await admin
@@ -247,8 +263,19 @@ export async function POST(request: Request) {
       mapId?: string;
     };
 
-    if (typeof score !== "number" || typeof wave !== "number") {
+    if (typeof score !== "number" || typeof wave !== "number" || wave < 1 || wave > 1000 || score < 0) {
       return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
+    }
+
+    if (!isEndless && wave > 46) {
+      return NextResponse.json({ error: "Некоректна хвиля для звичайного режиму" }, { status: 400 });
+    }
+
+    // Safety checks for leaderboard submission to prevent cheating
+    const maxSafeScore = 30000 + (wave > 46 ? (wave - 46) * 2000 : 0);
+    const waveMaxLimit = wave <= 10 ? 1500 : wave <= 20 ? 4000 : wave <= 30 ? 10000 : maxSafeScore;
+    if (score > waveMaxLimit) {
+      return NextResponse.json({ error: "Недопустимий результат" }, { status: 400 });
     }
 
     const name = (playerName ?? "").trim() || "Анонім";
