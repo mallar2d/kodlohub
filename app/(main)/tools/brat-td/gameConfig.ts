@@ -519,7 +519,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   },
   kladmen: {
     name: "Кладмен",
-    description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 10 мін.",
+    description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 20 мін.",
     cost: 400,
     range: 150,
     damage: 15,
@@ -527,7 +527,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     color: "#ef4444",
     emoji: "💣",
     pierce: 2,
-    maxMines: 10,
+    maxMines: 20,
     upgrades: {
       path1: [
         { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +4.", cost: 248, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
@@ -540,8 +540,8 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +10%.", cost: 248, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.90 }) },
         { id: "kladmen_conveyor", name: "Конвеєр", description: "Швидкість +18%.", cost: 462, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
         { id: "kladmen_factory", name: "Мінна фабрика", description: "Швидкість +25%, дальність +20px.", cost: 1001, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75, range: s.range + 20 }) },
-        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +30%, макс 18 мін.", cost: 3234, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, maxMines: (s.maxMines || 15) + 3 }) },
-        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 22 міни, пробиває броню.", cost: 12128, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, maxMines: (s.maxMines || 15) + 7, ignoresArmor: true }) }
+        { id: "kladmen_mass", name: "Масове виробництво", description: "Швидкість +30%, макс 36 мін.", cost: 3234, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, maxMines: (s.maxMines || 20) + 16 }) },
+        { id: "kladmen_conveyor_belt", name: "Конвеєр Коростишева", description: "Швидке мінування, макс 44 міни, пробиває броню.", cost: 12128, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.55, maxMines: (s.maxMines || 20) + 24, ignoresArmor: true }) }
       ],
       path3: [
         { id: "kladmen_sticky", name: "Клейка міна", description: "Міни сповільнюють ворогів на 25%.", cost: 248, effect: (s) => ({ ...s, slowAmount: 0.25 }) },

@@ -3332,7 +3332,7 @@ export default function BratTDClient() {
               const effectiveRange = getEffectiveTowerRange(tower);
 
               // Find a path segment within range
-              const maxMines = tower.maxMines ?? 10;
+              const maxMines = tower.maxMines ?? 20;
               const placedMines = minesRef.current.filter(m => m.towerId === tower.id).length;
               const flyingMines = mineProjectilesRef.current.filter(p => p.towerId === tower.id).length;
               if (placedMines + flyingMines < maxMines) {
@@ -3349,11 +3349,7 @@ export default function BratTDClient() {
                       const px = a.x + (b.x - a.x) * t;
                       const py = a.y + (b.y - a.y) * t;
                       if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
-                        const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30) ||
-                          mineProjectilesRef.current.some(p => getDistance(p.targetX, p.targetY, px, py) < 30);
-                        if (!tooClose) {
-                          validPoints.push({ x: px, y: py });
-                        }
+                        validPoints.push({ x: px, y: py });
                       }
                     }
                   }
