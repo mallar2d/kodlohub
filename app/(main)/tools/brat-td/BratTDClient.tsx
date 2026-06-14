@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-  PATH,
   TOWER_CONFIGS,
+  ENEMY_CONFIGS,
   getScaledWave,
   getEnemyStatsForWave,
   TIER_SCALING,
@@ -12,12 +12,17 @@ import {
   PathPoint,
   Upgrade,
   UpgradeStats,
-  OBSTACLES,
   EMOJI_MAP,
   SOUND_MAP,
-  getWaveQuote
+  getWaveQuote,
+  ACHIEVEMENTS,
+  TIER_UNLOCK_COSTS,
+  TOWER_UNLOCK_LEVELS,
+  getEndlessXpMultiplier,
+  getPlayerLevelForXp,
+  getPlayerLevelProgress
 } from "./gameConfig";
-import type { EnemyModifier } from "./gameConfig";
+import type { EnemyModifier, Obstacle } from "./gameConfig";
 
 interface PlacedTower {
   id: string;
@@ -146,6 +151,7 @@ interface ActiveEnemy {
   radius: number;
   name: string;
   emoji: string;
+  routeId: string;
   pathIndex: number;
   distanceTraveled: number;
   // Statuses
@@ -194,6 +200,7 @@ interface Projectile {
   damage: number;
   emoji: string;
   color: string;
+  towerId?: string;
   // inherited stats
   critChance?: number;
   isAoESlow?: boolean;
@@ -336,6 +343,23 @@ interface LeaderboardEntry {
   isGlobal?: boolean;
 }
 
+type TowerMasteryProgress = {
+  towerXp: number;
+  unlockedTiers: string[];
+  highestTierAchieved: number;
+};
+
+type ProgressionState = {
+  playerLevel: number;
+  totalXp: number;
+  unlockedTowers: string[];
+  achievements: string[];
+  bonusStartGold: number;
+  bonusLives: number;
+  towerMastery: Record<string, TowerMasteryProgress>;
+  mapCompletions: Record<string, DifficultyKey[]>;
+};
+
 type DifficultyKey = "easy" | "normal" | "hard";
 
 const DIFFICULTY_CONFIG: Record<DifficultyKey, { label: string; description: string; lives: number; gold: number; hpMult: number; speedMult: number; rewardMult: number }> = {
@@ -343,6 +367,213 @@ const DIFFICULTY_CONFIG: Record<DifficultyKey, { label: string; description: str
   normal: { label: "Нормально", description: "чесний Коростишів", lives: 100, gold: 350, hpMult: 1, speedMult: 1, rewardMult: 1 },
   hard: { label: "Пекло", description: "братва без гальм", lives: 75, gold: 300, hpMult: 1.18, speedMult: 1.08, rewardMult: 0.92 }
 };
+
+type ObstacleConfig = Obstacle;
+
+type RouteConfig = {
+  id: string;
+  name: string;
+  points: PathPoint[];
+};
+
+type MapGate = {
+  x: number;
+  y: number;
+  label: string;
+  color: string;
+  isExit?: boolean;
+};
+
+type MapDecorPatch = {
+  x: number;
+  y: number;
+  r: number;
+  color: string;
+};
+
+type MapConfig = {
+  id: string;
+  name: string;
+  difficultyLabel: string;
+  description: string;
+  routes: RouteConfig[];
+  gates: MapGate[];
+  obstacles: ObstacleConfig[];
+  decor: MapDecorPatch[];
+  getWaveRoutes: (wave: number) => string[];
+};
+
+const easyRoute: PathPoint[] = [
+  { x: 0, y: 125 },
+  { x: 210, y: 125 },
+  { x: 210, y: 300 },
+  { x: 420, y: 300 },
+  { x: 420, y: 145 },
+  { x: 650, y: 145 },
+  { x: 650, y: 385 },
+  { x: 800, y: 385 },
+];
+
+const mediumForwardRoute: PathPoint[] = [
+  { x: 0, y: 95 },
+  { x: 320, y: 95 },
+  { x: 320, y: 215 },
+  { x: 115, y: 215 },
+  { x: 115, y: 380 },
+  { x: 560, y: 380 },
+  { x: 560, y: 215 },
+  { x: 800, y: 215 },
+];
+
+const hardRoutes: RouteConfig[] = [
+  { id: "north_left", name: "North -> Core L", points: [{ x: 390, y: 0 }, { x: 390, y: 100 }, { x: 245, y: 100 }, { x: 245, y: 235 }, { x: 90, y: 235 }, { x: 90, y: 500 }] },
+  { id: "west_right", name: "West -> Core R", points: [{ x: 0, y: 250 }, { x: 185, y: 250 }, { x: 185, y: 125 }, { x: 485, y: 125 }, { x: 485, y: 365 }, { x: 710, y: 365 }, { x: 710, y: 500 }] },
+  { id: "south_right", name: "South -> Core R", points: [{ x: 430, y: 500 }, { x: 430, y: 385 }, { x: 600, y: 385 }, { x: 600, y: 250 }, { x: 710, y: 250 }, { x: 710, y: 500 }] },
+  { id: "north_right", name: "North -> Core R", points: [{ x: 390, y: 0 }, { x: 390, y: 105 }, { x: 590, y: 105 }, { x: 590, y: 250 }, { x: 710, y: 250 }, { x: 710, y: 500 }] },
+  { id: "west_left", name: "West -> Core L", points: [{ x: 0, y: 250 }, { x: 185, y: 250 }, { x: 185, y: 370 }, { x: 90, y: 370 }, { x: 90, y: 500 }] },
+  { id: "south_left", name: "South -> Core L", points: [{ x: 430, y: 500 }, { x: 430, y: 380 }, { x: 245, y: 380 }, { x: 245, y: 235 }, { x: 90, y: 235 }, { x: 90, y: 500 }] },
+];
+
+const MAP_CONFIGS: MapConfig[] = [
+  {
+    id: "yard",
+    name: "Коростишівський Двір",
+    difficultyLabel: "Easy route",
+    description: "Одна довга дорога, багато місця під башти і чесні choke points для першого проходження.",
+    routes: [{ id: "main", name: "Двір -> Core", points: easyRoute }],
+    gates: [
+      { x: easyRoute[0].x + 18, y: easyRoute[0].y, label: "ENTRY", color: "#22c55e" },
+      { x: easyRoute[easyRoute.length - 1].x - 18, y: easyRoute[easyRoute.length - 1].y, label: "CORE", color: "#38bdf8", isExit: true },
+    ],
+    obstacles: [
+      { x: 315, y: 195, radius: 32, name: "Коростишівський Граніт", emoji: "", color: "#4b5563", borderColor: "#374151" },
+      { x: 535, y: 305, radius: 30, name: "Озеро Nescafe", emoji: "", color: "#1d4ed8", borderColor: "#1e3a8a" },
+      { x: 720, y: 115, radius: 24, name: "Зламаний Infinix", emoji: "", color: "#6b21a8", borderColor: "#581c87" },
+    ],
+    decor: [
+      { x: 72, y: 314, r: 38, color: "rgba(63, 98, 48, 0.42)" },
+      { x: 222, y: 58, r: 28, color: "rgba(69, 58, 39, 0.35)" },
+      { x: 382, y: 176, r: 30, color: "rgba(58, 88, 46, 0.36)" },
+      { x: 538, y: 334, r: 46, color: "rgba(44, 72, 48, 0.38)" },
+      { x: 734, y: 76, r: 34, color: "rgba(65, 54, 43, 0.34)" },
+      { x: 718, y: 452, r: 42, color: "rgba(38, 66, 42, 0.36)" },
+    ],
+    getWaveRoutes: () => ["main"],
+  },
+  {
+    id: "two-way",
+    name: "Двосторонній Накат",
+    difficultyLabel: "Medium route",
+    description: "Одна дорога між двома порталами: спершу A->B, потім реверс, далі хвилі з обох боків.",
+    routes: [
+      { id: "a_to_b", name: "Gate A -> Gate B", points: mediumForwardRoute },
+      { id: "b_to_a", name: "Gate B -> Gate A", points: [...mediumForwardRoute].reverse() },
+    ],
+    gates: [
+      { x: mediumForwardRoute[0].x + 18, y: mediumForwardRoute[0].y, label: "GATE A", color: "#22c55e" },
+      { x: mediumForwardRoute[mediumForwardRoute.length - 1].x - 18, y: mediumForwardRoute[mediumForwardRoute.length - 1].y, label: "GATE B", color: "#f59e0b", isExit: true },
+    ],
+    obstacles: [
+      { x: 225, y: 315, radius: 34, name: "Nescafe Crates", emoji: "", color: "#92400e", borderColor: "#451a03" },
+      { x: 430, y: 255, radius: 42, name: "Складський Блок", emoji: "", color: "#4b5563", borderColor: "#27272a" },
+      { x: 650, y: 120, radius: 28, name: "Озеро Nescafe", emoji: "", color: "#1d4ed8", borderColor: "#1e3a8a" },
+    ],
+    decor: [
+      { x: 155, y: 65, r: 32, color: "rgba(120, 78, 28, 0.32)" },
+      { x: 258, y: 440, r: 48, color: "rgba(77, 52, 33, 0.38)" },
+      { x: 475, y: 72, r: 40, color: "rgba(65, 54, 43, 0.36)" },
+      { x: 690, y: 330, r: 44, color: "rgba(38, 66, 42, 0.28)" },
+    ],
+    getWaveRoutes: (wave) => {
+      if (wave <= 3) return ["a_to_b"];
+      if (wave <= 6) return ["b_to_a"];
+      if (wave <= 10) return [wave % 2 === 0 ? "a_to_b" : "b_to_a"];
+      if (wave <= 20) return wave % 4 === 0 ? ["a_to_b", "b_to_a"] : [wave % 2 === 0 ? "a_to_b" : "b_to_a"];
+      return wave % 3 === 0 ? ["a_to_b", "b_to_a"] : [wave % 2 === 0 ? "a_to_b" : "b_to_a"];
+    },
+  },
+  {
+    id: "infinix-junction",
+    name: "Розв'язка Infinix",
+    difficultyLabel: "Hard route",
+    description: "Три входи і два виходи. Маршрути поступово міняються, а після середини гри комбінуються.",
+    routes: hardRoutes,
+    gates: [
+      { x: 390, y: 24, label: "NORTH", color: "#22c55e" },
+      { x: 24, y: 250, label: "WEST", color: "#22c55e" },
+      { x: 430, y: 476, label: "SOUTH", color: "#22c55e" },
+      { x: 90, y: 476, label: "CORE L", color: "#38bdf8", isExit: true },
+      { x: 710, y: 476, label: "CORE R", color: "#38bdf8", isExit: true },
+    ],
+    obstacles: [
+      { x: 345, y: 245, radius: 38, name: "Зламаний Infinix", emoji: "", color: "#6b21a8", borderColor: "#581c87" },
+      { x: 540, y: 235, radius: 30, name: "Електрощит", emoji: "", color: "#0ea5e9", borderColor: "#075985" },
+      { x: 235, y: 305, radius: 28, name: "Кабельна Котушка", emoji: "", color: "#4b5563", borderColor: "#1f2937" },
+      { x: 640, y: 100, radius: 26, name: "Коростишівський Граніт", emoji: "", color: "#4b5563", borderColor: "#374151" },
+    ],
+    decor: [
+      { x: 115, y: 112, r: 34, color: "rgba(59, 130, 246, 0.16)" },
+      { x: 298, y: 438, r: 42, color: "rgba(168, 85, 247, 0.16)" },
+      { x: 505, y: 55, r: 36, color: "rgba(34, 197, 94, 0.13)" },
+      { x: 690, y: 315, r: 48, color: "rgba(6, 182, 212, 0.14)" },
+    ],
+    getWaveRoutes: (wave) => {
+      if (wave <= 4) return ["north_left"];
+      if (wave <= 8) return ["west_right"];
+      if (wave <= 12) return ["south_right"];
+      if (wave <= 20) return wave % 2 === 0 ? ["north_left", "south_right"] : ["west_left"];
+      if (wave <= 35) return wave % 3 === 0 ? ["north_right", "west_left"] : ["south_left", "west_right"];
+      return wave % 5 === 0 ? ["north_left", "west_right", "south_left"] : ["north_right", "south_right"];
+    },
+  },
+];
+
+const DEFAULT_MAP_ID = MAP_CONFIGS[0].id;
+
+function getMapById(mapId: string) {
+  return MAP_CONFIGS.find((map) => map.id === mapId) ?? MAP_CONFIGS[0];
+}
+
+function getRouteById(map: MapConfig, routeId: string) {
+  return map.routes.find((route) => route.id === routeId) ?? map.routes[0];
+}
+
+function getWaveRouteIds(map: MapConfig, waveNumber: number) {
+  const routeIds = map.getWaveRoutes(waveNumber).filter((routeId) => map.routes.some((route) => route.id === routeId));
+  return routeIds.length > 0 ? routeIds : [map.routes[0].id];
+}
+
+function getRouteDistancePosition(points: PathPoint[], distance: number) {
+  let remainingDist = Math.max(0, distance);
+  let currentX = points[0].x;
+  let currentY = points[0].y;
+  let newPathIndex = 1;
+
+  for (let p = 0; p < points.length - 1; p++) {
+    const p1 = points[p];
+    const p2 = points[p + 1];
+    const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if (remainingDist <= segLen) {
+      const t = segLen > 0 ? remainingDist / segLen : 0;
+      currentX = p1.x + (p2.x - p1.x) * t;
+      currentY = p1.y + (p2.y - p1.y) * t;
+      newPathIndex = p + 1;
+      break;
+    }
+    remainingDist -= segLen;
+    currentX = p2.x;
+    currentY = p2.y;
+    newPathIndex = p + 2;
+  }
+
+  if (newPathIndex >= points.length) {
+    newPathIndex = points.length - 1;
+    currentX = points[points.length - 1].x;
+    currentY = points[points.length - 1].y;
+  }
+
+  return { x: currentX, y: currentY, pathIndex: newPathIndex };
+}
 
 const DEFAULT_SETTINGS = {
   volume: 0.75,
@@ -363,8 +594,794 @@ function getNonEndlessWaveClearReward(wave: number) {
 
 const LEADERBOARD_KEY = "brat_td_leaderboard";
 const SETTINGS_KEY = "brat_td_settings";
+const PROGRESSION_KEY = "brat_td_progress";
 const SUPPORT_TOWER_TYPES = new Set(["coffee", "bankomat"]);
 const isSupportTowerType = (type: string) => SUPPORT_TOWER_TYPES.has(type);
+
+type SceneTheme = {
+  skyTop: string;
+  skyBottom: string;
+  groundA: string;
+  groundB: string;
+  groundC: string;
+  trackOuter: string;
+  trackEdge: string;
+  trackInner: string;
+  trackLine: string;
+  accent: string;
+};
+
+const SCENE_THEMES: SceneTheme[] = [
+  { skyTop: "#071016", skyBottom: "#111a14", groundA: "#10170f", groundB: "#172416", groundC: "#22301c", trackOuter: "#070707", trackEdge: "#28231d", trackInner: "#4a4032", trackLine: "rgba(244, 218, 154, 0.36)", accent: "#38bdf8" },
+  { skyTop: "#090b1e", skyBottom: "#171125", groundA: "#121026", groundB: "#1d1932", groundC: "#28203d", trackOuter: "#090813", trackEdge: "#2e293d", trackInner: "#514861", trackLine: "rgba(199, 210, 254, 0.34)", accent: "#818cf8" },
+  { skyTop: "#1d0f04", skyBottom: "#251707", groundA: "#20150b", groundB: "#34230f", groundC: "#463016", trackOuter: "#0f0904", trackEdge: "#3d2a16", trackInner: "#5d4326", trackLine: "rgba(251, 191, 36, 0.34)", accent: "#f59e0b" },
+  { skyTop: "#170514", skyBottom: "#210818", groundA: "#190d16", groundB: "#291220", groundC: "#3a1830", trackOuter: "#0b0509", trackEdge: "#3d2033", trackInner: "#57304b", trackLine: "rgba(244, 114, 182, 0.32)", accent: "#ec4899" },
+  { skyTop: "#02180b", skyBottom: "#082116", groundA: "#07170c", groundB: "#102817", groundC: "#17351f", trackOuter: "#030a05", trackEdge: "#173120", trackInner: "#2f4a31", trackLine: "rgba(134, 239, 172, 0.30)", accent: "#22c55e" },
+];
+
+const MAP_DECOR = [
+  { x: 72, y: 314, r: 38, color: "rgba(63, 98, 48, 0.42)" },
+  { x: 222, y: 58, r: 28, color: "rgba(69, 58, 39, 0.35)" },
+  { x: 382, y: 176, r: 30, color: "rgba(58, 88, 46, 0.36)" },
+  { x: 538, y: 334, r: 46, color: "rgba(44, 72, 48, 0.38)" },
+  { x: 734, y: 76, r: 34, color: "rgba(65, 54, 43, 0.34)" },
+  { x: 718, y: 452, r: 42, color: "rgba(38, 66, 42, 0.36)" },
+];
+
+function colorWithAlpha(color: string, alpha: number) {
+  if (!color.startsWith("#") || color.length !== 7) return color;
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawSceneBackground(ctx: CanvasRenderingContext2D, theme: SceneTheme, frame: number, decor: MapDecorPatch[]) {
+  const sky = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+  sky.addColorStop(0, theme.skyTop);
+  sky.addColorStop(1, theme.skyBottom);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+  const ground = ctx.createRadialGradient(GAME_WIDTH * 0.55, GAME_HEIGHT * 0.42, 80, GAME_WIDTH * 0.5, GAME_HEIGHT * 0.5, GAME_WIDTH * 0.82);
+  ground.addColorStop(0, theme.groundC);
+  ground.addColorStop(0.55, theme.groundB);
+  ground.addColorStop(1, theme.groundA);
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+  decor.forEach((patch, index) => {
+    const sway = Math.sin(frame * 0.01 + index) * 2;
+    ctx.fillStyle = patch.color;
+    ctx.beginPath();
+    ctx.ellipse(patch.x + sway, patch.y, patch.r * 1.45, patch.r * 0.72, index * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  for (let i = 0; i < 42; i++) {
+    const x = (i * 137 + 31) % GAME_WIDTH;
+    const y = (i * 83 + 57) % GAME_HEIGHT;
+    const size = 2 + (i % 4);
+    ctx.fillStyle = i % 3 === 0 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.12)";
+    ctx.fillRect(x, y, size, 1);
+  }
+}
+
+function buildTrackPath(ctx: CanvasRenderingContext2D, points: PathPoint[]) {
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+}
+
+function drawTrack(ctx: CanvasRenderingContext2D, theme: SceneTheme, frame: number, routes: RouteConfig[], activeRouteIds: string[]) {
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  routes.forEach((route) => {
+    const isActive = activeRouteIds.includes(route.id);
+    ctx.globalAlpha = isActive ? 1 : 0.62;
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 8;
+    buildTrackPath(ctx, route.points);
+    ctx.lineWidth = 54;
+    ctx.strokeStyle = theme.trackOuter;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    buildTrackPath(ctx, route.points);
+    ctx.lineWidth = 46;
+    ctx.strokeStyle = theme.trackEdge;
+    ctx.stroke();
+
+    buildTrackPath(ctx, route.points);
+    ctx.lineWidth = 34;
+    ctx.strokeStyle = theme.trackInner;
+    ctx.stroke();
+
+    buildTrackPath(ctx, route.points);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(0,0,0,0.22)";
+    ctx.stroke();
+
+    buildTrackPath(ctx, route.points);
+    ctx.lineWidth = isActive ? 2.5 : 1.5;
+    ctx.strokeStyle = isActive ? theme.trackLine : "rgba(255,255,255,0.12)";
+    ctx.setLineDash([18, 18]);
+    ctx.lineDashOffset = -frame * 0.7;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawGate(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, label: string, isExit = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 34, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#151515";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  roundedRectPath(ctx, -26, -24, 52, 44, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = colorWithAlpha(color, isExit ? 0.22 : 0.18);
+  roundedRectPath(ctx, -16, -14, 32, 25, 6);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.84)";
+  ctx.font = "bold 8px var(--font-display)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 0, 0);
+  ctx.restore();
+}
+
+function drawObstacleSprite(ctx: CanvasRenderingContext2D, obs: ObstacleConfig) {
+  ctx.save();
+  ctx.translate(obs.x, obs.y);
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, obs.radius * 0.55, obs.radius * 1.1, obs.radius * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (obs.name.includes("Озеро")) {
+    const water = ctx.createRadialGradient(-8, -8, 4, 0, 0, obs.radius);
+    water.addColorStop(0, "#67e8f9");
+    water.addColorStop(0.45, obs.color);
+    water.addColorStop(1, "#082f49");
+    ctx.fillStyle = water;
+    ctx.strokeStyle = "#bae6fd";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, obs.radius * 1.15, obs.radius * 0.78, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.34)";
+    ctx.lineWidth = 1;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.ellipse(i * 11, -2 + i * 4, obs.radius * 0.28, 4, -0.1, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (obs.name.includes("Infinix")) {
+    ctx.rotate(-0.25);
+    ctx.fillStyle = "#111827";
+    ctx.strokeStyle = obs.borderColor;
+    ctx.lineWidth = 3;
+    roundedRectPath(ctx, -18, -28, 36, 56, 7);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#3b0764";
+    roundedRectPath(ctx, -13, -21, 26, 39, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(216,180,254,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(-10, -14);
+    ctx.lineTo(12, 6);
+    ctx.moveTo(9, -15);
+    ctx.lineTo(-7, 15);
+    ctx.stroke();
+    ctx.fillStyle = "#a855f7";
+    ctx.fillRect(-5, 21, 10, 2);
+  } else {
+    ctx.fillStyle = obs.color;
+    ctx.strokeStyle = obs.borderColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-obs.radius * 0.9, obs.radius * 0.25);
+    ctx.lineTo(-obs.radius * 0.55, -obs.radius * 0.75);
+    ctx.lineTo(obs.radius * 0.05, -obs.radius * 0.95);
+    ctx.lineTo(obs.radius * 0.82, -obs.radius * 0.2);
+    ctx.lineTo(obs.radius * 0.62, obs.radius * 0.58);
+    ctx.lineTo(-obs.radius * 0.25, obs.radius * 0.78);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-obs.radius * 0.45, -obs.radius * 0.35);
+    ctx.lineTo(obs.radius * 0.02, -obs.radius * 0.18);
+    ctx.lineTo(obs.radius * 0.38, -obs.radius * 0.55);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawMineSprite(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string, pulse = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, size * 0.45, size * 1.25, size * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = colorWithAlpha(color, 0.82);
+  ctx.strokeStyle = "#111827";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, size, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,255,255,${0.55 * pulse})`;
+  ctx.fillRect(-2, -size - 4, 4, 5);
+  ctx.restore();
+}
+
+function drawTowerSprite(ctx: CanvasRenderingContext2D, tower: PlacedTower, angle: number, selected: boolean) {
+  ctx.save();
+  ctx.translate(tower.x, tower.y);
+
+  ctx.fillStyle = "rgba(0,0,0,0.34)";
+  ctx.beginPath();
+  ctx.ellipse(0, 16, 23, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#111214";
+  ctx.strokeStyle = selected ? "#ffffff" : colorWithAlpha(tower.color, 0.92);
+  ctx.lineWidth = selected ? 3 : 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 19, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = colorWithAlpha(tower.color, 0.18);
+  ctx.beginPath();
+  ctx.arc(0, 0, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (tower.level > 1) {
+    ctx.strokeStyle = colorWithAlpha(tower.color, 0.65);
+    ctx.lineWidth = Math.min(5, 1 + tower.level * 0.7);
+    ctx.beginPath();
+    ctx.arc(0, 0, 22, -Math.PI / 2, -Math.PI / 2 + Math.min(1, tower.level / 5) * Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.rotate(angle);
+  ctx.fillStyle = tower.color;
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = 2;
+
+  switch (tower.type) {
+    case "hammer":
+      roundedRectPath(ctx, -6, -8, 16, 16, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#cbd5e1";
+      roundedRectPath(ctx, 7, -4, 22, 8, 3);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#64748b";
+      roundedRectPath(ctx, 25, -8, 9, 16, 2);
+      ctx.fill();
+      break;
+    case "boomerang":
+      ctx.strokeStyle = tower.color;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(5, 0, 15, -1.15, 1.15);
+      ctx.stroke();
+      ctx.strokeStyle = "#fef3c7";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(5, 0, 10, -1, 1);
+      ctx.stroke();
+      break;
+    case "coffee":
+      ctx.rotate(-angle);
+      ctx.fillStyle = "#facc15";
+      roundedRectPath(ctx, -11, -7, 22, 18, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.arc(12, 2, 6, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.5)";
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 5, -13);
+        ctx.quadraticCurveTo(i * 5 + 3, -18, i * 5, -23);
+        ctx.stroke();
+      }
+      break;
+    case "candy":
+      roundedRectPath(ctx, -8, -7, 28, 14, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#fed7aa";
+      ctx.beginPath();
+      ctx.arc(20, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "infinix":
+      ctx.rotate(-angle * 0.3);
+      ctx.fillStyle = "#1f1235";
+      roundedRectPath(ctx, -9, -14, 18, 28, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#a855f7";
+      ctx.fillRect(-5, -8, 10, 13);
+      ctx.strokeStyle = "#d8b4fe";
+      ctx.beginPath();
+      ctx.moveTo(0, -17);
+      ctx.lineTo(0, -25);
+      ctx.moveTo(-7, -22);
+      ctx.lineTo(7, -22);
+      ctx.stroke();
+      break;
+    case "gas":
+      ctx.rotate(-angle);
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI * 2 * i) / 8;
+        ctx.save();
+        ctx.rotate(a);
+        roundedRectPath(ctx, 5, -3, 14, 6, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.fillStyle = "#052e16";
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case "sniper":
+      roundedRectPath(ctx, -7, -6, 18, 12, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#0f172a";
+      roundedRectPath(ctx, 8, -3, 32, 6, 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#fda4af";
+      ctx.beginPath();
+      ctx.arc(2, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "chain":
+      ctx.rotate(-angle);
+      ctx.strokeStyle = "#7dd3fc";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-8, 9);
+      ctx.lineTo(-3, -1);
+      ctx.lineTo(4, 5);
+      ctx.lineTo(9, -10);
+      ctx.stroke();
+      ctx.fillStyle = "#0ea5e9";
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "kladmen":
+      ctx.rotate(-angle);
+      ctx.fillStyle = "#7f1d1d";
+      roundedRectPath(ctx, -12, -10, 24, 20, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = "#fecaca";
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(8, 0);
+      ctx.moveTo(0, -7);
+      ctx.lineTo(0, 7);
+      ctx.stroke();
+      break;
+    case "bankomat":
+      ctx.rotate(-angle);
+      ctx.fillStyle = "#1e293b";
+      roundedRectPath(ctx, -13, -16, 26, 32, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(-8, -9, 16, 7);
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(-6, 5, 12, 3);
+      break;
+    case "monolith":
+      ctx.rotate(-angle);
+      ctx.fillStyle = "#52525b";
+      ctx.beginPath();
+      ctx.moveTo(0, -20);
+      ctx.lineTo(12, 12);
+      ctx.lineTo(-12, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = "#d4d4d8";
+      ctx.beginPath();
+      ctx.moveTo(-4, -4);
+      ctx.lineTo(4, 8);
+      ctx.stroke();
+      break;
+    default:
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawTowerMini(ctx: CanvasRenderingContext2D, x: number, y: number, type: string, color: string, alpha = 1) {
+  const tower: PlacedTower = {
+    id: "preview",
+    x,
+    y,
+    type,
+    range: 0,
+    damage: 0,
+    fireRate: 0,
+    emoji: "",
+    color,
+    name: "",
+    cooldown: 0,
+    upgradesBought: [],
+    path1Tier: 0,
+    path2Tier: 0,
+    path3Tier: 0,
+    level: 1,
+    totalKills: 0,
+    pierce: 1,
+  };
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  drawTowerSprite(ctx, tower, 0, false);
+  ctx.restore();
+}
+
+function drawEnemySprite(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, frame: number) {
+  const r = enemy.radius;
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  if (enemy.isCamo) ctx.globalAlpha = enemy.isPhantomCamo ? 0.52 : 0.72;
+
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.78, r * 1.05, r * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const fill = enemy.color;
+  const stroke = enemy.borderColor;
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = Math.max(2, r * 0.12);
+
+  if (enemy.type === "granite") {
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, r * 0.35);
+    ctx.lineTo(-r * 0.58, -r * 0.62);
+    ctx.lineTo(0, -r);
+    ctx.lineTo(r * 0.8, -r * 0.22);
+    ctx.lineTo(r * 0.6, r * 0.62);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else if (enemy.type === "matryoshka" || enemy.type === "big_matryoshka") {
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.08, r * 0.75, r * 1.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = colorWithAlpha("#ffffff", 0.18);
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.24, r * 0.38, r * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (enemy.type === "phantom") {
+    ctx.fillStyle = colorWithAlpha(fill, 0.72);
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.12, r * 0.78, Math.PI, 0);
+    ctx.lineTo(r * 0.68, r * 0.65);
+    ctx.quadraticCurveTo(r * 0.3, r * 0.35, 0, r * 0.68);
+    ctx.quadraticCurveTo(-r * 0.3, r * 0.35, -r * 0.68, r * 0.65);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else if (enemy.type === "exploder") {
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#fed7aa";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.82);
+    ctx.quadraticCurveTo(r * 0.35, -r * 1.25, r * 0.72, -r * 0.9);
+    ctx.stroke();
+  } else {
+    const lean = enemy.type === "fast" || enemy.type === "jumper" ? -0.18 : 0;
+    ctx.rotate(lean);
+    roundedRectPath(ctx, -r * 0.62, -r * 0.28, r * 1.24, r * 1.08, r * 0.32);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.68, r * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.rotate(-lean);
+  }
+
+  ctx.fillStyle = "rgba(0,0,0,0.36)";
+  ctx.beginPath();
+  ctx.arc(-r * 0.2, -r * 0.68, Math.max(1.4, r * 0.08), 0, Math.PI * 2);
+  ctx.arc(r * 0.22, -r * 0.68, Math.max(1.4, r * 0.08), 0, Math.PI * 2);
+  ctx.fill();
+
+  if (enemy.isArmored || enemy.isSuperArmored || enemy.isLead) {
+    ctx.strokeStyle = enemy.isSuperArmored ? "#e5e7eb" : "#93c5fd";
+    ctx.lineWidth = enemy.isSuperArmored ? 4 : 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.95, -2.55, -0.6);
+    ctx.stroke();
+  }
+
+  if (enemy.shieldHp && enemy.shieldHp > 0) {
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 5, -Math.PI * 0.8, Math.PI * 0.8);
+    ctx.stroke();
+  }
+
+  if (enemy.type === "infinix_brat" || enemy.isGlitching) {
+    ctx.strokeStyle = colorWithAlpha("#d8b4fe", 0.65);
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const offset = Math.sin(frame * 0.12 + i) * 3;
+      ctx.strokeRect(-r * 0.75 + i * r * 0.5 + offset, -r * 1.02 + i * 2, r * 0.28, r * 0.18);
+    }
+  }
+
+  if (enemy.isRegen || enemy.isHealer) {
+    ctx.strokeStyle = enemy.isHealer ? "rgba(74,222,128,0.72)" : "rgba(244,114,182,0.62)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-4, -2);
+    ctx.lineTo(4, -2);
+    ctx.moveTo(0, -6);
+    ctx.lineTo(0, 2);
+    ctx.stroke();
+  }
+
+  if (enemy.type === "boss" || enemy.type === "megaboss") {
+    ctx.fillStyle = "#fef2f2";
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, -r * 1.02);
+    ctx.lineTo(-r * 0.25, -r * 1.55);
+    ctx.lineTo(0, -r * 1.02);
+    ctx.lineTo(r * 0.25, -r * 1.55);
+    ctx.lineTo(r * 0.55, -r * 1.02);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawProjectileSprite(ctx: CanvasRenderingContext2D, proj: Projectile) {
+  ctx.save();
+  ctx.translate(proj.x, proj.y);
+  ctx.rotate(proj.spinRotation ?? proj.angle);
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = 1.5;
+
+  switch (proj.type) {
+    case "hammer":
+      ctx.fillStyle = "#cbd5e1";
+      roundedRectPath(ctx, -5, -4, 18, 8, 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = proj.color;
+      roundedRectPath(ctx, 10, -8, 8, 16, 2);
+      ctx.fill();
+      break;
+    case "boomerang":
+      ctx.strokeStyle = proj.color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, -1.1, 1.25);
+      ctx.stroke();
+      break;
+    case "gas":
+      ctx.fillStyle = colorWithAlpha(proj.color, 0.78);
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-5, -5);
+      ctx.lineTo(-2, 0);
+      ctx.lineTo(-5, 5);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case "candy":
+      ctx.fillStyle = "#fed7aa";
+      roundedRectPath(ctx, -7, -5, 14, 10, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = proj.color;
+      ctx.fillRect(-2, -5, 4, 10);
+      break;
+    case "infinix":
+      ctx.fillStyle = colorWithAlpha(proj.color, 0.85);
+      roundedRectPath(ctx, -9, -3, 18, 6, 2);
+      ctx.fill();
+      ctx.shadowColor = proj.color;
+      ctx.shadowBlur = 8;
+      ctx.fillRect(-14, -1, 28, 2);
+      break;
+    case "sniper":
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.moveTo(13, 0);
+      ctx.lineTo(-7, -4);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-7, 4);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case "chain":
+      ctx.strokeStyle = "#7dd3fc";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(-4, -5);
+      ctx.lineTo(2, 4);
+      ctx.lineTo(12, -2);
+      ctx.stroke();
+      break;
+    default:
+      ctx.fillStyle = proj.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function getDefaultProgression(): ProgressionState {
+  const towerMastery = Object.fromEntries(Object.keys(TOWER_CONFIGS).map((towerType) => [
+    towerType,
+    { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 },
+  ]));
+  return {
+    playerLevel: 1,
+    totalXp: 0,
+    unlockedTowers: ["hammer", "boomerang"],
+    achievements: [],
+    bonusStartGold: 0,
+    bonusLives: 0,
+    towerMastery,
+    mapCompletions: Object.fromEntries(MAP_CONFIGS.map((map) => [map.id, [] as DifficultyKey[]])),
+  };
+}
+
+function normalizeProgression(progress?: Partial<ProgressionState> | null): ProgressionState {
+  const base = getDefaultProgression();
+  const totalXp = Math.max(0, Math.floor(progress?.totalXp ?? base.totalXp));
+  const playerLevel = getPlayerLevelForXp(totalXp);
+  const unlockedByLevel = Object.entries(TOWER_UNLOCK_LEVELS)
+    .filter(([, level]) => playerLevel >= level)
+    .map(([towerType]) => towerType);
+  const towerMastery = { ...base.towerMastery };
+  Object.entries(progress?.towerMastery ?? {}).forEach(([towerType, mastery]) => {
+    towerMastery[towerType] = {
+      towerXp: Math.max(0, Number(mastery.towerXp ?? 0)),
+      unlockedTiers: Array.from(new Set(mastery.unlockedTiers ?? [])),
+      highestTierAchieved: Math.max(2, Math.floor(mastery.highestTierAchieved ?? 2)),
+    };
+  });
+  const mapCompletions = Object.fromEntries(MAP_CONFIGS.map((map) => [map.id, [] as DifficultyKey[]])) as Record<string, DifficultyKey[]>;
+  Object.entries(progress?.mapCompletions ?? {}).forEach(([mapId, completions]) => {
+    if (!MAP_CONFIGS.some((map) => map.id === mapId) || !Array.isArray(completions)) return;
+    mapCompletions[mapId] = Array.from(new Set(completions.filter((key): key is DifficultyKey => key === "easy" || key === "normal" || key === "hard")));
+  });
+  return {
+    playerLevel,
+    totalXp,
+    unlockedTowers: Array.from(new Set([...(progress?.unlockedTowers ?? []), ...unlockedByLevel, "hammer", "boomerang"])),
+    achievements: Array.from(new Set(progress?.achievements ?? [])),
+    bonusStartGold: Math.min(500, Math.max(0, Math.floor(progress?.bonusStartGold ?? 0))),
+    bonusLives: Math.max(0, Math.floor(progress?.bonusLives ?? 0)),
+    towerMastery,
+    mapCompletions,
+  };
+}
+
+function mergeProgression(a: ProgressionState, b: ProgressionState): ProgressionState {
+  const totalXp = Math.max(a.totalXp, b.totalXp);
+  const achievements = Array.from(new Set([...a.achievements, ...b.achievements]));
+  const towerMastery = { ...a.towerMastery };
+  Object.entries(b.towerMastery).forEach(([towerType, mastery]) => {
+    const current = towerMastery[towerType] ?? { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 };
+    towerMastery[towerType] = {
+      towerXp: Math.max(current.towerXp, mastery.towerXp),
+      unlockedTiers: Array.from(new Set([...current.unlockedTiers, ...mastery.unlockedTiers])),
+      highestTierAchieved: Math.max(current.highestTierAchieved, mastery.highestTierAchieved),
+    };
+  });
+  return normalizeProgression({
+    totalXp,
+    achievements,
+    unlockedTowers: Array.from(new Set([...a.unlockedTowers, ...b.unlockedTowers])),
+    bonusStartGold: Math.max(a.bonusStartGold, b.bonusStartGold),
+    bonusLives: Math.max(a.bonusLives, b.bonusLives),
+    towerMastery,
+    mapCompletions: Object.fromEntries(MAP_CONFIGS.map((map) => [
+      map.id,
+      Array.from(new Set([...(a.mapCompletions[map.id] ?? []), ...(b.mapCompletions[map.id] ?? [])])),
+    ])),
+  });
+}
+
+function loadLocalProgression(): ProgressionState {
+  if (typeof window === "undefined") return getDefaultProgression();
+  try {
+    const raw = localStorage.getItem(PROGRESSION_KEY);
+    return normalizeProgression(raw ? JSON.parse(raw) : null);
+  } catch {
+    return getDefaultProgression();
+  }
+}
+
+function saveLocalProgression(progress: ProgressionState) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PROGRESSION_KEY, JSON.stringify(progress));
+  } catch {}
+}
+
+function getTierUnlockKey(pathIndex: number, tier: number) {
+  return `${pathIndex + 1}:${tier}`;
+}
 
 function loadSettings() {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -437,6 +1454,39 @@ async function fetchGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
   }
 }
 
+async function fetchBratTdData(): Promise<{ leaderboard: LeaderboardEntry[]; progress: ProgressionState | null }> {
+  try {
+    const res = await fetch("/api/brat-td");
+    if (!res.ok) return { leaderboard: [], progress: null };
+    const data = await res.json();
+    return {
+      leaderboard: (data.leaderboard ?? []).map((e: { player_name: string; score: number; wave: number; created_at: string }) => ({
+        name: e.player_name,
+        score: e.score,
+        wave: e.wave,
+        date: e.created_at?.split("T")[0] ?? "",
+        isGlobal: true,
+      })),
+      progress: data.progress ? normalizeProgression(data.progress) : null,
+    };
+  } catch {
+    return { leaderboard: [], progress: null };
+  }
+}
+
+async function saveCloudProgression(progress: ProgressionState): Promise<boolean> {
+  try {
+    const res = await fetch("/api/brat-td", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ progress }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function submitGlobalScore(playerName: string, score: number, wave: number): Promise<boolean> {
   try {
     const res = await fetch("/api/brat-td", {
@@ -480,6 +1530,7 @@ export default function BratTDClient() {
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [score, setScore] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyKey>("normal");
+  const [selectedMapId, setSelectedMapId] = useState(DEFAULT_MAP_ID);
   const [settings, setSettings] = useState<typeof DEFAULT_SETTINGS>(loadSettings);
   
   const [selectedShopTower, setSelectedShopTower] = useState<string | null>(null);
@@ -495,6 +1546,8 @@ export default function BratTDClient() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerName, setPlayerName] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [progression, setProgression] = useState<ProgressionState>(() => getDefaultProgression());
+  const [progressionLoaded, setProgressionLoaded] = useState(false);
 
   const selectedShopTowerRef = useRef<string | null>(null);
   const hoveredShopTowerRef = useRef<string | null>(null);
@@ -503,7 +1556,11 @@ export default function BratTDClient() {
   const draggedTowerTypeRef = useRef<string | null>(null);
   const draggedTowerPosRef = useRef<{ x: number; y: number } | null>(null);
   const difficultyRef = useRef<DifficultyKey>("normal");
+  const selectedMapIdRef = useRef(DEFAULT_MAP_ID);
   const settingsRef = useRef(DEFAULT_SETTINGS);
+  const progressionRef = useRef<ProgressionState>(getDefaultProgression());
+  const waveStartLivesRef = useRef(100);
+  const waveKillsRef = useRef(0);
 
   // --- GAME REFS FOR HIGH-FPS LOOP ---
   const towersRef = useRef<PlacedTower[]>([]);
@@ -532,7 +1589,7 @@ export default function BratTDClient() {
   const waveAnnouncementRef = useRef<{ wave: number; frameStart: number } | null>(null);
 
   // Spawner tracking
-  const spawnQueueRef = useRef<{ type: string; delay: number; modifiers?: EnemyModifier[] }[]>([]);
+  const spawnQueueRef = useRef<{ type: string; delay: number; modifiers?: EnemyModifier[]; routeId?: string }[]>([]);
   const spawnTimerRef = useRef<number>(0);
   const waveTotalEnemiesRef = useRef<number>(0);
   const waveTotalHpRef = useRef<number>(0);
@@ -553,17 +1610,33 @@ export default function BratTDClient() {
   useEffect(() => { draggedTowerTypeRef.current = draggedTowerType; }, [draggedTowerType]);
   useEffect(() => { draggedTowerPosRef.current = draggedTowerPos; }, [draggedTowerPos]);
   useEffect(() => { difficultyRef.current = difficulty; }, [difficulty]);
+  useEffect(() => { selectedMapIdRef.current = selectedMapId; }, [selectedMapId]);
   useEffect(() => { settingsRef.current = settings; saveSettings(settings); }, [settings]);
+  useEffect(() => { progressionRef.current = progression; }, [progression]);
 
-  // Load leaderboard on mount (API + localStorage merge)
+  // Load leaderboard and progression on mount (API + localStorage merge)
   useEffect(() => {
     const load = async () => {
       const local = getLocalLeaderboard();
-      const global = await fetchGlobalLeaderboard();
+      const { leaderboard: global, progress } = await fetchBratTdData();
       setLeaderboard(mergeLeaderboards(global, local));
+      const localProgress = loadLocalProgression();
+      const mergedProgress = progress ? mergeProgression(localProgress, progress) : localProgress;
+      setProgression(mergedProgress);
+      progressionRef.current = mergedProgress;
+      setProgressionLoaded(true);
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (!progressionLoaded) return;
+    saveLocalProgression(progression);
+    const timeout = window.setTimeout(() => {
+      saveCloudProgression(progression);
+    }, 900);
+    return () => window.clearTimeout(timeout);
+  }, [progression, progressionLoaded]);
 
   // Audio helper
   const playTowerSound = (towerType?: string) => {
@@ -581,6 +1654,160 @@ export default function BratTDClient() {
   const pushLog = (msg: string) => {
     setStatusMessage(msg);
   };
+
+  const getActiveMap = () => getMapById(selectedMapIdRef.current);
+  const getEnemyRoute = (enemy: ActiveEnemy) => getRouteById(getMapById(selectedMapIdRef.current), enemy.routeId);
+
+  const markCurrentMapCompleted = () => {
+    const mapId = selectedMapIdRef.current;
+    const difficultyKey = difficultyRef.current;
+    setProgression((prev) => {
+      const current = prev.mapCompletions[mapId] ?? [];
+      if (current.includes(difficultyKey)) return prev;
+      const next = normalizeProgression({
+        ...prev,
+        mapCompletions: {
+          ...prev.mapCompletions,
+          [mapId]: [...current, difficultyKey],
+        },
+      });
+      progressionRef.current = next;
+      pushLog(`Карту ${getMapById(mapId).name} пройдено на складності ${DIFFICULTY_CONFIG[difficultyKey].label}.`);
+      return next;
+    });
+  };
+
+  const isTowerUnlocked = (towerType: string, progress = progressionRef.current) => {
+    return progress.unlockedTowers.includes(towerType);
+  };
+
+  const isTierUnlocked = (towerType: string, pathIndex: number, tier: number, progress = progressionRef.current) => {
+    if (tier <= 2) return true;
+    return progress.towerMastery[towerType]?.unlockedTiers.includes(getTierUnlockKey(pathIndex, tier)) ?? false;
+  };
+
+  const applyAchievementRewards = (achievementIds: string[], progress: ProgressionState) => {
+    let bonusStartGold = progress.bonusStartGold;
+    let bonusLives = progress.bonusLives;
+    achievementIds.forEach((achievementId) => {
+      const reward = ACHIEVEMENTS.find((a) => a.id === achievementId)?.reward;
+      bonusStartGold += reward?.bonusStartGold ?? 0;
+      bonusLives += reward?.bonusLives ?? 0;
+    });
+    return {
+      ...progress,
+      bonusStartGold: Math.min(500, bonusStartGold),
+      bonusLives,
+    };
+  };
+
+  const awardAchievements = (achievementIds: string[]) => {
+    if (achievementIds.length === 0) return;
+    setProgression((prev) => {
+      const freshIds = achievementIds.filter((id) => !prev.achievements.includes(id));
+      if (freshIds.length === 0) return prev;
+      const next = normalizeProgression(applyAchievementRewards(freshIds, {
+        ...prev,
+        achievements: [...prev.achievements, ...freshIds],
+      }));
+      progressionRef.current = next;
+      freshIds.forEach((id) => {
+        const achievement = ACHIEVEMENTS.find((a) => a.id === id);
+        pushLog(`🏆 Досягнення: ${achievement?.name ?? id}!`);
+      });
+      return next;
+    });
+  };
+
+  const addPlayerXp = (rawXp: number) => {
+    if (rawXp <= 0) return;
+    const difficultyMult = difficultyRef.current === "hard" ? 1.5 : 1;
+    const endlessMult = getEndlessXpMultiplier(waveRef.current);
+    const gained = Math.max(1, Math.floor(rawXp * difficultyMult * endlessMult));
+    setProgression((prev) => {
+      const beforeLevel = prev.playerLevel;
+      const next = normalizeProgression({ ...prev, totalXp: prev.totalXp + gained });
+      progressionRef.current = next;
+      if (next.playerLevel > beforeLevel) {
+        pushLog(`⬆️ Рівень гравця ${next.playerLevel}! Нові вежі/нагороди відкрито.`);
+      }
+      const earned: string[] = [];
+      if (next.playerLevel >= 10) earned.push("level_10");
+      if (next.playerLevel >= 25) earned.push("level_25");
+      if (next.playerLevel >= 50) earned.push("level_50");
+      if (next.unlockedTowers.length >= Object.keys(TOWER_CONFIGS).length) earned.push("all_towers");
+      setTimeout(() => awardAchievements(earned), 0);
+      return next;
+    });
+  };
+
+  const addTowerXp = (towerType: string, amount: number) => {
+    if (amount <= 0 || !TOWER_CONFIGS[towerType]) return;
+    setProgression((prev) => {
+      const mastery = prev.towerMastery[towerType] ?? { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 };
+      const next = normalizeProgression({
+        ...prev,
+        towerMastery: {
+          ...prev.towerMastery,
+          [towerType]: {
+            ...mastery,
+            towerXp: mastery.towerXp + amount,
+          },
+        },
+      });
+      progressionRef.current = next;
+      return next;
+    });
+  };
+
+  const addTowerXpById = (towerId: string | undefined, amount: number) => {
+    if (!towerId || amount <= 0) return;
+    const tower = towersRef.current.find((t) => t.id === towerId);
+    if (tower) addTowerXp(tower.type, amount);
+  };
+
+  const unlockTierForTower = (towerType: string, pathIndex: number, tier: number) => {
+    const cost = TIER_UNLOCK_COSTS[tier];
+    if (!cost) return;
+    if (tier === 5 && progressionRef.current.playerLevel < 25) {
+      pushLog("Tier 5 відкривається тільки з рівня гравця 25.");
+      return;
+    }
+    const key = getTierUnlockKey(pathIndex, tier);
+    setProgression((prev) => {
+      const mastery = prev.towerMastery[towerType] ?? { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 };
+      if (mastery.unlockedTiers.includes(key)) return prev;
+      if (mastery.towerXp < cost) {
+        pushLog(`Недостатньо XP ${TOWER_CONFIGS[towerType].name}: треба ${cost}, є ${Math.floor(mastery.towerXp)}.`);
+        return prev;
+      }
+      const next = normalizeProgression({
+        ...prev,
+        towerMastery: {
+          ...prev.towerMastery,
+          [towerType]: {
+            ...mastery,
+            towerXp: mastery.towerXp - cost,
+            unlockedTiers: [...mastery.unlockedTiers, key],
+          },
+        },
+      });
+      progressionRef.current = next;
+      pushLog(`Відкрито ${TOWER_CONFIGS[towerType].name} P${pathIndex + 1}T${tier} за ${cost} XP.`);
+      return next;
+    });
+  };
+
+  const hasT5ForTowerPath = (towerType: string, pathIndex: number, exceptTowerId?: string) => {
+    return towersRef.current.some((tower) => {
+      if (tower.type !== towerType || tower.id === exceptTowerId) return false;
+      return pathIndex === 0 ? tower.path1Tier >= 5 : pathIndex === 1 ? tower.path2Tier >= 5 : tower.path3Tier >= 5;
+    });
+  };
+
+  useEffect(() => {
+    if (gold >= 5000) awardAchievements(["rich"]);
+  }, [gold]);
 
   const applyDifficultyToEnemy = <T extends { hp: number; maxHp?: number; speed: number; reward: number; damage: number }>(enemy: T): T => {
     const config = DIFFICULTY_CONFIG[difficultyRef.current];
@@ -607,9 +1834,12 @@ export default function BratTDClient() {
   };
 
   const isPositionOnPath = (x: number, y: number, radius = 24) => {
-    for (let i = 0; i < PATH.length - 1; i++) {
-      const dist = getDistanceToSegment({ x, y }, PATH[i], PATH[i + 1]);
-      if (dist < radius) return true;
+    const activeMap = getActiveMap();
+    for (const route of activeMap.routes) {
+      for (let i = 0; i < route.points.length - 1; i++) {
+        const dist = getDistanceToSegment({ x, y }, route.points[i], route.points[i + 1]);
+        if (dist < radius) return true;
+      }
     }
     return false;
   };
@@ -693,6 +1923,10 @@ export default function BratTDClient() {
         const idx = e.key === "0" ? 9 : parseInt(e.key) - 1;
         if (idx < towerTypes.length) {
           const type = towerTypes[idx];
+          if (!isTowerUnlocked(type)) {
+            pushLog(`${TOWER_CONFIGS[type].name} ще заблоковано.`);
+            return;
+          }
           setSelectedShopTower(selectedShopTower === type ? null : type);
           setSelectedPlacedTowerId(null);
           setSelectedTower(null);
@@ -745,13 +1979,15 @@ export default function BratTDClient() {
   };
 
   // Spawns enemy from death actions (e.g. boss minions)
-  const spawnEnemyCallback = (type: string, x: number, y: number, modifiers?: EnemyModifier[]) => {
+  const spawnEnemyCallback = (type: string, x: number, y: number, modifiers?: EnemyModifier[], routeId?: string) => {
     const baseConfig = getEnemyStatsForWave(type, waveRef.current, modifiers);
+    const activeMap = getActiveMap();
+    const route = getRouteById(activeMap, routeId ?? getWaveRouteIds(activeMap, waveRef.current)[0]);
     // Find closest pathIndex for spawned minion
     let closestIndex = 0;
     let minDist = Infinity;
-    for (let i = 0; i < PATH.length; i++) {
-      const dist = getDistance(x, y, PATH[i].x, PATH[i].y);
+    for (let i = 0; i < route.points.length; i++) {
+      const dist = getDistance(x, y, route.points[i].x, route.points[i].y);
       if (dist < minDist) {
         minDist = dist;
         closestIndex = i;
@@ -773,6 +2009,7 @@ export default function BratTDClient() {
       radius: baseConfig.radius,
       name: baseConfig.name,
       emoji: EMOJI_MAP[type] || "😐",
+      routeId: route.id,
       pathIndex: Math.max(1, closestIndex),
       distanceTraveled: 0,
       slowDuration: 0,
@@ -803,6 +2040,8 @@ export default function BratTDClient() {
   // --- GAME INITIALIZATION & CONTROL ---
   const startGame = () => {
     const selectedDifficulty = DIFFICULTY_CONFIG[difficultyRef.current];
+    const activeMap = getActiveMap();
+    const progress = progressionRef.current;
     towersRef.current = [];
     enemiesRef.current = [];
     projectilesRef.current = [];
@@ -811,10 +2050,12 @@ export default function BratTDClient() {
     floatingTextsRef.current = [];
     speedTrailsRef.current = [];
     minesRef.current = [];
-    setLives(selectedDifficulty.lives);
-    livesRef.current = selectedDifficulty.lives;
-    setGold(selectedDifficulty.gold);
-    goldRef.current = selectedDifficulty.gold;
+    const startingLives = selectedDifficulty.lives + progress.bonusLives;
+    const startingGold = selectedDifficulty.gold + progress.bonusStartGold;
+    setLives(startingLives);
+    livesRef.current = startingLives;
+    setGold(startingGold);
+    goldRef.current = startingGold;
     setWave(1);
     waveRef.current = 1;
     setIsWaveActive(false);
@@ -824,25 +2065,29 @@ export default function BratTDClient() {
     setIsPaused(false);
     setIsEndless(false);
     setScore(0);
+    waveKillsRef.current = 0;
     setSelectedShopTower(null);
     setSelectedPlacedTowerId(null);
     setSelectedTower(null);
-    pushLog(`Складність: ${selectedDifficulty.label}. Подро почув накати братви. Поставте першого юніта!`);
+    pushLog(`Карта: ${activeMap.name}. Складність: ${selectedDifficulty.label}. Поставте першого юніта!`);
   };
 
   const startNextWave = () => {
     if (isWaveActiveRef.current || gameStatusRef.current !== "playing") return;
 
     const segments = getScaledWave(waveRef.current);
+    const activeMap = getActiveMap();
+    const activeRouteIds = getWaveRouteIds(activeMap, waveRef.current);
     
     // Build spawn queue
-    const queue: { type: string; delay: number; modifiers?: EnemyModifier[] }[] = [];
+    const queue: { type: string; delay: number; modifiers?: EnemyModifier[]; routeId?: string }[] = [];
     segments.forEach((seg) => {
       for (let i = 0; i < seg.count; i++) {
         queue.push({
           type: seg.type,
           delay: seg.spawnDelay,
-          modifiers: seg.modifiers
+          modifiers: seg.modifiers,
+          routeId: activeRouteIds[i % activeRouteIds.length]
         });
       }
       if (seg.delayBeforeNext) {
@@ -852,6 +2097,8 @@ export default function BratTDClient() {
     });
 
     spawnQueueRef.current = queue;
+    waveStartLivesRef.current = livesRef.current;
+    waveKillsRef.current = 0;
     spawnTimerRef.current = 0;
     const totalEnemies = segments.reduce((sum, s) => sum + s.count, 0);
     waveTotalEnemiesRef.current = totalEnemies;
@@ -861,7 +2108,10 @@ export default function BratTDClient() {
     waveAnnouncementRef.current = { wave: waveRef.current, frameStart: frameCountRef.current };
     playTowerSound("wave");
 
-    pushLog(getWaveQuote(waveRef.current));
+    const routeNotice = activeRouteIds.length > 1
+      ? ` Маршрути: ${activeRouteIds.map((id) => getRouteById(activeMap, id).name).join(" / ")}.`
+      : "";
+    pushLog(`${getWaveQuote(waveRef.current)}${routeNotice}`);
 
     if (waveRef.current === 16) {
       pushLog("🔩 Хвиля 16: Свинцеві вороги (🔩)! Звичайні молотки не пробивають їх. Використовуйте Газ, Infinix, Цукерки, або Молот T1P4 ('Руйнівник граніту').");
@@ -895,6 +2145,12 @@ export default function BratTDClient() {
     const config = TOWER_CONFIGS[type];
     if (!config) return false;
 
+    if (!isTowerUnlocked(type)) {
+      const neededLevel = TOWER_UNLOCK_LEVELS[type] ?? 1;
+      pushLog(`${config.name} відкривається на рівні ${neededLevel}.`);
+      return false;
+    }
+
     // Validate gold
     if (gold < config.cost) {
       pushLog("Недостатньо Nescafe Gold!");
@@ -914,7 +2170,7 @@ export default function BratTDClient() {
     }
 
     // Validate collision with obstacles
-    const onObstacle = OBSTACLES.some((obs) => getDistance(x, y, obs.x, obs.y) < obs.radius + 18);
+    const onObstacle = getActiveMap().obstacles.some((obs) => getDistance(x, y, obs.x, obs.y) < obs.radius + 18);
     if (onObstacle) {
       pushLog("Не можна будувати вежу на перешкоді!");
       return false;
@@ -967,6 +2223,7 @@ export default function BratTDClient() {
     }
 
     towersRef.current.push(newTower);
+    if (towersRef.current.length >= 10) awardAchievements(["tower_farm"]);
     setGold((prev) => prev - config.cost);
     pushLog(`Створено юніт: ${config.name}!`);
     
@@ -1070,7 +2327,8 @@ export default function BratTDClient() {
     for (let i = 0; i < tower.path2Tier; i++) totalCost += baseConfig.upgrades.path2[i].cost;
     for (let i = 0; i < tower.path3Tier; i++) totalCost += baseConfig.upgrades.path3[i].cost;
 
-    const sellPrice = Math.floor(totalCost * 0.8);
+    const hasTier5 = tower.path1Tier >= 5 || tower.path2Tier >= 5 || tower.path3Tier >= 5;
+    const sellPrice = Math.floor(totalCost * (hasTier5 ? 0.5 : 0.8));
     setGold((prev) => prev + sellPrice);
     
     // Remove tower
@@ -1111,6 +2369,17 @@ export default function BratTDClient() {
 
     if (!upgrade) {
       pushLog("Шлях уже повністю прокачано!");
+      return;
+    }
+
+    const nextTier = pathIndex === 0 ? tower.path1Tier + 1 : pathIndex === 1 ? tower.path2Tier + 1 : tower.path3Tier + 1;
+    if (nextTier >= 3 && !isTierUnlocked(tower.type, pathIndex, nextTier)) {
+      pushLog(`Спочатку відкрийте ${tower.name} P${pathIndex + 1}T${nextTier} за Tower XP.`);
+      return;
+    }
+
+    if (nextTier === 5 && hasT5ForTowerPath(tower.type, pathIndex, tower.id)) {
+      pushLog(`Вже є Tier 5 для ${tower.name} на шляху ${pathIndex + 1}. Продайте його, щоб поставити інший.`);
       return;
     }
 
@@ -1177,6 +2446,24 @@ export default function BratTDClient() {
     else if (pathIndex === 1) tower.path2Tier++;
     else if (pathIndex === 2) tower.path3Tier++;
 
+    if (nextTier === 5) awardAchievements(["first_t5"]);
+
+    setProgression((prev) => {
+      const mastery = prev.towerMastery[tower.type] ?? { towerXp: 0, unlockedTiers: [], highestTierAchieved: 2 };
+      const next = normalizeProgression({
+        ...prev,
+        towerMastery: {
+          ...prev.towerMastery,
+          [tower.type]: {
+            ...mastery,
+            highestTierAchieved: Math.max(mastery.highestTierAchieved, nextTier),
+          },
+        },
+      });
+      progressionRef.current = next;
+      return next;
+    });
+
     applyUpgradeStats(tower, newStats);
     tower.level += 1;
 
@@ -1212,6 +2499,9 @@ export default function BratTDClient() {
       supportTowers.forEach((supportTower) => {
         const dist = getDistance(tower.x, tower.y, supportTower.x, supportTower.y);
         if (dist <= supportTower.range) {
+          if (isWaveActiveRef.current && frameCountRef.current % 60 === 0 && tower.id !== supportTower.id) {
+            addTowerXp(supportTower.type, 0.1);
+          }
           const buffVal = supportTower.buffMultiplier || (supportTower.type === "coffee" ? 0.05 : 0);
           if (buffVal > maxBuff) maxBuff = buffVal;
           if (supportTower.camoDetectionBuff) hasCamoBuff = true;
@@ -1263,11 +2553,13 @@ export default function BratTDClient() {
               if (nextSpawn.type) {
                 // Actually spawn the enemy
                 const baseConfig = getEnemyStatsForWave(nextSpawn.type, waveRef.current, nextSpawn.modifiers);
+                const activeMap = getActiveMap();
+                const route = getRouteById(activeMap, nextSpawn.routeId ?? getWaveRouteIds(activeMap, waveRef.current)[0]);
                 const newEnemy: ActiveEnemy = {
                   id: getPureId(),
                   type: nextSpawn.type,
-                  x: PATH[0].x,
-                  y: PATH[0].y,
+                  x: route.points[0].x,
+                  y: route.points[0].y,
                   hp: baseConfig.hp,
                   maxHp: baseConfig.hp,
                   speed: baseConfig.speed,
@@ -1278,6 +2570,7 @@ export default function BratTDClient() {
                   radius: baseConfig.radius,
                   name: baseConfig.name,
                   emoji: EMOJI_MAP[nextSpawn.type] || "😐",
+                  routeId: route.id,
                   pathIndex: 1,
                   distanceTraveled: 0,
                   slowDuration: 0,
@@ -1326,6 +2619,19 @@ export default function BratTDClient() {
               setGold((prev) => prev + finalBonus);
             }
             setScore((prev) => prev + clearedWave * 50);
+            const perfectWave = livesRef.current >= waveStartLivesRef.current;
+            addPlayerXp((clearedWave * 15 + waveKillsRef.current * 3 + (clearedWave === 46 ? 1000 : 0)) * (perfectWave ? 1.5 : 1));
+
+            const earnedAchievements: string[] = [];
+            if (clearedWave >= 1) earnedAchievements.push("first_wave");
+            if (clearedWave >= 10) earnedAchievements.push("wave_10");
+            if (clearedWave >= 20) earnedAchievements.push("wave_20");
+            if (clearedWave >= 30) earnedAchievements.push("wave_30");
+            if (clearedWave >= 40) earnedAchievements.push("wave_40");
+            if (clearedWave >= 46) earnedAchievements.push("wave_46");
+            if (clearedWave >= 46 && difficultyRef.current === "hard") earnedAchievements.push("hard_mode");
+            if (clearedWave >= 70 && isEndless) earnedAchievements.push("endless_70");
+            awardAchievements(earnedAchievements);
 
             pushLog(finalBonus > 0
               ? `Накат братви відбито! +${finalBonus} ☕ (${clearBonus ? `хвиля ${clearBonus}` : ""}${clearBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
@@ -1333,6 +2639,7 @@ export default function BratTDClient() {
             
             // Check victory conditions (after wave 46)
             if (clearedWave === 46 && !isEndless) {
+              markCurrentMapCompleted();
               gameStatusRef.current = "victory";
               setGameStatus("victory");
             } else {
@@ -1445,7 +2752,12 @@ export default function BratTDClient() {
 
           // Move enemy along path segments
           if (currentSpeed > 0) {
-            const target = PATH[enemy.pathIndex];
+            const route = getEnemyRoute(enemy);
+            const target = route.points[enemy.pathIndex];
+            if (!target) {
+              enemiesRef.current.splice(i, 1);
+              continue;
+            }
             const dx = target.x - enemy.x;
             const dy = target.y - enemy.y;
             const dist = getDistance(enemy.x, enemy.y, target.x, target.y);
@@ -1456,7 +2768,7 @@ export default function BratTDClient() {
               enemy.y = target.y;
               enemy.pathIndex++;
 
-              if (enemy.pathIndex >= PATH.length) {
+              if (enemy.pathIndex >= route.points.length) {
                 // Reached the end: player loses lives
                 setLives((prev) => {
                   const newLives = Math.max(0, prev - enemy.damage);
@@ -1510,6 +2822,7 @@ export default function BratTDClient() {
                 if (target.damageReduce) dmg = Math.floor(dmg * (1 - target.damageReduce));
                 if (dmg <= 0) return 0;
                 target.hp -= dmg;
+                addTowerXpById(mine.towerId, dmg * 0.02);
                 if (mine.slowAmount) {
                   target.gasSlowDuration = Math.max(target.gasSlowDuration || 0, 60);
                   target.gasSlowFactor = Math.max(target.gasSlowFactor || 0, mine.slowAmount);
@@ -1568,8 +2881,9 @@ export default function BratTDClient() {
               
               // Teleport forward along path
               let warpRemaining = enemy.glitchDistance || 45;
-              while (warpRemaining > 0 && enemy.pathIndex < PATH.length) {
-                const target = PATH[enemy.pathIndex];
+              const route = getEnemyRoute(enemy);
+              while (warpRemaining > 0 && enemy.pathIndex < route.points.length) {
+                const target = route.points[enemy.pathIndex];
                 const wdist = getDistance(enemy.x, enemy.y, target.x, target.y);
                 if (wdist <= warpRemaining) {
                   enemy.x = target.x;
@@ -1606,6 +2920,9 @@ export default function BratTDClient() {
 
         const towers = towersRef.current;
         towers.forEach((tower) => {
+          if (isWaveActiveRef.current && frameCountRef.current % 60 === 0) {
+            addTowerXp(tower.type, 0.5);
+          }
           // Check if affected by Gas Brat debuff (slow attack rate)
           let speedDebuff = 1.0;
           enemiesRef.current.forEach((enemy) => {
@@ -1646,24 +2963,26 @@ export default function BratTDClient() {
               if (placedMines + flyingMines < maxMines) {
                 // Collect all valid path points within range
                 const validPoints: { x: number; y: number }[] = [];
-                for (let pi = 0; pi < PATH.length - 1; pi++) {
-                  const a = PATH[pi], b = PATH[pi + 1];
-                  const segLen = Math.hypot(b.x - a.x, b.y - a.y);
-                  const step = Math.max(6, segLen / 10);
-                  const steps = Math.ceil(segLen / step);
-                  for (let si = 0; si <= steps; si++) {
-                    const t = si / steps;
-                    const px = a.x + (b.x - a.x) * t;
-                    const py = a.y + (b.y - a.y) * t;
-                    if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
-                      const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30) ||
-                        mineProjectilesRef.current.some(p => getDistance(p.targetX, p.targetY, px, py) < 30);
-                      if (!tooClose) {
-                        validPoints.push({ x: px, y: py });
+                getActiveMap().routes.forEach((route) => {
+                  for (let pi = 0; pi < route.points.length - 1; pi++) {
+                    const a = route.points[pi], b = route.points[pi + 1];
+                    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+                    const step = Math.max(6, segLen / 10);
+                    const steps = Math.ceil(segLen / step);
+                    for (let si = 0; si <= steps; si++) {
+                      const t = si / steps;
+                      const px = a.x + (b.x - a.x) * t;
+                      const py = a.y + (b.y - a.y) * t;
+                      if (getDistance(tower.x, tower.y, px, py) <= effectiveRange) {
+                        const tooClose = minesRef.current.some(m => getDistance(m.x, m.y, px, py) < 30) ||
+                          mineProjectilesRef.current.some(p => getDistance(p.targetX, p.targetY, px, py) < 30);
+                        if (!tooClose) {
+                          validPoints.push({ x: px, y: py });
+                        }
                       }
                     }
                   }
-                }
+                });
 
                 if (validPoints.length > 0) {
                   const chosen = validPoints[Math.floor(getPureRandom() * validPoints.length)];
@@ -1710,6 +3029,7 @@ export default function BratTDClient() {
                   damage: effectiveDamage,
                   emoji: tower.emoji,
                   color: tower.color,
+                  towerId: tower.id,
                   damageDebuff: tower.damageDebuff,
                   freezeChance: tower.freezeChance,
                   slowAmount: tower.slowAmount || 0.15,
@@ -1754,7 +3074,7 @@ export default function BratTDClient() {
                 const dy = target.y - tower.y;
                 const angle = Math.atan2(dy, dx);
 
-                const newProj: Projectile = {
+                  const newProj: Projectile = {
                   id: projId,
                   type: tower.type,
                   x: tower.x,
@@ -1764,6 +3084,7 @@ export default function BratTDClient() {
                   damage: getEffectiveTowerDamage(tower),
                   emoji: tower.emoji,
                   color: tower.color,
+                  towerId: tower.id,
                   ignoresArmor: tower.ignoresArmor,
                   armorPierce: tower.coffeeIgnoreArmorBuff,
                   freezeChance: tower.freezeChance,
@@ -1887,6 +3208,7 @@ export default function BratTDClient() {
                 damage: getEffectiveTowerDamage(tower),
                 emoji: tower.emoji,
                 color: tower.color,
+                towerId: tower.id,
                 critChance: tower.critChance,
                 isAoESlow: tower.isAoESlow,
                 damageDebuff: tower.damageDebuff,
@@ -2235,6 +3557,7 @@ export default function BratTDClient() {
               // Apply damage
               const wasAlive = enemy.hp > 0;
               enemy.hp -= dmg;
+              if (dmg > 0) addTowerXpById(proj.towerId, dmg * 0.02);
               enemy.lastHitFrame = frameCountRef.current;
 
               // Damage numbers
@@ -2301,6 +3624,7 @@ export default function BratTDClient() {
                     if (neighbor.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * neighbor.damageDebuff);
                     if (neighbor.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - neighbor.damageReduce));
                     neighbor.hp -= splashDmg;
+                    if (splashDmg > 0) addTowerXpById(proj.towerId, splashDmg * 0.02);
                     if (splashDmg > 0) {
                       spawnFloatingText(neighbor.x, neighbor.y - 10, `-${splashDmg}`, "#f472b6", 11);
                     }
@@ -2343,6 +3667,7 @@ export default function BratTDClient() {
                         if (other.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * other.damageDebuff);
                         if (other.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - other.damageReduce));
                         other.hp -= splashDmg;
+                        if (splashDmg > 0) addTowerXpById(proj.towerId, splashDmg * 0.02);
                       }
                     }
                   });
@@ -2404,37 +3729,11 @@ export default function BratTDClient() {
               if (proj.knockbackChance && getPureRandom() < proj.knockbackChance && !enemy.knockbackImmune) {
                 const kbDist = proj.knockbackDistance || 50;
                 enemy.distanceTraveled = Math.max(0, enemy.distanceTraveled - kbDist);
-                
-                let remainingDist = enemy.distanceTraveled;
-                let currentX = PATH[0].x;
-                let currentY = PATH[0].y;
-                let newPathIndex = 1;
-                
-                for (let p = 0; p < PATH.length - 1; p++) {
-                  const p1 = PATH[p];
-                  const p2 = PATH[p + 1];
-                  const segLen = getDistance(p1.x, p1.y, p2.x, p2.y);
-                  if (remainingDist <= segLen) {
-                    const t = segLen > 0 ? remainingDist / segLen : 0;
-                    currentX = p1.x + (p2.x - p1.x) * t;
-                    currentY = p1.y + (p2.y - p1.y) * t;
-                    newPathIndex = p + 1;
-                    break;
-                  } else {
-                    remainingDist -= segLen;
-                    currentX = p2.x;
-                    currentY = p2.y;
-                    newPathIndex = p + 2;
-                  }
-                }
-                if (newPathIndex >= PATH.length) {
-                  newPathIndex = PATH.length - 1;
-                  currentX = PATH[PATH.length - 1].x;
-                  currentY = PATH[PATH.length - 1].y;
-                }
-                enemy.x = currentX;
-                enemy.y = currentY;
-                enemy.pathIndex = newPathIndex;
+                const route = getEnemyRoute(enemy);
+                const position = getRouteDistancePosition(route.points, enemy.distanceTraveled);
+                enemy.x = position.x;
+                enemy.y = position.y;
+                enemy.pathIndex = position.pathIndex;
                 
                 spawnFloatingText(enemy.x, enemy.y - 15, "💥 ВІДКИД", "#c084fc");
                 spawnHitParticles(enemy.x, enemy.y, "#d8b4fe", 8, "square");
@@ -2459,6 +3758,7 @@ export default function BratTDClient() {
                   if (other.damageDebuff && splashDmg > 0) splashDmg = Math.floor(splashDmg * other.damageDebuff);
                   if (other.damageReduce && splashDmg > 0) splashDmg = Math.floor(splashDmg * (1 - other.damageReduce));
                   other.hp -= splashDmg;
+                  if (splashDmg > 0) addTowerXpById(proj.towerId, splashDmg * 0.02);
                 });
                 spawnHitParticles(enemy.x, enemy.y, "#f43f5e", 14, "square");
               }
@@ -2527,7 +3827,10 @@ export default function BratTDClient() {
         // --- 6. UNIFIED DEAD ENEMIES CLEANUP ---
         for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
           const enemy = enemiesRef.current[i];
-          if (enemy.hp <= 0) {
+            if (enemy.hp <= 0) {
+            waveKillsRef.current++;
+            if (enemy.type === "boss") addPlayerXp(100);
+            if (enemy.type === "megaboss") addPlayerXp(300);
             // Reward gold
             setGold((prev) => prev + enemy.reward);
             setScore((prev) => prev + 1);
@@ -2568,7 +3871,7 @@ export default function BratTDClient() {
 
             // Spawn minions if boss
             if (enemy.onDeath) {
-              enemy.onDeath(enemy.x, enemy.y, spawnEnemyCallback);
+              enemy.onDeath(enemy.x, enemy.y, (type, rx, ry, modifiers) => spawnEnemyCallback(type, rx, ry, modifiers, enemy.routeId));
             }
 
             // Exploder stun
@@ -2609,16 +3912,10 @@ export default function BratTDClient() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Map theme based on wave
-      const themes = [
-        { bg: "#000000", grid: "rgba(58, 58, 63, 0.2)", accent: "#06b6d4" }, // Night (default)
-        { bg: "#0a0a1a", grid: "rgba(58, 58, 80, 0.25)", accent: "#818cf8" }, // Twilight
-        { bg: "#0f0a00", grid: "rgba(80, 58, 30, 0.25)", accent: "#f59e0b" }, // Sunset
-        { bg: "#0a000a", grid: "rgba(80, 30, 58, 0.25)", accent: "#ec4899" }, // Neon
-        { bg: "#001a0a", grid: "rgba(30, 80, 58, 0.25)", accent: "#22c55e" }, // Toxic
-      ];
-      const themeIdx = Math.floor((waveRef.current - 1) / 10) % themes.length;
-      const theme = themes[themeIdx];
+      const themeIdx = Math.floor((waveRef.current - 1) / 10) % SCENE_THEMES.length;
+      const theme = SCENE_THEMES[themeIdx];
+      const activeMap = getActiveMap();
+      const activeRouteIds = getWaveRouteIds(activeMap, waveRef.current);
 
       // Screen shake
       const shake = screenShakeRef.current;
@@ -2632,116 +3929,16 @@ export default function BratTDClient() {
         ctx.translate(shake.x, shake.y);
       }
 
-      // Clear screen
-      ctx.fillStyle = theme.bg; // SpaceX dark night
-      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-      // --- Draw Grid (Background vibe) ---
-      const gridSize = 40;
-      const gridOffset = (frameCountRef.current * 0.3) % gridSize;
-      ctx.strokeStyle = theme.grid;
-      ctx.lineWidth = 1;
-      for (let x = -gridSize + gridOffset; x < GAME_WIDTH + gridSize; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, GAME_HEIGHT);
-        ctx.stroke();
-      }
-      for (let y = -gridSize + gridOffset; y < GAME_HEIGHT + gridSize; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(GAME_WIDTH, y);
-        ctx.stroke();
-      }
-
-      // --- Draw Path (Track) ---
-      // 1. Dark wide backing
-      ctx.beginPath();
-      ctx.moveTo(PATH[0].x, PATH[0].y);
-      for (let i = 1; i < PATH.length; i++) {
-        ctx.lineTo(PATH[i].x, PATH[i].y);
-      }
-      ctx.lineWidth = 36;
-      ctx.strokeStyle = "#0d0d0f"; // Night soft backing
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.stroke();
-
-      ctx.lineWidth = 28;
-      ctx.strokeStyle = "#17171a"; // Dark inner road
-      ctx.stroke();
-
-      // 2. Neon cyan glowing power rails (circuit look)
-      ctx.beginPath();
-      ctx.moveTo(PATH[0].x, PATH[0].y);
-      for (let i = 1; i < PATH.length; i++) {
-        ctx.lineTo(PATH[i].x, PATH[i].y);
-      }
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = theme.accent; // Cyan rail
-      ctx.lineDashOffset = -frameCountRef.current * 2;
-      ctx.setLineDash([8, 12]);
-      
-      // Glow settings
-      ctx.shadowColor = theme.accent;
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      
-      // Reset shadow for performance
-      ctx.shadowBlur = 0;
-
-      // 3. Portals / Gates
-      // Starting Portal (Korostyshiv Granite Pit Entry)
-      const startX = PATH[0].x;
-      const startY = PATH[0].y;
-      ctx.beginPath();
-      ctx.arc(startX + 15, startY, 20, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(34, 197, 94, 0.25)"; // green tint
-      ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 3;
-      ctx.shadowColor = "#22c55e";
-      ctx.shadowBlur = 6;
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 9px var(--font-display)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("ВХІД", startX + 15, startY);
-
-      // Ending Gate (KODLOHUB Core)
-      const endX = PATH[PATH.length - 1].x;
-      const endY = PATH[PATH.length - 1].y;
-      ctx.beginPath();
-      ctx.arc(endX - 15, endY, 22, 0, Math.PI * 2);
-      ctx.fillStyle = livesRef.current < 40 ? "rgba(239, 68, 68, 0.25)" : "rgba(56, 189, 248, 0.25)"; // pulse red if health low
-      ctx.strokeStyle = livesRef.current < 40 ? "#ef4444" : "#38bdf8";
-      ctx.lineWidth = 3;
-      ctx.shadowColor = livesRef.current < 40 ? "#ef4444" : "#38bdf8";
-      ctx.shadowBlur = 8;
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 9px var(--font-display)";
-      ctx.fillText("CORE", endX - 15, endY);
+      drawSceneBackground(ctx, theme, frameCountRef.current, activeMap.decor);
+      drawTrack(ctx, theme, frameCountRef.current, activeMap.routes, activeRouteIds);
+      activeMap.gates.forEach((gate) => {
+        drawGate(ctx, gate.x, gate.y, gate.isExit && livesRef.current < 40 ? "#ef4444" : gate.color, gate.label, gate.isExit);
+      });
 
       // --- Draw Mines ---
       minesRef.current.forEach((mine) => {
         const pulse = Math.sin(frameCountRef.current * 0.15) * 0.3 + 0.7;
-        // Mine body (small red circle)
-        ctx.beginPath();
-        ctx.arc(mine.x, mine.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(239, 68, 68, ${0.6 * pulse})`;
-        ctx.fill();
-        ctx.strokeStyle = "#dc2626";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // Trigger radius indicator (subtle)
+        drawMineSprite(ctx, mine.x, mine.y, 5.5, "#ef4444", pulse);
         ctx.beginPath();
         ctx.arc(mine.x, mine.y, mine.triggerRadius, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(239, 68, 68, ${0.12 * pulse})`;
@@ -2752,19 +3949,10 @@ export default function BratTDClient() {
       // --- Draw Thrown Mines ---
       mineProjectilesRef.current.forEach((mp) => {
         const arcHeight = Math.sin(mp.progress * Math.PI) * 16;
-        // Ground shadow shrinks as the mine lands
-        ctx.beginPath();
-        ctx.arc(mp.x, mp.y + 2, 3 + (1 - mp.progress) * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.25 * (1 - mp.progress * 0.5)})`;
-        ctx.fill();
-        // Flying mine emoji
         ctx.save();
         ctx.translate(mp.x, mp.y - arcHeight);
         ctx.rotate(mp.progress * Math.PI * 2);
-        ctx.font = "14px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("💣", 0, 0);
+        drawMineSprite(ctx, 0, 0, 6, mp.color, 1);
         ctx.restore();
       });
 
@@ -2776,35 +3964,7 @@ export default function BratTDClient() {
         ctx.fill();
       });
 
-      // --- Draw Obstacles ---
-      OBSTACLES.forEach((obs) => {
-        // Draw glow aura
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${obs.color === "#1d4ed8" ? "29, 78, 216" : obs.color === "#6b21a8" ? "107, 33, 168" : "75, 85, 99"}, 0.12)`;
-        ctx.strokeStyle = obs.borderColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fill();
-
-        // Draw inner obstacle body
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y, obs.radius - 4, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(10, 10, 10, 0.85)";
-        ctx.fill();
-
-        // Draw emoji
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "20px var(--font-display)";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(obs.emoji, obs.x, obs.y);
-
-        // Draw name label below
-        ctx.font = "bold 8px var(--font-display)";
-        ctx.fillStyle = "rgba(156, 163, 175, 0.85)"; // text-ink-mute
-        ctx.fillText(obs.name.toUpperCase(), obs.x, obs.y + obs.radius - 1);
-      });
+      activeMap.obstacles.forEach((obs) => drawObstacleSprite(ctx, obs));
 
       // --- Draw Placed Tower Ranges (when selected) ---
       if (selectedPlacedTowerId) {
@@ -2876,27 +4036,6 @@ export default function BratTDClient() {
 
       // --- Draw Towers ---
       towersRef.current.forEach((tower) => {
-        // Base ring
-        ctx.beginPath();
-        ctx.arc(tower.x, tower.y, 18, 0, Math.PI * 2);
-        ctx.fillStyle = "#0d0d0f"; // dark plate
-        ctx.strokeStyle = selectedPlacedTowerId === tower.id ? "#ffffff" : tower.color;
-        ctx.lineWidth = selectedPlacedTowerId === tower.id ? 2.5 : 1.5;
-        ctx.fill();
-        ctx.stroke();
-
-        // Level indicator stars/dots on top border of tower
-        ctx.fillStyle = tower.color;
-        for (let l = 0; l < tower.level; l++) {
-          const angle = -Math.PI / 2 + (l - (tower.level - 1) / 2) * 0.3;
-          const sx = tower.x + Math.cos(angle) * 23;
-          const sy = tower.y + Math.sin(angle) * 23;
-          ctx.beginPath();
-          ctx.arc(sx, sy, 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Draw emoji inside (rotate toward nearest enemy)
         let towerAngle = 0;
         if (!isSupportTowerType(tower.type) && tower.type !== "gas") {
           let nearestEnemy: ActiveEnemy | null = null;
@@ -2913,14 +4052,7 @@ export default function BratTDClient() {
             towerAngle = Math.atan2(nearestEnemy.y - tower.y, nearestEnemy.x - tower.x);
           }
         }
-        ctx.save();
-        ctx.translate(tower.x, tower.y);
-        ctx.rotate(towerAngle);
-        ctx.font = "20px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(tower.emoji, 0, 0);
-        ctx.restore();
+        drawTowerSprite(ctx, tower, towerAngle, selectedPlacedTowerId === tower.id);
 
         // Support buff visual indicator
         if (tower.hasCoffeeBuff && !isSupportTowerType(tower.type)) {
@@ -2941,15 +4073,27 @@ export default function BratTDClient() {
           ctx.fillStyle = `rgba(234, 179, 8, ${0.06 * pulse * strength})`;
           ctx.fill();
 
-          // Small support icon above tower
-          ctx.font = "10px Arial";
-          ctx.fillText("✦", tower.x, tower.y - 24);
+          ctx.fillStyle = `rgba(250, 204, 21, ${0.78 * pulse})`;
+          ctx.beginPath();
+          ctx.moveTo(tower.x, tower.y - 31);
+          ctx.lineTo(tower.x + 4, tower.y - 25);
+          ctx.lineTo(tower.x, tower.y - 19);
+          ctx.lineTo(tower.x - 4, tower.y - 25);
+          ctx.closePath();
+          ctx.fill();
         }
 
         // Camo buff indicator
         if (tower.hasCamoBuff && !tower.camoDetection) {
-          ctx.font = "9px Arial";
-          ctx.fillText("👁", tower.x + 14, tower.y - 18);
+          ctx.strokeStyle = "rgba(125, 211, 252, 0.85)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(tower.x + 15, tower.y - 18, 6, 3.5, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(125, 211, 252, 0.85)";
+          ctx.beginPath();
+          ctx.arc(tower.x + 15, tower.y - 18, 2, 0, Math.PI * 2);
+          ctx.fill();
         }
       });
 
@@ -2961,7 +4105,7 @@ export default function BratTDClient() {
         const config = TOWER_CONFIGS[activePreviewType];
         if (config) {
           const onPath = isPositionOnPath(previewPos.x, previewPos.y, 26);
-          const onObstacle = OBSTACLES.some((obs) => getDistance(previewPos.x, previewPos.y, obs.x, obs.y) < obs.radius + 18);
+          const onObstacle = activeMap.obstacles.some((obs) => getDistance(previewPos.x, previewPos.y, obs.x, obs.y) < obs.radius + 18);
           const overlap = towersRef.current.some((t) => getDistance(previewPos.x, previewPos.y, t.x, t.y) < 26);
           const outOfBounds = previewPos.x < 24 || previewPos.x > GAME_WIDTH - 24 || previewPos.y < 24 || previewPos.y > GAME_HEIGHT - 24;
           const invalid = onPath || onObstacle || overlap || outOfBounds;
@@ -2977,7 +4121,7 @@ export default function BratTDClient() {
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Tower base preview circle
+          // Tower base preview
           ctx.beginPath();
           ctx.arc(previewPos.x, previewPos.y, 18, 0, Math.PI * 2);
           ctx.fillStyle = invalid ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)";
@@ -2986,14 +4130,7 @@ export default function BratTDClient() {
           ctx.fill();
           ctx.stroke();
 
-          // Tower emoji
-          ctx.font = "20px Arial";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = "#ffffff";
-          ctx.globalAlpha = 0.8;
-          ctx.fillText(config.emoji, previewPos.x, previewPos.y);
-          ctx.globalAlpha = 1.0;
+          drawTowerMini(ctx, previewPos.x, previewPos.y, activePreviewType, config.color, 0.86);
 
           // Tower name above
           ctx.font = "bold 10px Arial";
@@ -3013,7 +4150,7 @@ export default function BratTDClient() {
           } else {
             ctx.fillStyle = "rgba(34, 197, 94, 0.7)";
             ctx.font = "9px Arial";
-            ctx.fillText(`☕ ${config.cost}`, previewPos.x, previewPos.y + 28);
+            ctx.fillText(`GOLD ${config.cost}`, previewPos.x, previewPos.y + 28);
           }
         }
       }
@@ -3045,20 +4182,7 @@ export default function BratTDClient() {
           ctx.fill();
         }
 
-        // Base circle
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
-        ctx.fillStyle = enemy.color;
-        ctx.strokeStyle = enemy.borderColor;
-        ctx.lineWidth = 2;
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw emoji inside
-        ctx.font = `${enemy.radius * 1.2}px Arial`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(enemy.emoji, enemy.x, enemy.y);
+        drawEnemySprite(ctx, enemy, frameCountRef.current);
 
         // Tier indicator badge
         if (enemy.tier && enemy.tier > 1) {
@@ -3190,17 +4314,7 @@ export default function BratTDClient() {
 
       // --- Draw Projectiles ---
       projectilesRef.current.forEach((proj) => {
-        ctx.save();
-        ctx.translate(proj.x, proj.y);
-        ctx.rotate(proj.spinRotation ?? proj.angle);
-
-        ctx.font = "16px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        // Draw rotated projectile emoji
-        ctx.fillText(proj.emoji, 0, 0);
-
-        ctx.restore();
+        drawProjectileSprite(ctx, proj);
       });
 
       // --- Draw Particles ---
@@ -3365,7 +4479,7 @@ export default function BratTDClient() {
             <div className="flex flex-col">
               <span className="micro-cap text-ink-mute">Нерви Кодла (HP)</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xl">❤️</span>
+                <span className="rounded border border-red-900/70 bg-red-950/40 px-1.5 py-0.5 text-[10px] font-bold text-red-300">HP</span>
                 <span className={`text-xl font-bold font-[var(--font-display)] ${lives <= 35 ? "text-red-500 animate-pulse" : "text-on-primary"}`}>
                   {lives}
                 </span>
@@ -3381,7 +4495,7 @@ export default function BratTDClient() {
             <div className="flex flex-col">
               <span className="micro-cap text-ink-mute">Nescafe Gold (Валюта)</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xl">☕</span>
+                <span className="rounded border border-yellow-900/70 bg-yellow-950/40 px-1.5 py-0.5 text-[10px] font-bold text-yellow-300">GOLD</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-yellow-500">
                   {gold}
                 </span>
@@ -3391,7 +4505,7 @@ export default function BratTDClient() {
             <div className="flex flex-col">
               <span className="micro-cap text-ink-mute">Score</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xl">⭐</span>
+                <span className="rounded border border-purple-900/70 bg-purple-950/40 px-1.5 py-0.5 text-[10px] font-bold text-purple-300">PTS</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-purple-400">
                   {score}
                 </span>
@@ -3401,7 +4515,7 @@ export default function BratTDClient() {
             <div className="flex flex-col min-w-[140px]">
               <span className="micro-cap text-ink-mute">Накат Братви (Хвиля)</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xl">🌊</span>
+                <span className="rounded border border-cyan-900/70 bg-cyan-950/40 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">WAVE</span>
                 <span className="text-xl font-bold font-[var(--font-display)] text-on-primary">
                   {wave} {isEndless && <span className="text-xs text-purple-400 font-normal">Endless</span>}
                 </span>
@@ -3427,6 +4541,23 @@ export default function BratTDClient() {
                 </div>
               )}
             </div>
+
+            {(() => {
+              const levelProgress = getPlayerLevelProgress(progression.totalXp);
+              const pct = levelProgress.nextRequirement > 0 ? Math.min(100, (levelProgress.currentXp / levelProgress.nextRequirement) * 100) : 100;
+              return (
+                <div className="flex flex-col min-w-[150px]">
+                  <span className="micro-cap text-ink-mute">Прогресія</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="rounded border border-cyan-900/70 bg-cyan-950/40 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">LVL</span>
+                    <span className="text-xl font-bold font-[var(--font-display)] text-cyan-300">LVL {progression.playerLevel}</span>
+                  </div>
+                  <div className="mt-1 w-32 h-1.5 bg-zinc-800 rounded overflow-hidden">
+                    <div className="h-full bg-cyan-400 transition-all duration-300" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Action buttons */}
@@ -3638,6 +4769,33 @@ export default function BratTDClient() {
                 Захистіть Кодлохаб від хвиль Братви. Ставте Подро-юнітів, які кидатимуть молотки,
                 каву та святих рачків.
               </p>
+              <div className="mb-4 grid w-full max-w-2xl gap-2 sm:grid-cols-3">
+                {MAP_CONFIGS.map((map) => {
+                  const completions = progression.mapCompletions[map.id] ?? [];
+                  const isSelected = selectedMapId === map.id;
+                  return (
+                    <button
+                      key={map.id}
+                      onClick={() => setSelectedMapId(map.id)}
+                      className={`rounded border p-3 text-left transition-colors ${isSelected ? "border-cyan-400 bg-cyan-950/40" : "border-hairline-dark bg-black/30 hover:border-on-primary-mute"}`}
+                    >
+                      <span className="block text-xs font-bold text-on-primary">{map.name}</span>
+                      <span className="mt-0.5 block text-[10px] uppercase tracking-wider text-cyan-300">{map.difficultyLabel}</span>
+                      <span className="mt-1 block min-h-10 text-[10px] leading-tight text-ink-mute">{map.description}</span>
+                      <span className="mt-2 flex flex-wrap gap-1">
+                        {(Object.keys(DIFFICULTY_CONFIG) as DifficultyKey[]).map((key) => (
+                          <span
+                            key={key}
+                            className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${completions.includes(key) ? "border-green-700 bg-green-950/50 text-green-300" : "border-hairline-dark bg-black/30 text-ink-mute"}`}
+                          >
+                            {key.toUpperCase()}
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="grid grid-cols-3 gap-2 mb-4 w-full max-w-md">
                 {(Object.entries(DIFFICULTY_CONFIG) as [DifficultyKey, typeof DIFFICULTY_CONFIG[DifficultyKey]][]).map(([key, cfg]) => (
                   <button
@@ -3689,6 +4847,8 @@ export default function BratTDClient() {
         {gameStatus === "playing" && !isWaveActive && (() => {
           const nextWaveNum = wave;
           if (nextWaveNum > 56) return null;
+          const activeMap = getMapById(selectedMapId);
+          const routeIds = getWaveRouteIds(activeMap, nextWaveNum);
           const nextSegments = getScaledWave(nextWaveNum);
           const counts: Record<string, number> = {};
           let totalHp = 0;
@@ -3712,10 +4872,20 @@ export default function BratTDClient() {
                 <span className="micro-cap text-ink-mute">Наступна хвиля {nextWaveNum}:</span>
                 <span className="text-ink-mute text-xs">{totalEnemies} ворогів • {Math.round(totalHp / 1000)}к HP</span>
               </div>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {routeIds.map((routeId) => (
+                  <span key={routeId} className="rounded border border-cyan-900/70 bg-cyan-950/30 px-1.5 py-0.5 text-[10px] text-cyan-300">
+                    {getRouteById(activeMap, routeId).name}
+                  </span>
+                ))}
+              </div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 {types.map((t) => (
                   <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black/40 border border-hairline-dark rounded text-xs" title={t}>
-                    <span className="text-base">{EMOJI_MAP[t] || "?"}</span>
+                    <span
+                      className="h-2.5 w-2.5 rounded-sm border border-white/20"
+                      style={{ backgroundColor: ENEMY_CONFIGS[t]?.color ?? "#94a3b8" }}
+                    />
                     <span className="font-mono text-on-primary">{counts[t]}</span>
                   </span>
                 ))}
@@ -3741,16 +4911,66 @@ export default function BratTDClient() {
 
       {/* RIGHT: Sidebar Shop & Upgrades */}
       <div className="flex flex-col gap-6">
+        <div className="card-dark p-4 border-hairline-dark">
+          {(() => {
+            const levelProgress = getPlayerLevelProgress(progression.totalXp);
+            const nextTower = Object.entries(TOWER_UNLOCK_LEVELS)
+              .filter(([towerType, level]) => level > progression.playerLevel && TOWER_CONFIGS[towerType])
+              .sort((a, b) => a[1] - b[1])[0];
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="micro-cap text-ink-mute">ПРОГРЕСІЯ</p>
+                  <span className="text-xs font-bold text-cyan-300">LVL {progression.playerLevel}</span>
+                </div>
+                <div className="h-2 bg-zinc-800 rounded overflow-hidden mb-2">
+                  <div
+                    className="h-full bg-cyan-400"
+                    style={{ width: `${levelProgress.nextRequirement > 0 ? Math.min(100, (levelProgress.currentXp / levelProgress.nextRequirement) * 100) : 100}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-on-primary-mute mb-2">
+                  XP: {Math.floor(levelProgress.currentXp)} / {levelProgress.nextRequirement || "MAX"}
+                </p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {Object.entries(TOWER_CONFIGS).map(([towerType, cfg]) => (
+                    <span
+                      key={towerType}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded border ${isTowerUnlocked(towerType, progression) ? "border-cyan-800 bg-cyan-950/30" : "border-hairline-dark bg-black/30 opacity-40"}`}
+                      title={`${cfg.name}${isTowerUnlocked(towerType, progression) ? "" : ` · LVL ${TOWER_UNLOCK_LEVELS[towerType]}`}`}
+                    >
+                      <span className="h-3 w-3 rounded-sm border border-white/20" style={{ backgroundColor: cfg.color }} />
+                    </span>
+                  ))}
+                </div>
+                {nextTower && (
+                  <p className="text-[11px] text-ink-mute">
+                    Наступна вежа: {TOWER_CONFIGS[nextTower[0]].name} на LVL {nextTower[1]}
+                  </p>
+                )}
+                <p className="text-[11px] text-yellow-400 mt-2">
+                  Бонус старту: +{progression.bonusStartGold} GOLD / +{progression.bonusLives} HP
+                </p>
+                <p className="text-[11px] text-ink-mute mt-1">
+                  Досягнення: {progression.achievements.length}/{ACHIEVEMENTS.length}
+                </p>
+              </>
+            );
+          })()}
+        </div>
         {selectedPlacedTower ? (
           // Upgrades Panel (appears when a placed tower is selected, replacing shop)
           <div className="card-dark p-4 border-hairline-dark bg-canvas-night-soft animate-slide-up">
             <div className="flex items-center justify-between border-b border-hairline-dark pb-3 mb-3">
               <div>
                 <h3 className="font-bold text-on-primary flex items-center gap-2 button-cap">
-                  <span>{selectedPlacedTower.emoji}</span>
+                  <span className="h-3 w-3 rounded-sm border border-white/20" style={{ backgroundColor: selectedPlacedTower.color }} />
                   {selectedPlacedTower.name}
                 </h3>
                 <p className="text-xs text-ink-mute mt-0.5">Рівень: {selectedPlacedTower.level} | Убивств: {selectedPlacedTower.totalKills}</p>
+                <p className="text-[10px] text-cyan-300 mt-0.5">
+                  Mastery XP: {Math.floor(progression.towerMastery[selectedPlacedTower.type]?.towerXp ?? 0)}
+                </p>
                 {!isSupportTowerType(selectedPlacedTower.type) && (
                   <>
                     {/* Targeting mode toggle */}
@@ -3791,7 +5011,7 @@ export default function BratTDClient() {
                         for (let i = 0; i < selectedPlacedTower.path2Tier; i++) upCost += baseConfig.upgrades.path2[i].cost;
                         for (let i = 0; i < selectedPlacedTower.path3Tier; i++) upCost += baseConfig.upgrades.path3[i].cost;
                         return upCost;
-                      }                  )()) * 0.8
+                      }                  )()) * ((selectedPlacedTower.path1Tier >= 5 || selectedPlacedTower.path2Tier >= 5 || selectedPlacedTower.path3Tier >= 5) ? 0.5 : 0.8)
                   )} ☕
                 </button>
                 <button
@@ -3930,6 +5150,12 @@ export default function BratTDClient() {
 
                 const nextUpgrade = currentTier < 5 ? pathUpgrades[currentTier] : null;
                 const canAfford = nextUpgrade ? gold >= nextUpgrade.cost : false;
+                const nextTier = currentTier + 1;
+                const tierUnlocked = nextUpgrade ? isTierUnlocked(selectedPlacedTower.type, pathIndex, nextTier, progression) : true;
+                const unlockCost = TIER_UNLOCK_COSTS[nextTier];
+                const masteryXp = progression.towerMastery[selectedPlacedTower.type]?.towerXp ?? 0;
+                const canUnlockTier = Boolean(unlockCost && masteryXp >= unlockCost && (nextTier !== 5 || progression.playerLevel >= 25));
+                const t5PathTaken = false;
 
                 return (
                   <div key={pathIndex} className="border border-hairline-dark/60 rounded p-2.5 bg-canvas-night bg-opacity-40">
@@ -3955,7 +5181,31 @@ export default function BratTDClient() {
                     {nextUpgrade ? (
                       isLocked ? (
                         <div className="p-2 border border-dashed border-red-950/50 bg-red-950/10 text-red-400 rounded text-center text-xs micro-cap">
-                          ЗАБЛОКОВАНО
+                          ЗАБЛОКОВАНО CROSSPATH
+                        </div>
+                      ) : !tierUnlocked ? (
+                        <button
+                          disabled={!canUnlockTier}
+                          onClick={() => unlockTierForTower(selectedPlacedTower.type, pathIndex, nextTier)}
+                          className={`w-full p-2.5 border rounded text-left transition-all ${
+                            canUnlockTier
+                              ? "border-cyan-700 bg-cyan-950/20 hover:border-cyan-400"
+                              : "border-hairline-dark/40 opacity-60 cursor-not-allowed"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-semibold text-xs text-cyan-200">Відкрити T{nextTier}</span>
+                            <span className="text-xs font-semibold text-cyan-400">XP {unlockCost}</span>
+                          </div>
+                          <p className="text-[11px] text-on-primary-mute leading-relaxed">
+                            {nextTier === 5 && progression.playerLevel < 25
+                              ? "Потрібен рівень гравця 25."
+                              : `Потрібно XP цієї вежі. Є ${Math.floor(masteryXp)}.`}
+                          </p>
+                        </button>
+                      ) : t5PathTaken ? (
+                        <div className="p-2 border border-dashed border-yellow-950/70 bg-yellow-950/10 text-yellow-300 rounded text-center text-xs micro-cap">
+                          T5 цього шляху вже стоїть
                         </div>
                       ) : (
                         <button
@@ -3996,12 +5246,14 @@ export default function BratTDClient() {
             <div className="flex flex-col gap-1.5">
               {Object.entries(TOWER_CONFIGS).map(([type, config]) => {
                 const canAfford = gold >= config.cost;
+                const towerUnlocked = isTowerUnlocked(type, progression);
+                const neededLevel = TOWER_UNLOCK_LEVELS[type] ?? 1;
                 const isSelected = selectedShopTower === type;
                 return (
                   <div key={type} className="relative group">
                     <button
-                      disabled={gameStatus !== "playing"}
-                      draggable={gameStatus === "playing" && canAfford}
+                      disabled={gameStatus !== "playing" || !towerUnlocked}
+                      draggable={gameStatus === "playing" && canAfford && towerUnlocked}
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/plain", type);
                         e.dataTransfer.effectAllowed = "copy";
@@ -4021,6 +5273,10 @@ export default function BratTDClient() {
                       onMouseEnter={() => { hoveredShopTowerRef.current = type; }}
                       onMouseLeave={() => { hoveredShopTowerRef.current = null; }}
                       onClick={() => {
+                        if (!towerUnlocked) {
+                          pushLog(`${config.name} відкривається на рівні ${neededLevel}.`);
+                          return;
+                        }
                         const nextSelected = isSelected ? null : type;
                         selectedShopTowerRef.current = nextSelected;
                         draggedTowerTypeRef.current = null;
@@ -4034,26 +5290,26 @@ export default function BratTDClient() {
                       className={`w-full px-3 py-2 border rounded text-left transition-all flex items-center justify-between ${
                         isSelected
                           ? "border-white bg-zinc-900 shadow-md shadow-white/5 cursor-grab"
-                          : canAfford
+                          : canAfford && towerUnlocked
                           ? "border-hairline-dark hover:border-on-primary-mute hover:bg-canvas-night-soft cursor-grab"
                           : "border-hairline-dark/40 opacity-50 cursor-not-allowed"
                       }`}
                     >
                       <span className="flex items-center gap-2 text-sm">
-                        <span>{config.emoji}</span>
+                        <span className="h-3.5 w-3.5 rounded-sm border border-white/20" style={{ backgroundColor: config.color }} />
                         <span className="font-semibold text-on-primary">{config.name}</span>
                       </span>
                       <span className="text-xs font-bold font-[var(--font-display)] text-yellow-500">
-                        ☕ {config.cost}
+                        {towerUnlocked ? `GOLD ${config.cost}` : `LVL ${neededLevel}`}
                       </span>
                     </button>
                     {/* Tooltip on hover */}
                     <div className="absolute z-50 left-0 right-0 bottom-full mb-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <div className="bg-zinc-900 border border-hairline-dark rounded p-3 shadow-xl text-xs">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-base">{config.emoji}</span>
+                          <span className="h-3.5 w-3.5 rounded-sm border border-white/20" style={{ backgroundColor: config.color }} />
                           <span className="font-bold text-on-primary text-sm">{config.name}</span>
-                          <span className="text-yellow-500 font-bold">☕ {config.cost}</span>
+                          <span className="text-yellow-500 font-bold">GOLD {config.cost}</span>
                         </div>
                         <p className="text-on-primary-mute mb-2 leading-relaxed">{config.description}</p>
                         <div className="grid grid-cols-2 gap-1 text-[11px]">
@@ -4068,7 +5324,7 @@ export default function BratTDClient() {
                             <div><span className="text-ink-mute">Пірс:</span> <span className="text-on-primary font-semibold">{config.pierce}</span></div>
                           )}
                           {config.camoDetection && (
-                            <div className="col-span-2"><span className="text-green-400">👁 Виявляє камуфляж</span></div>
+                            <div className="col-span-2"><span className="text-green-400">Виявляє камуфляж</span></div>
                           )}
                         </div>
                       </div>

@@ -183,6 +183,96 @@ export function getTierForWave(waveNumber: number): number {
   return 8;
 }
 
+export const PLAYER_LEVEL_CAP = 50;
+
+export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
+  hammer: 1,
+  boomerang: 1,
+  gas: 3,
+  sniper: 5,
+  kladmen: 8,
+  infinix: 10,
+  chain: 13,
+  candy: 16,
+  coffee: 20,
+  bankomat: 25,
+  monolith: 30,
+};
+
+export const TIER_UNLOCK_COSTS: Record<number, number> = {
+  3: 150,
+  4: 500,
+  5: 1500,
+};
+
+export function getPlayerLevelXpRequirement(level: number): number {
+  if (level <= 1) return 0;
+  return Math.floor(100 * Math.pow(level, 1.4));
+}
+
+export function getPlayerLevelForXp(totalXp: number): number {
+  let level = 1;
+  let remainingXp = Math.max(0, totalXp);
+  while (level < PLAYER_LEVEL_CAP) {
+    const needed = getPlayerLevelXpRequirement(level + 1);
+    if (remainingXp < needed) break;
+    remainingXp -= needed;
+    level++;
+  }
+  return level;
+}
+
+export function getPlayerLevelProgress(totalXp: number) {
+  const level = getPlayerLevelForXp(totalXp);
+  let spent = 0;
+  for (let l = 2; l <= level; l++) spent += getPlayerLevelXpRequirement(l);
+  const nextRequirement = level >= PLAYER_LEVEL_CAP ? 0 : getPlayerLevelXpRequirement(level + 1);
+  return {
+    level,
+    currentXp: Math.max(0, totalXp - spent),
+    nextRequirement,
+  };
+}
+
+export function getEndlessXpMultiplier(waveNumber: number): number {
+  if (waveNumber <= 46) return 1;
+  const endlessBand = Math.max(0, Math.floor((waveNumber - 47) / 10));
+  return Math.max(0.1, 0.5 * Math.pow(0.95, endlessBand));
+}
+
+export type AchievementReward = {
+  bonusStartGold?: number;
+  bonusLives?: number;
+  title?: string;
+  frame?: string;
+  effect?: string;
+};
+
+export type AchievementConfig = {
+  id: string;
+  name: string;
+  description: string;
+  reward: AchievementReward;
+};
+
+export const ACHIEVEMENTS: AchievementConfig[] = [
+  { id: "first_wave", name: "Перша кров", description: "Пройди хвилю 1.", reward: { bonusStartGold: 50 } },
+  { id: "wave_10", name: "Десяточка", description: "Дійди до хвилі 10.", reward: { title: "Початківець" } },
+  { id: "wave_20", name: "Не братва, а армія", description: "Дійди до хвилі 20.", reward: { title: "Братоборець" } },
+  { id: "wave_30", name: "Ветеран", description: "Дійди до хвилі 30.", reward: { bonusStartGold: 100 } },
+  { id: "wave_40", name: "Легенда", description: "Дійди до хвилі 40.", reward: { title: "Легенда" } },
+  { id: "wave_46", name: "Переможець", description: "Пройди хвилю 46.", reward: { frame: "Золота" } },
+  { id: "first_t5", name: "Тір 5!", description: "Апгрейдни будь-яку вежу до Tier 5.", reward: { effect: "t5_glow" } },
+  { id: "all_towers", name: "Колекціонер", description: "Відкрий всі 11 веж.", reward: { title: "Арсенал" } },
+  { id: "level_10", name: "Початківець", description: "Досягни рівня 10.", reward: { title: "Учень" } },
+  { id: "level_25", name: "Досвідчений", description: "Досягни рівня 25.", reward: { bonusStartGold: 100 } },
+  { id: "level_50", name: "Міфічний подро", description: "Досягни рівня 50.", reward: { title: "Подро Легенда", frame: "Міфічна" } },
+  { id: "hard_mode", name: "Справжній подро", description: "Пройди хвилю 46 на Hard.", reward: { frame: "Червона гаряча" } },
+  { id: "endless_70", name: "Безсмертний", description: "Дійди до хвилі 70 в Endless.", reward: { title: "Нескінченний" } },
+  { id: "rich", name: "Nescafe Барон", description: "Май 5000+ Gold одночасно.", reward: { title: "Барон" } },
+  { id: "tower_farm", name: "Архітектор", description: "Май 10 веж на полі одночасно.", reward: { bonusStartGold: 25 } },
+];
+
 export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   hammer: {
     name: "Подро з Молотком",
