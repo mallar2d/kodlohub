@@ -203,9 +203,9 @@ export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
 };
 
 export const TIER_UNLOCK_COSTS: Record<number, number> = {
-  3: 525,
-  4: 2200,
-  5: 7500,
+  3: 788,
+  4: 5500,
+  5: 26250,
 };
 
 export function getPlayerLevelXpRequirement(level: number): number {
@@ -522,7 +522,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 10 мін.",
     cost: 400,
     range: 150,
-    damage: 8,
+    damage: 15,
     fireRate: 3.5,
     color: "#ef4444",
     emoji: "💣",
@@ -683,7 +683,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   heavy: {
     name: "Товстий Брат",
     hp: 120,
-    speed: 0.7,
+    speed: 0.5,
     reward: 8,
     damage: 15,
     color: "#f87171",
