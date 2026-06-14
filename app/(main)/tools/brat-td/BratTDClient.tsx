@@ -3782,7 +3782,7 @@ export default function BratTDClient() {
             
             // Check collision distance
             const colDist = getDistance(proj.x, proj.y, enemy.x, enemy.y);
-            const hitRadius = proj.type === "gas" ? 13 : 8;
+            const hitRadius = proj.type === "gas" ? 14 : 8;
             if (colDist <= enemy.radius + hitRadius && !proj.hitEnemyIds.includes(enemy.id)) {
               // Hit!
               proj.hitEnemyIds.push(enemy.id);
