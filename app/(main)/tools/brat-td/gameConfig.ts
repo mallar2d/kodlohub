@@ -717,7 +717,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   matryoshka: {
     name: "Брат-Матрьошка",
-    hp: 150,
+    hp: 100,
     speed: 0.65,
     reward: 12,
     damage: 15,
