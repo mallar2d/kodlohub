@@ -264,6 +264,7 @@ export interface FireDoTStack {
   damage: number;
   duration: number;
   maxDuration: number;
+  tickTimer: number;
   antiRegenFactor: number;
 }
 

@@ -662,9 +662,11 @@ function processEnemies(ctx: EngineContext): void {
       for (let sIdx = enemy.fireDoTStacks.length - 1; sIdx >= 0; sIdx--) {
         const stack = enemy.fireDoTStacks[sIdx];
         stack.duration--;
-        if (stack.duration % 60 === 0) {
+        stack.tickTimer--;
+        if (stack.tickTimer <= 0) {
           const tickDmg = stack.damage / (stack.maxDuration / 60);
           totalTickDamage += tickDmg;
+          stack.tickTimer = 60;
         }
         if (stack.antiRegenFactor > activeAntiRegen) {
           activeAntiRegen = stack.antiRegenFactor;
@@ -1549,15 +1551,28 @@ function processProjectiles(ctx: EngineContext): void {
           if (!enemy.fireDoTStacks) {
             enemy.fireDoTStacks = [];
           }
-          enemy.fireDoTStacks.push({
-            damage: proj.fireDoTDamage,
-            duration: proj.fireDoTDuration,
-            maxDuration: proj.fireDoTDuration,
-            antiRegenFactor: proj.antiRegenFactor || 0
-          });
           const maxStacks = proj.fireDoTMaxStacks || 3;
-          if (enemy.fireDoTStacks.length > maxStacks) {
-            enemy.fireDoTStacks.shift();
+          if (enemy.fireDoTStacks.length < maxStacks) {
+            enemy.fireDoTStacks.push({
+              damage: proj.fireDoTDamage,
+              duration: proj.fireDoTDuration,
+              maxDuration: proj.fireDoTDuration,
+              tickTimer: 60,
+              antiRegenFactor: proj.antiRegenFactor || 0
+            });
+          } else {
+            // Find stack with the lowest duration and refresh it
+            let minDurIdx = 0;
+            let minDur = enemy.fireDoTStacks[0].duration;
+            for (let sIdx = 1; sIdx < enemy.fireDoTStacks.length; sIdx++) {
+              if (enemy.fireDoTStacks[sIdx].duration < minDur) {
+                minDur = enemy.fireDoTStacks[sIdx].duration;
+                minDurIdx = sIdx;
+              }
+            }
+            enemy.fireDoTStacks[minDurIdx].duration = proj.fireDoTDuration;
+            enemy.fireDoTStacks[minDurIdx].damage = proj.fireDoTDamage;
+            enemy.fireDoTStacks[minDurIdx].antiRegenFactor = proj.antiRegenFactor || 0;
           }
         }
 
