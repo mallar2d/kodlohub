@@ -683,7 +683,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   heavy: {
     name: "Товстий Брат",
     hp: 120,
-    speed: 0.5,
+    speed: 0.7,
     reward: 8,
     damage: 15,
     color: "#f87171",

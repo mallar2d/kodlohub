@@ -1815,7 +1815,7 @@ export default function BratTDClient() {
   const frameCountRef = useRef(0);
   const screenShakeRef = useRef({ x: 0, y: 0, intensity: 0, duration: 0 });
   const projectileTrailRef = useRef<{ x: number; y: number; color: string; alpha: number; size: number }[]>([]);
-  const explosionRingsRef = useRef<{ x: number; y: number; radius: number; maxRadius: number; color: string; life: number }[]>([]);
+  const explosionRingsRef = useRef<{ x: number; y: number; radius: number; maxRadius: number; color: string; life: number; coreLife: number; ringCount: number; debris: { x: number; y: number; vx: number; vy: number; size: number; life: number; maxLife: number; color: string }[] }[]>([]);
   const waveAnnouncementRef = useRef<{ wave: number; frameStart: number } | null>(null);
 
   // Spawner tracking
@@ -2826,7 +2826,15 @@ export default function BratTDClient() {
       x: tower.x, y: tower.y,
       radius: 10, maxRadius: tower.range,
       color: "#facc15",
-      life: 30
+      life: 30, coreLife: 30, ringCount: 2,
+      debris: Array.from({ length: 8 }, () => ({
+        x: tower.x, y: tower.y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        size: Math.random() * 3 + 1.5,
+        life: 25, maxLife: 25,
+        color: "#fef3c7"
+      }))
     });
     playPdrSound();
     setSelectedTower({ ...tower });
@@ -3034,7 +3042,20 @@ export default function BratTDClient() {
 
         // Explosion rings
         explosionRingsRef.current = explosionRingsRef.current
-          .map(r => ({ ...r, radius: r.radius + 3, life: r.life - 1 }))
+          .map(r => ({
+            ...r,
+            radius: r.radius + 3,
+            life: r.life - 1,
+            coreLife: r.coreLife - 1,
+            debris: r.debris.map(d => ({
+              ...d,
+              x: d.x + d.vx,
+              y: d.y + d.vy,
+              vx: d.vx * 0.95,
+              vy: d.vy * 0.95,
+              life: d.life - 1,
+            })).filter(d => d.life > 0),
+          }))
           .filter(r => r.life > 0);
 
         // --- 3. PROCESS ENEMIES ---
@@ -4250,11 +4271,23 @@ export default function BratTDClient() {
             }
 
             // Explosion ring on death
+            const isBoss = enemy.type === "boss" || enemy.type === "megaboss";
+            const deathMaxRadius = isBoss ? 90 : 40;
+            const deathLife = isBoss ? 35 : 20;
+            const deathColor = enemy.borderColor || "#ef4444";
             explosionRingsRef.current.push({
               x: enemy.x, y: enemy.y,
-              radius: 5, maxRadius: 40,
-              color: enemy.borderColor || "#ef4444",
-              life: 20
+              radius: 5, maxRadius: deathMaxRadius,
+              color: deathColor,
+              life: deathLife, coreLife: deathLife, ringCount: isBoss ? 3 : 2,
+              debris: Array.from({ length: isBoss ? 16 : 8 }, () => ({
+                x: enemy.x, y: enemy.y,
+                vx: (Math.random() - 0.5) * (isBoss ? 5 : 3),
+                vy: (Math.random() - 0.5) * (isBoss ? 5 : 3),
+                size: Math.random() * 3 + 1,
+                life: isBoss ? 30 : 18, maxLife: isBoss ? 30 : 18,
+                color: deathColor
+              }))
             });
 
             // Remove enemy from list
@@ -4693,13 +4726,53 @@ export default function BratTDClient() {
 
       // --- Draw Explosion Rings ---
       explosionRingsRef.current.forEach((r) => {
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = r.color;
-        ctx.globalAlpha = r.life / 30;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
+        const progress = 1 - r.life / (r.life + 1);
+
+        // Flash core
+        if (r.coreLife > 0) {
+          const coreAlpha = r.coreLife / 30;
+          const coreRadius = 8 + progress * 15;
+          const coreGrad = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, coreRadius);
+          coreGrad.addColorStop(0, `rgba(255,255,255,${coreAlpha * 0.9})`);
+          coreGrad.addColorStop(0.3, `rgba(255,240,200,${coreAlpha * 0.6})`);
+          coreGrad.addColorStop(1, `rgba(255,200,100,0)`);
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, coreRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Multiple shockwave rings
+        for (let ring = 0; ring < r.ringCount; ring++) {
+          const ringProgress = Math.max(0, progress - ring * 0.12);
+          const ringRadius = r.radius + (r.maxRadius - r.radius) * ringProgress;
+          const ringAlpha = Math.max(0, (r.life - ring * 5) / 30) * (1 - ringProgress * 0.7);
+          if (ringAlpha <= 0 || ringRadius <= 0) continue;
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = r.color;
+          ctx.globalAlpha = ringAlpha;
+          ctx.lineWidth = ring === 0 ? 3.5 : 2;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Debris particles
+        r.debris.forEach((d) => {
+          if (d.life <= 0) return;
+          const alpha = d.life / d.maxLife;
+          ctx.fillStyle = d.color;
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          const rot = (d.maxLife - d.life) * 0.2;
+          ctx.save();
+          ctx.translate(d.x, d.y);
+          ctx.rotate(rot);
+          ctx.rect(-d.size / 2, -d.size / 2, d.size, d.size);
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = 1.0;
+        });
       });
 
       // --- Draw Floating Text ---
