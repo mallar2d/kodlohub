@@ -1635,10 +1635,10 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
   if (tierData.inheritsArmor && !isArmored && !isSuperArmored) {
     isArmored = true;
   }
-  if (tierData.inheritsLead && !isLead && isModifierUnlocked("lead", waveNumber)) {
+  if (tierData.inheritsLead && !isLead && isModifierUnlocked("lead", waveNumber) && type !== "big_matryoshka") {
     isLead = true;
   }
-  if (tierData.inheritsCamo && !isCamo && isModifierUnlocked("camo", waveNumber)) {
+  if (tierData.inheritsCamo && !isCamo && isModifierUnlocked("camo", waveNumber) && type !== "big_matryoshka") {
     isCamo = true;
   }
   if (isPhantomCamo) {
