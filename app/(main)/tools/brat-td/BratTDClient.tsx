@@ -3179,12 +3179,13 @@ export default function BratTDClient() {
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenAmount);
           }
 
-          // Healer: heals nearby allies (flat + % scaling)
+          // Healer: heals nearby allies (flat + % scaling, allows overhealing up to 150% of ally's max HP)
           if (enemy.isHealer && enemy.hp > 0 && enemy.freezeDuration <= 0) {
             const healAmount = 0.08 + enemy.maxHp * 0.00008;
             enemiesRef.current.forEach((ally) => {
-              if (ally.id !== enemy.id && ally.hp > 0 && ally.hp < ally.maxHp && getDistance(enemy.x, enemy.y, ally.x, ally.y) <= 80) {
-                ally.hp = Math.min(ally.maxHp, ally.hp + healAmount);
+              const maxOverheal = ally.maxHp * 1.5;
+              if (ally.id !== enemy.id && ally.hp > 0 && ally.hp < maxOverheal && getDistance(enemy.x, enemy.y, ally.x, ally.y) <= 80) {
+                ally.hp = Math.min(maxOverheal, ally.hp + healAmount);
               }
             });
           }
@@ -4755,8 +4756,9 @@ export default function BratTDClient() {
 
         // Fill ratio
         const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
-        ctx.fillStyle = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#eab308" : "#ef4444";
-        ctx.fillRect(barX, barY, barW * hpRatio, barH);
+        const fillW = barW * Math.min(1.5, hpRatio);
+        ctx.fillStyle = hpRatio > 1.0 ? "#06b6d4" : hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#eab308" : "#ef4444";
+        ctx.fillRect(barX, barY, fillW, barH);
 
         // Shield bar
         if (enemy.shieldHp !== undefined && enemy.shieldHp > 0) {

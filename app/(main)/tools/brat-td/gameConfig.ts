@@ -964,7 +964,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     borderColor: "#16a34a",
     radius: 15,
     isHealer: true,
-    description: "Лікує сусідніх ворогів на 3 HP/с. Пріоритетна ціль!"
+    description: "Лікує сусідніх ворогів та оверхілить їх до 150% HP. Пріоритетна ціль!"
   },
   drone_brat: {
     name: "Брат-Дрон",
