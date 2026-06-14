@@ -137,12 +137,30 @@ describe('ENEMY_CONFIGS: spawn lists (onDeath)', () => {
 });
 
 describe('ENEMY_CONFIGS: ability flags', () => {
-  it('flying enemies include drone_brat and drone_brat_armored', () => {
+  it('flying enemies include drone_brat, drone_brat_armored, and drone_scout', () => {
     const flyingTypes = ALL_ENEMY_TYPES.filter(
       (t) => ENEMY_CONFIGS[t].isFlying,
     );
     expect(flyingTypes).toContain('drone_brat');
     expect(flyingTypes).toContain('drone_brat_armored');
+    expect(flyingTypes).toContain('drone_scout');
+  });
+
+  it('drone_scout has correct base stats (HP=25, Speed=1.8, Flying+Camo)', () => {
+    const scout = ENEMY_CONFIGS.drone_scout;
+    expect(scout).toBeDefined();
+    expect(scout.hp).toBe(25);
+    expect(scout.speed).toBe(1.8);
+    expect(scout.isFlying).toBe(true);
+    expect(scout.isCamo).toBe(true);
+    expect(scout.reward).toBe(4);
+    expect(scout.damage).toBe(8);
+    expect(scout.radius).toBe(11);
+    expect(scout.name).toBe('Брат-Дрон-Розвідник');
+    // Should NOT have armor, lead, or regen flags
+    expect(scout.isArmored).toBeUndefined();
+    expect(scout.isLead).toBeUndefined();
+    expect(scout.isRegen).toBeUndefined();
   });
 
   it('granite is super armored', () => {
@@ -158,5 +176,32 @@ describe('ENEMY_CONFIGS: ability flags', () => {
     const ordinaryCount = spawned.filter((s) => s === 'ordinary').length;
     expect(fastCount).toBe(3);
     expect(ordinaryCount).toBe(2);
+  });
+});
+
+describe('ENEMY_CONFIGS: kamikaze', () => {
+  it('kamikaze has HP=30 and Speed=2.5 as specified', () => {
+    expect(ENEMY_CONFIGS.kamikaze).toBeDefined();
+    expect(ENEMY_CONFIGS.kamikaze.hp).toBe(30);
+    expect(ENEMY_CONFIGS.kamikaze.speed).toBe(2.5);
+  });
+
+  it('kamikaze is faster than ordinary and faster than fast', () => {
+    expect(ENEMY_CONFIGS.kamikaze.speed).toBeGreaterThan(ENEMY_CONFIGS.ordinary.speed);
+    expect(ENEMY_CONFIGS.kamikaze.speed).toBeGreaterThan(ENEMY_CONFIGS.fast.speed);
+  });
+
+  it('kamikaze is not armored, not camo, not lead, not regen at base', () => {
+    const k = ENEMY_CONFIGS.kamikaze;
+    expect(k.isArmored).toBeFalsy();
+    expect(k.isSuperArmored).toBeFalsy();
+    expect(k.isCamo).toBeFalsy();
+    expect(k.isLead).toBeFalsy();
+    expect(k.isRegen).toBeFalsy();
+    expect(k.isPhantomCamo).toBeFalsy();
+  });
+
+  it('kamikaze has no onDeath spawn callback (death effect handled in engine)', () => {
+    expect(ENEMY_CONFIGS.kamikaze.onDeath).toBeUndefined();
   });
 });

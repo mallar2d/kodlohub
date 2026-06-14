@@ -21,11 +21,12 @@ const EXPECTED_TOWER_TYPES = [
   'bankomat',
   'monolith',
   'boomerang',
+  'flamethrower',
 ];
 
 describe('TOWER_CONFIGS: structure', () => {
-  it('contains exactly 11 tower types', () => {
-    expect(Object.keys(TOWER_CONFIGS)).toHaveLength(11);
+  it('contains exactly 12 tower types', () => {
+    expect(Object.keys(TOWER_CONFIGS)).toHaveLength(12);
   });
 
   it('includes all expected tower types', () => {
@@ -203,5 +204,59 @@ describe('TOWER_CONFIGS: BTD6 crosspathing rules', () => {
         expect(t5.cost).toBeGreaterThanOrEqual(t1.cost * 10);
       }
     }
+  });
+});
+
+describe('TOWER_CONFIGS: flamethrower (DoT anti-regen specialist)', () => {
+  const flame = TOWER_CONFIGS.flamethrower;
+
+  it('has expected base stats (cost 500, range 120, fire rate 0.25, damage 2)', () => {
+    expect(flame).toBeDefined();
+    expect(flame.name).toBe('Вогнемет Подро');
+    expect(flame.emoji).toBe('🔥');
+    expect(flame.cost).toBe(500);
+    expect(flame.range).toBe(120);
+    expect(flame.fireRate).toBe(0.25);
+    expect(flame.damage).toBe(2);
+  });
+
+  it('has Fire DoT base values: 8 damage over 4s, max 3 stacks', () => {
+    // 4 seconds at 60fps = 240 frames
+    expect(flame.fireDoTDamage).toBe(8);
+    expect(flame.fireDoTDuration).toBe(240);
+    expect(flame.fireDoTMaxStacks).toBe(3);
+  });
+
+  it('is GROUND-ONLY (not in ANTI_AIR_TOWERS or SUPPORT_TOWERS)', () => {
+    expect(ANTI_AIR_TOWERS.has('flamethrower')).toBe(false);
+    expect(SUPPORT_TOWERS.has('flamethrower')).toBe(false);
+  });
+
+  it('has 3 paths × 5 tiers (15 upgrades total)', () => {
+    expect(flame.upgrades.path1).toHaveLength(5);
+    expect(flame.upgrades.path2).toHaveLength(5);
+    expect(flame.upgrades.path3).toHaveLength(5);
+  });
+
+  it('path1 upgrade effects increase DoT damage cumulatively (fireDoTDamage only grows)', () => {
+    const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
+    let prevDoT = (flame.fireDoTDamage as number) ?? 0;
+    for (const upgrade of flame.upgrades.path1) {
+      const result = upgrade.effect({ ...baseStats });
+      const newDoT = (result.fireDoTDamage as number) ?? prevDoT;
+      expect(newDoT).toBeGreaterThanOrEqual(prevDoT);
+      prevDoT = newDoT;
+    }
+  });
+
+  it('path3 (DoT focus) increases fireDoTMaxStacks at tier 5 (T5 unlocks 5 stacks)', () => {
+    const baseStats = { range: 100, damage: 50, fireRate: 1.0 };
+    const t5 = flame.upgrades.path3[4];
+    const result = t5.effect({ ...baseStats });
+    expect(result.fireDoTMaxStacks).toBe(5);
+  });
+
+  it('DoT stacks cap at 3 by default (cannot exceed 3 without T5 upgrade)', () => {
+    expect(flame.fireDoTMaxStacks).toBe(3);
   });
 });

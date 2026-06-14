@@ -1,4 +1,5 @@
 import BratTDClient from "./BratTDClient";
+import ErrorBoundary from "./ErrorBoundary";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,7 +33,9 @@ export default function BratTDPage() {
       <div className="max-w-[1200px] mx-auto">
         <p className="micro-cap text-ink-mute mb-2">KODLOHUB MINI-GAME</p>
         <h1 className="heading-section mb-8">BRAT TD</h1>
-        <BratTDClient />
+        <ErrorBoundary>
+          <BratTDClient />
+        </ErrorBoundary>
       </div>
     </main>
   );

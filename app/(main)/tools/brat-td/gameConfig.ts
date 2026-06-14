@@ -1,11 +1,22 @@
-export interface PathPoint {
-  x: number;
-  y: number;
-}
+import type {
+  PathPoint,
+  Obstacle,
+  UpgradeStats,
+  Upgrade,
+  TowerStats,
+  TowerConfig,
+  EnemyModifier,
+  EnemyConfig,
+  AchievementReward,
+  AchievementConfig,
+  WaveSegment,
+} from "@/lib/brat-td/types";
+import { createSeededRandom } from "@/lib/brat-td/seeded-random";
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
 export const GAME_VERSION = "0.6.6";
+export const DEFAULT_DIFFICULTY_KEY: "easy" | "normal" | "hard" = "normal";
 
 export const PATH: PathPoint[] = [
   { x: 0, y: 100 },
@@ -18,142 +29,12 @@ export const PATH: PathPoint[] = [
   { x: 800, y: 220 }
 ];
 
-export interface Obstacle {
-  x: number;
-  y: number;
-  radius: number;
-  name: string;
-  emoji: string;
-  color: string;
-  borderColor: string;
-}
-
 export const OBSTACLES: Obstacle[] = [
   { x: 260, y: 170, radius: 35, name: "Коростишівський Граніт", emoji: "🪨", color: "#4b5563", borderColor: "#374151" },
   { x: 320, y: 320, radius: 32, name: "Озеро Nescafe", emoji: "💧", color: "#1d4ed8", borderColor: "#1e3a8a" },
   { x: 580, y: 160, radius: 28, name: "Зламаний Infinix", emoji: "📴", color: "#6b21a8", borderColor: "#581c87" }
 ];
 
-
-export interface UpgradeStats {
-  range: number;
-  damage: number;
-  fireRate: number;
-  twoHits?: boolean;
-  critChance?: number;
-  buffMultiplier?: number;
-  endOfWaveBonus?: number;
-  isAoESlow?: boolean;
-  damageDebuff?: number;
-  freezeChance?: number;
-  gachaChance?: number;
-  copilotBug?: boolean;
-  slowAmount?: number;
-  antiArmor?: boolean;
-  // BTD6-style additional stats to avoid type casting
-  ignoresArmor?: boolean;
-  alwaysDouble?: boolean;
-  critMultiplier?: number;
-  damageBuff?: number;
-  rangeBuff?: number;
-  ignoreArmorBuff?: number;
-  rangeBuffPercent?: number;
-  slowDurationBonus?: number;
-  slowFactorBonus?: number;
-  explodeDmg?: number;
-  gachaDamageOverride?: number;
-  freezeDurationBonus?: number;
-  bsodAoE?: boolean;
-  bugExplodeDmg?: number;
-  bugExplodeRadius?: number;
-  bugContagion?: boolean;
-  disableGlitch?: boolean;
-  disableAbilities?: boolean;
-  camoDetection?: boolean;
-  camoDetectionBuff?: boolean;
-  pierce?: number;
-  tackCount?: number;
-  maxMines?: number;
-  mineExplodes?: boolean;
-  knockbackChance?: number;
-  knockbackDistance?: number;
-  microStunDuration?: number;
-  wallBounce?: boolean;
-  tripleShot?: boolean;
-  quadShot?: boolean;
-  everyNthTriple?: number;
-  spreadChance?: number;
-  spreadDamageBonus?: number;
-  gachaDamageMultiplier?: number;
-  conditionalTripleWithPierce?: boolean;
-}
-
-export interface Upgrade {
-  id: string;
-  name: string;
-  description: string;
-  cost: number;
-  effect: (stats: UpgradeStats) => UpgradeStats;
-}
-
-export interface TowerStats {
-  cost: number;
-  range: number;
-  damage: number;
-  fireRate: number; // In seconds between shots
-  name: string;
-  description: string;
-  color: string; // Theme color for canvas representation
-  emoji: string;
-  camoDetection?: boolean;
-  pierce?: number;
-  tackCount?: number;
-  maxMines?: number;
-  mineExplodes?: boolean;
-}
-
-export interface TowerConfig extends TowerStats {
-  upgrades: {
-    path1: Upgrade[];
-    path2: Upgrade[];
-    path3: Upgrade[];
-  };
-}
-
-export type EnemyModifier = "camo" | "regen" | "lead" | "phantom" | "ceramic";
-
-export interface EnemyConfig {
-  name: string;
-  hp: number;
-  speed: number; // Pixels per frame (at 60fps)
-  reward: number; // Nescafe Gold earned on kill
-  damage: number; // Nerves lost if reached end
-  color: string;
-  borderColor: string;
-  radius: number;
-  description: string;
-  isArmored?: boolean; // physical/hammer damage reduced by 50%
-  isSuperArmored?: boolean; // physical/hammer damage reduced by 75%
-  isGlitching?: boolean; // teleports forward occasionally
-  isSlowingTowers?: boolean; // reduces fireRate of nearby towers
-  isSpawningTrail?: boolean; // spawns pink trail that speeds up other enemies
-  onDeath?: (enemyX: number, enemyY: number, spawnEnemyCallback: (type: string, x: number, y: number, modifiers?: EnemyModifier[]) => void) => void;
-  isCamo?: boolean;
-  isRegen?: boolean;
-  isLead?: boolean;
-  isPhantomCamo?: boolean;
-  isExploder?: boolean;
-  isCeramic?: boolean;
-  glitchDistance?: number;
-  shieldHp?: number;
-  shieldRegenDelay?: number;
-  isHealer?: boolean;
-  isFlying?: boolean;
-  knockbackMultiplier?: number;
-  tier?: number; // 1-5, scales stats
-  stunImmune?: boolean;
-  knockbackImmune?: boolean;
-}
 
 // Tier scaling: each tier makes enemies harder
 // Higher tiers inherit abilities from lower tiers
@@ -198,6 +79,7 @@ export const TOWER_UNLOCK_LEVELS: Record<string, number> = {
   infinix: 10,
   chain: 13,
   candy: 16,
+  flamethrower: 18,
   coffee: 20,
   bankomat: 25,
   monolith: 30,
@@ -244,21 +126,6 @@ export function getEndlessXpMultiplier(waveNumber: number): number {
   return Math.max(0.1, 0.5 * Math.pow(0.95, endlessBand));
 }
 
-export type AchievementReward = {
-  bonusStartGold?: number;
-  bonusLives?: number;
-  title?: string;
-  frame?: string;
-  effect?: string;
-};
-
-export type AchievementConfig = {
-  id: string;
-  name: string;
-  description: string;
-  reward: AchievementReward;
-};
-
 export const ACHIEVEMENTS: AchievementConfig[] = [
   { id: "first_wave", name: "Перша кров", description: "Пройди хвилю 1.", reward: { bonusStartGold: 50 } },
   { id: "wave_10", name: "Десяточка", description: "Дійди до хвилі 10.", reward: { title: "Початківець" } },
@@ -267,7 +134,7 @@ export const ACHIEVEMENTS: AchievementConfig[] = [
   { id: "wave_40", name: "Легенда", description: "Дійди до хвилі 40.", reward: { title: "Легенда" } },
   { id: "wave_46", name: "Переможець", description: "Пройди хвилю 46.", reward: { frame: "Золота" } },
   { id: "first_t5", name: "Тір 5!", description: "Апгрейдни будь-яку вежу до Tier 5.", reward: { effect: "t5_glow" } },
-  { id: "all_towers", name: "Колекціонер", description: "Відкрий всі 11 веж.", reward: { title: "Арсенал" } },
+  { id: "all_towers", name: "Колекціонер", description: "Відкрий всі 12 веж.", reward: { title: "Арсенал" } },
   { id: "level_10", name: "Початківець", description: "Досягни рівня 10.", reward: { title: "Учень" } },
   { id: "level_25", name: "Досвідчений", description: "Досягни рівня 25.", reward: { bonusStartGold: 100 } },
   { id: "level_50", name: "Міфічний подро", description: "Досягни рівня 50.", reward: { title: "Подро Легенда", frame: "Міфічна" } },
@@ -655,6 +522,46 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "boomerang_eternal", name: "Вічна Глефа", description: "Шкода +60.", cost: 7125, effect: (s) => ({ ...s, damage: s.damage + 60 }) }
       ]
     }
+  },
+  flamethrower: {
+    name: "Вогнемет Подро",
+    description: "Палить братів вогнем. Наносить шкоду отрутою тривалу в часі (DoT) — ідеально проти регенів.",
+    cost: 500,
+    range: 120,
+    damage: 2,
+    fireRate: 0.25,
+    color: "#dc2626", // Red-orange (fire)
+    emoji: "🔥",
+    // Fire DoT: 8 damage over 4 seconds, stacks up to 3 times
+    fireDoTDamage: 8,
+    fireDoTDuration: 240, // 4 seconds at 60fps
+    fireDoTMaxStacks: 3,
+    upgrades: {
+      path1: [
+        // Damage path: increases hit damage (direct)
+        { id: "flame_hotter", name: "Гарячіше Полум'я", description: "Шкода прямого влучання +1.5.", cost: 220, effect: (s) => ({ ...s, damage: s.damage + 1.5 }) },
+        { id: "flame_inferno", name: "Інферно Підпал", description: "Шкода +3, DoT шкода +4.", cost: 480, effect: (s) => ({ ...s, damage: s.damage + 3, fireDoTDamage: (s.fireDoTDamage || 8) + 4 }) },
+        { id: "flame_napalm", name: "Напалм Коростишівський", description: "Шкода +6, DoT шкода +8, ігнорує броню.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 6, fireDoTDamage: (s.fireDoTDamage || 8) + 8, ignoresArmor: true }) },
+        { id: "flame_volcano", name: "Вулкан Подро", description: "Шкода +12, DoT шкода +16, вибух 50px при влучанні (30 шкоди).", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 12, fireDoTDamage: (s.fireDoTDamage || 8) + 16, explodeDmg: 30 }) },
+        { id: "flame_hellfire", name: "Пекельне Полум'я", description: "Шкода +30, DoT шкода +40, DoT тривалість +2с, пробиття +2.", cost: 12000, effect: (s) => ({ ...s, damage: s.damage + 30, fireDoTDamage: (s.fireDoTDamage || 8) + 40, fireDoTDuration: (s.fireDoTDuration || 240) + 120, pierce: (s.pierce || 1) + 2 }) }
+      ],
+      path2: [
+        // Speed/Range path: faster firing and bigger range
+        { id: "flame_burst", name: "Вогняний Заряд", description: "Швидкість атаки +15%.", cost: 200, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
+        { id: "flame_blast", name: "Вогняний Вибух", description: "Швидкість +20%, дальність +15px.", cost: 420, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, range: s.range + 15 }) },
+        { id: "flame_storm", name: "Вогняний Шторм", description: "Швидкість +30%, дальність +20px, DoT тривалість +1с.", cost: 1026, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.70, range: s.range + 20, fireDoTDuration: (s.fireDoTDuration || 240) + 60 }) },
+        { id: "flame_tornado", name: "Вогняний Торнадо", description: "Швидкість +40%, дальність +25px, дальність DoT +2с.", cost: 2970, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.60, range: s.range + 25, fireDoTDuration: (s.fireDoTDuration || 240) + 120 }) },
+        { id: "flame_apocalypse", name: "Вогняний Апокаліпсис", description: "Швидкість +60%, дальність +40px, DoT шкода +20.", cost: 10800, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.50, range: s.range + 40, fireDoTDamage: (s.fireDoTDamage || 8) + 20 }) }
+      ],
+      path3: [
+        // DoT focus path: stronger DoT effects, anti-regen specialist
+        { id: "flame_ember", name: "Тління", description: "DoT шкода +3.", cost: 180, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 3 }) },
+        { id: "flame_coal", name: "Розжарене Вугілля", description: "DoT шкода +6, DoT тривалість +0.5с.", cost: 400, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 6, fireDoTDuration: (s.fireDoTDuration || 240) + 30 }) },
+        { id: "flame_anti_regen", name: "Анти-Реген Підсилення", description: "DoT шкода +12, вороги з DoT отримують +25% шкоди.", cost: 1100, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 12, damageDebuff: 1.25 }) },
+        { id: "flame_pure_burn", name: "Чисте Горіння", description: "DoT шкода +20, DoT тривалість +1.5с, вороги з DoT втрачають реген на 50%.", cost: 3200, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 20, fireDoTDuration: (s.fireDoTDuration || 240) + 90, antiRegenFactor: 0.5 }) },
+        { id: "flame_sun", name: "Сонячне Пекло", description: "DoT шкода +45, DoT тривалість +3с, max stacks стає 5, вимикає реген повністю.", cost: 11500, effect: (s) => ({ ...s, fireDoTDamage: (s.fireDoTDamage || 8) + 45, fireDoTDuration: (s.fireDoTDuration || 240) + 180, fireDoTMaxStacks: ((s.fireDoTMaxStacks as number) || 3) + 2, antiRegenFactor: 1.0 }) }
+      ]
+    }
   }
 };
 
@@ -925,6 +832,17 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     isExploder: true,
     description: "При смерті оглушує всі вежі в радіусі 80px на 1.5 секунди."
   },
+  kamikaze: {
+    name: "Камікадзе-Брат",
+    hp: 30,
+    speed: 2.5,
+    reward: 6,
+    damage: 10,
+    color: "#fde047",
+    borderColor: "#a16207",
+    radius: 13,
+    description: "Дуже швидкий. При смерті завдає 15 шкоди та оглушує на 0.5с усі вежі в радіусі 60px."
+  },
   jumper: {
     name: "Брат-Стрибунець",
     hp: 55,
@@ -993,6 +911,20 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     knockbackMultiplier: 2,
     description: "Броньований літаючий брат. Стійкий до фізичної шкоди, але все ще вразливий до енергетичних атак."
   },
+  drone_scout: {
+    name: "Брат-Дрон-Розвідник",
+    hp: 25,
+    speed: 1.8,
+    reward: 4,
+    damage: 8,
+    color: "#0d9488",
+    borderColor: "#115e59",
+    radius: 11,
+    isFlying: true,
+    isCamo: true,
+    knockbackMultiplier: 2,
+    description: "Літаючий камуфляжний дрон-розвідник. Невидимий для більшості веж, ігнорує наземні атаки. Потрібне ППО та виявлення камуфляжу."
+  },
   megaboss: {
     name: "Мега-Бос",
     hp: 6000,
@@ -1011,14 +943,6 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     }
   }
 };
-
-export interface WaveSegment {
-  type: string;
-  count: number;
-  spawnDelay: number; // in milliseconds
-  delayBeforeNext?: number; // wait before spawning next segment in same wave
-  modifiers?: EnemyModifier[];
-}
 
 const MODIFIER_UNLOCK_WAVE: Record<EnemyModifier, number> = {
   lead: 16,
@@ -1137,6 +1061,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 10, spawnDelay: 1600, delayBeforeNext: 1000 },
     { type: "heavy", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
     { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 4, spawnDelay: 1500, delayBeforeNext: 600 },
     { type: "drone_brat", count: 10, spawnDelay: 850 }
   ],
   // Wave 19: Mixed armor + drone swarm
@@ -1145,6 +1070,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "heavy", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "coat", count: 14, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "drone_brat", count: 12, spawnDelay: 800, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 5, spawnDelay: 1300, delayBeforeNext: 600 },
     { type: "fast", count: 20, spawnDelay: 450, delayBeforeNext: 800 },
     { type: "matryoshka", count: 4, spawnDelay: 1400 }
   ],
@@ -1154,12 +1080,14 @@ export const WAVES: WaveSegment[][] = [
     { type: "infinix_brat", count: 8, spawnDelay: 1500, delayBeforeNext: 1200 },
     { type: "camo", count: 8, spawnDelay: 1500, delayBeforeNext: 1000 },
     { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 5, spawnDelay: 1300, delayBeforeNext: 600 },
     { type: "fast", count: 15, spawnDelay: 500 }
   ],
   // Wave 21: Infinix + camo
   [
     { type: "infinix_brat", count: 10, spawnDelay: 1300, delayBeforeNext: 1000 },
     { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 6, spawnDelay: 1200, delayBeforeNext: 600 },
     { type: "lead", count: 8, spawnDelay: 1800 }
   ],
   // Wave 22: Infinix + heavy
@@ -1167,6 +1095,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 1000 },
     { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "ordinary", count: 20, spawnDelay: 700, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 6, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "matryoshka", count: 4, spawnDelay: 1400 }
   ],
   // Wave 23: Glitch chaos
@@ -1174,6 +1103,7 @@ export const WAVES: WaveSegment[][] = [
     { type: "infinix_brat", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
     { type: "camo", count: 12, spawnDelay: 1100, delayBeforeNext: 800 },
     { type: "lead", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
+    { type: "kamikaze", count: 7, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
   // === WAVE 24: REGEN intro ===
@@ -1182,47 +1112,53 @@ export const WAVES: WaveSegment[][] = [
     { type: "ordinary", count: 10, spawnDelay: 1300, delayBeforeNext: 1200, modifiers: ["regen"] },
     { type: "fast", count: 20, spawnDelay: 500 }
   ],
-  // Wave 25: Regen + camo
+  // Wave 25: Regen + camo + first drone_scout
   [
     { type: "camo", count: 15, spawnDelay: 1000, delayBeforeNext: 1000 },
+    { type: "drone_scout", count: 6, spawnDelay: 1000, delayBeforeNext: 800 },
     { type: "ordinary", count: 12, spawnDelay: 1100, delayBeforeNext: 800, modifiers: ["regen"] },
     { type: "coat", count: 10, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "matryoshka", count: 4, spawnDelay: 1600 }
   ],
-// Wave 26: Regen + infinix
+ // Wave 26: Regen + infinix + drone_scout
   [
     { type: "infinix_brat", count: 12, spawnDelay: 1200, delayBeforeNext: 1000 },
+    { type: "drone_scout", count: 8, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "coat", count: 15, spawnDelay: 1000, delayBeforeNext: 800 },
     { type: "lead", count: 10, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "matryoshka", count: 3, spawnDelay: 1600 }
   ],
-  // Wave 27: Regen wall
+  // Wave 27: Regen wall + drone_scout
   [
     { type: "ordinary", count: 20, spawnDelay: 800, delayBeforeNext: 800, modifiers: ["regen"] },
     { type: "heavy", count: 10, spawnDelay: 1800, delayBeforeNext: 800 },
     { type: "camo", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
+    { type: "drone_scout", count: 8, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "infinix_brat", count: 10, spawnDelay: 1200 }
   ],
   // === WAVE 28: RACHKY + GAS (support) intro ===
-  // Wave 28: First support enemies
+  // Wave 28: First support enemies + drone_scout
   [
     { type: "rachky_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 1000 },
     { type: "gas_brat", count: 10, spawnDelay: 1200, delayBeforeNext: 800 },
+    { type: "drone_scout", count: 8, spawnDelay: 950, delayBeforeNext: 800 },
     { type: "healer", count: 6, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "drowned", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
     { type: "big_matryoshka", count: 1, spawnDelay: 2200, delayBeforeNext: 600 },
     { type: "fast", count: 20, spawnDelay: 450 }
   ],
-  // Wave 29: Support + armor
+  // Wave 29: Support + armor + drone_scout
   [
     { type: "coat", count: 12, spawnDelay: 1300, delayBeforeNext: 800 },
+    { type: "drone_scout", count: 10, spawnDelay: 850, delayBeforeNext: 800 },
     { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
     { type: "gas_brat", count: 12, spawnDelay: 1000, delayBeforeNext: 800 },
     { type: "lead", count: 10, spawnDelay: 1500 }
   ],
-  // Wave 30: Support + regen
+  // Wave 30: Support + regen + drone_scout
   [
     { type: "ordinary", count: 18, spawnDelay: 900, delayBeforeNext: 800, modifiers: ["regen"] },
+    { type: "drone_scout", count: 10, spawnDelay: 850, delayBeforeNext: 800 },
     { type: "rachky_brat", count: 15, spawnDelay: 800, delayBeforeNext: 800 },
     { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "heavy", count: 4, spawnDelay: 1600, delayBeforeNext: 800, modifiers: ["ceramic"] },
@@ -1272,7 +1208,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "healer", count: 8, spawnDelay: 1200, delayBeforeNext: 800 },
     { type: "mega_shielded", count: 5, spawnDelay: 1600, delayBeforeNext: 800 },
     { type: "drowned", count: 3, spawnDelay: 1400, delayBeforeNext: 800 },
-    { type: "coat", count: 12, spawnDelay: 1300 }
+    { type: "coat", count: 12, spawnDelay: 1300, delayBeforeNext: 600 },
+    { type: "kamikaze", count: 5, spawnDelay: 1200, delayBeforeNext: 600 },
+    { type: "drone_scout", count: 6, spawnDelay: 900 }
   ],
   // === WAVE 36: JUMPER + SHIELDED intro ===
   // Wave 36: First Jumper + Shielded
@@ -1281,7 +1219,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "shielded", count: 6, spawnDelay: 1800, delayBeforeNext: 1000 },
     { type: "granite", count: 8, spawnDelay: 2000, delayBeforeNext: 800 },
     { type: "matryoshka", count: 4, spawnDelay: 1500, delayBeforeNext: 800 },
-    { type: "ordinary", count: 15, spawnDelay: 900, modifiers: ["regen"] }
+    { type: "ordinary", count: 15, spawnDelay: 900, modifiers: ["regen"], delayBeforeNext: 600 },
+    { type: "kamikaze", count: 6, spawnDelay: 1100 }
   ],
   // Wave 37: Jumper + camo + phantom + drones
   [
@@ -1291,7 +1230,8 @@ export const WAVES: WaveSegment[][] = [
     { type: "shielded", count: 8, spawnDelay: 1500, delayBeforeNext: 800 },
     { type: "drone_brat", count: 10, spawnDelay: 900, delayBeforeNext: 800 },
     { type: "matryoshka", count: 5, spawnDelay: 1400, delayBeforeNext: 800 },
-    { type: "fast", count: 25, spawnDelay: 400 }
+    { type: "fast", count: 25, spawnDelay: 400, delayBeforeNext: 600 },
+    { type: "drone_scout", count: 8, spawnDelay: 800 }
   ],
   // Wave 38: Shielded wall + support
   [
@@ -1300,7 +1240,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "gas_brat", count: 15, spawnDelay: 900, delayBeforeNext: 600 },
     { type: "jumper", count: 10, spawnDelay: 1300, delayBeforeNext: 800 },
     { type: "big_matryoshka", count: 3, spawnDelay: 2200, delayBeforeNext: 800 },
-    { type: "exploder", count: 8, spawnDelay: 1400 }
+    { type: "exploder", count: 8, spawnDelay: 1400, delayBeforeNext: 600 },
+    { type: "kamikaze", count: 6, spawnDelay: 1100, delayBeforeNext: 600 },
+    { type: "drone_scout", count: 8, spawnDelay: 850 }
   ],
   // Wave 39: Everything mixed - penultimate
   [
@@ -1313,7 +1255,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "lead", count: 15, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "matryoshka", count: 5, spawnDelay: 1100, delayBeforeNext: 600 },
     { type: "coat", count: 4, spawnDelay: 1300, delayBeforeNext: 600, modifiers: ["ceramic"] },
-    { type: "drowned", count: 3, spawnDelay: 1300 }
+    { type: "drowned", count: 3, spawnDelay: 1300, delayBeforeNext: 600 },
+    { type: "kamikaze", count: 8, spawnDelay: 1000, delayBeforeNext: 600 },
+    { type: "drone_scout", count: 8, spawnDelay: 850 }
   ],
   // === WAVE 40: THE ULTIMATE FINAL WAVE ===
   // Wave 40: Boss + Megaboss + everything
@@ -1332,7 +1276,9 @@ export const WAVES: WaveSegment[][] = [
     { type: "jumper", count: 12, spawnDelay: 1050, delayBeforeNext: 500 },
     { type: "big_matryoshka", count: 2, spawnDelay: 2200, delayBeforeNext: 500 },
     { type: "heavy", count: 4, spawnDelay: 1400, delayBeforeNext: 500, modifiers: ["ceramic"] },
-    { type: "mega_shielded", count: 3, spawnDelay: 1800 }
+    { type: "mega_shielded", count: 3, spawnDelay: 1800, delayBeforeNext: 500 },
+    { type: "kamikaze", count: 8, spawnDelay: 1000, delayBeforeNext: 500 },
+    { type: "drone_scout", count: 8, spawnDelay: 900 }
   ],
   // === COMBO WAVES 41-46: Synergy enemy combinations ===
   // Wave 41: COMBO - Camo+Lead + drone swarm
@@ -1503,6 +1449,34 @@ export const POST_46_WAVES: WaveSegment[][] = [
     { type: "mega_shielded", count: 10, spawnDelay: 850, delayBeforeNext: 400 },
     { type: "lead", count: 12, spawnDelay: 700, delayBeforeNext: 400, modifiers: ["ceramic"] },
     { type: "drowned", count: 10, spawnDelay: 800 }
+  ],
+  // Wave 57: kamikaze swarm
+  [
+    { type: "kamikaze", count: 20, spawnDelay: 700, delayBeforeNext: 400 },
+    { type: "fast", count: 10, spawnDelay: 500 }
+  ],
+  // Wave 58: drone_scout patrol
+  [
+    { type: "drone_scout", count: 15, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "drone_brat_armored", count: 5, spawnDelay: 900 }
+  ],
+  // Wave 59: inferno (kamikaze + regen)
+  [
+    { type: "kamikaze", count: 10, spawnDelay: 800, delayBeforeNext: 400 },
+    { type: "ordinary", count: 10, spawnDelay: 700, modifiers: ["regen"] }
+  ],
+  // Wave 60: combined assault (new enemy types)
+  [
+    { type: "kamikaze", count: 12, spawnDelay: 700, delayBeforeNext: 400 },
+    { type: "drone_scout", count: 10, spawnDelay: 750, delayBeforeNext: 400 },
+    { type: "drone_brat", count: 8, spawnDelay: 700 }
+  ],
+  // Wave 61: supreme mix
+  [
+    { type: "kamikaze", count: 15, spawnDelay: 600, delayBeforeNext: 350 },
+    { type: "drone_scout", count: 12, spawnDelay: 650, delayBeforeNext: 350 },
+    { type: "drone_brat_armored", count: 6, spawnDelay: 800, delayBeforeNext: 350 },
+    { type: "fast", count: 20, spawnDelay: 350 }
   ]
 ];
 
@@ -1512,9 +1486,9 @@ const GLOBAL_WAVE_ENEMY_COUNT_MULTIPLIER = 1.5;
 // Applied on top of the handcrafted WAVES / POST_46_WAVES definitions.
 function getWaveScaling(waveNumber: number, type: string): { countMult: number; delayMult: number } {
   const swarm = ["ordinary", "fast"];
-  const massSpecial = ["camo", "rachky_brat", "gas_brat", "matryoshka", "drone_brat"];
+  const massSpecial = ["camo", "rachky_brat", "gas_brat", "matryoshka", "drone_brat", "drone_scout"];
   const armored = ["coat", "heavy", "lead", "drowned"];
-  const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "jumper", "shielded", "healer", "big_matryoshka", "mega_shielded"];
+  const miniBoss = ["infinix_brat", "granite", "phantom", "exploder", "kamikaze", "jumper", "shielded", "healer", "big_matryoshka", "mega_shielded"];
 
   // Early waves should have large spacing between enemies; later waves tighten up.
   const swarmDelay = waveNumber <= 5 ? 1.15 : waveNumber <= 10 ? 1.0 : waveNumber <= 25 ? 0.7 : 0.55;
@@ -1553,17 +1527,21 @@ function scaleWaveSegments(segments: WaveSegment[], waveNumber: number): WaveSeg
   });
 }
 
-export function getScaledWave(waveNumber: number): WaveSegment[] {
+export function getScaledWave(waveNumber: number, sessionSeed?: number): WaveSegment[] {
   let baseSegments: WaveSegment[];
   if (waveNumber <= 46) {
     baseSegments = WAVES[waveNumber - 1];
-  } else if (waveNumber <= 56) {
+  } else if (waveNumber <= 61) {
     baseSegments = POST_46_WAVES[waveNumber - 47];
   } else {
-    // Endless mode after the handcrafted post-game set.
+    // Use seeded RNG for reproducible endless wave generation
+    const rng = sessionSeed !== undefined
+      ? createSeededRandom(sessionSeed + waveNumber)
+      : Math.random;
+
     const multiplier = Math.pow(1.08, waveNumber - 56);
-    const earlyEndlessTypes = ["fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "drowned", "mega_shielded"];
-    const deepEndlessTypes = ["heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "jumper", "shielded", "healer", "matryoshka", "drowned", "big_matryoshka", "mega_shielded", "drone_brat", "drone_brat_armored"];
+    const earlyEndlessTypes = ["fast", "heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "kamikaze", "jumper", "shielded", "healer", "matryoshka", "drowned", "mega_shielded"];
+    const deepEndlessTypes = ["heavy", "coat", "infinix_brat", "rachky_brat", "gas_brat", "granite", "camo", "lead", "phantom", "exploder", "kamikaze", "jumper", "shielded", "healer", "matryoshka", "drowned", "big_matryoshka", "mega_shielded", "drone_brat", "drone_brat_armored", "drone_scout"];
     const types = waveNumber >= 70 ? deepEndlessTypes : earlyEndlessTypes;
     baseSegments = [];
 
@@ -1581,12 +1559,12 @@ export function getScaledWave(waveNumber: number): WaveSegment[] {
     // 5-7 random segments (slower growth)
     const segmentCount = 5 + Math.min(7, Math.floor((waveNumber - 56) / 4));
     for (let i = 0; i < segmentCount; i++) {
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const baseCount = randomType === "big_matryoshka" || randomType === "mega_shielded" ? 2 : randomType === "granite" || randomType === "heavy" ? 4 : randomType === "matryoshka" || randomType === "drowned" || randomType === "drone_brat_armored" ? 5 : randomType === "drone_brat" ? 8 : 10;
+      const randomType = types[Math.floor(rng() * types.length)];
+      const baseCount = randomType === "big_matryoshka" || randomType === "mega_shielded" ? 2 : randomType === "granite" || randomType === "heavy" ? 4 : randomType === "matryoshka" || randomType === "drowned" || randomType === "drone_brat_armored" ? 5 : randomType === "drone_brat" || randomType === "drone_scout" ? 8 : 10;
       const modifiers: EnemyModifier[] = [];
-      if (waveNumber >= 58 && Math.random() < 0.28) modifiers.push("regen");
-      if (waveNumber >= 62 && Math.random() < 0.22) modifiers.push("ceramic");
-      if (waveNumber >= 67 && Math.random() < 0.20) modifiers.push("camo");
+      if (waveNumber >= 58 && rng() < 0.28) modifiers.push("regen");
+      if (waveNumber >= 62 && rng() < 0.22) modifiers.push("ceramic");
+      if (waveNumber >= 67 && rng() < 0.20) modifiers.push("camo");
       const count = Math.floor(baseCount * Math.sqrt(multiplier));
       const delay = Math.max(250, Math.floor(1000 / (1 + (waveNumber - 56) * 0.05)));
       baseSegments.push({
@@ -1724,28 +1702,32 @@ export const EMOJI_MAP: Record<string, string> = {
   ordinary: "😐", fast: "⚡", heavy: "🍔", coat: "🧥",
   infinix_brat: "👾", matryoshka: "🪆", big_matryoshka: "🪆", ceramic: "🏺", drowned: "🫧", mega_shielded: "🏰", boss: "💀", rachky_brat: "🍬", gas_brat: "💨", granite: "🗿",
   camo: "🦹", regen: "💗", lead: "🔩",
-  phantom: "👻", exploder: "💣", jumper: "🦘", shielded: "🛡️", megaboss: "👹", drone_brat: "🛸", drone_brat_armored: "🛡️🛸",
+    phantom: "👻", exploder: "💣", kamikaze: "💥", jumper: "🦘", shielded: "🛡️", megaboss: "👹", drone_brat: "🛸", drone_brat_armored: "🛡️🛸", drone_scout: "🕵️",
   sniper: "🎯", chain: "⚡", kladmen: "💣", healer: "💚", bankomat: "🏧", monolith: "🗿",
   boomerang: "🪃"
 };
 
-// Shared sound map. All sounds use the same PDR Production sample with different volumes.
-export const SOUND_MAP: Record<string, { file: string; volume: number }> = {
-  hammer: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
-  coffee: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.2 },
-  candy: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.3 },
-  infinix: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
-  gas: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.15 },
-  sniper: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
-  chain: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
-  kladmen: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.4 },
-  bankomat: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.18 },
-  monolith: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.55 },
-  boomerang: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.35 },
-  wave: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.22 },
-  crit: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.5 },
-  explosion: { file: "/PDR_PRODUCTION_SOUND.mp3", volume: 0.45 },
-};
+// Memory caps for unbounded arrays in endless mode
+export const ARRAY_CAPS = {
+  PROJECTILES: 500,
+  PARTICLES: 1000,
+  FLOATING_TEXTS: 200,
+  SPEED_TRAILS: 300,
+  EXPLOSION_RINGS: 50,
+} as const;
+
+// === Centralized game constants ===
+
+export const ANTI_AIR_TOWERS = new Set(["candy", "infinix", "sniper", "chain", "monolith"]);
+export const SUPPORT_TOWERS = new Set(["coffee", "bankomat"]);
+export const COFFEE_BUFF_DEFAULTS = { attackSpeed: 0.05, range: 0.25, damage: 0.15 };
+export const SHIELD_REGEN_DELAY_FRAMES = 360;
+export const HEALER_BASE_HEAL = 0.1;
+export const HEALER_HP_SCALING = 0.0001;
+export const MAX_OVERHEAL_MULTIPLIER = 1.5;
+export const MAX_DAMAGE_DEBUFF_MULTIPLIER = 1.6;
+export const NON_ENDLESS_WAVE_COUNT = 46;
+export const LEADERBOARD_LIMIT = 10;
 
 // Returns a random wave announcement quote for the given wave number.
 export function getWaveQuote(wave: number): string {

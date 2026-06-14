@@ -27,8 +27,8 @@ describe('WAVES: structure', () => {
     expect(WAVES).toHaveLength(NON_ENDLESS_WAVE_COUNT);
   });
 
-  it('POST_46_WAVES contains 10 post-game waves', () => {
-    expect(POST_46_WAVES).toHaveLength(10);
+  it('POST_46_WAVES contains 15 post-game waves', () => {
+    expect(POST_46_WAVES).toHaveLength(15);
   });
 
   it.each(WAVES.map((_, i) => i + 1))(
@@ -199,8 +199,8 @@ describe('getScaledWave: integration with TIER_SCALING', () => {
     }
   });
 
-  it('returns a valid wave 56 (last handcrafted post-46 wave)', () => {
-    const wave = getScaledWave(56);
+  it('returns a valid wave 61 (last handcrafted post-46 wave)', () => {
+    const wave = getScaledWave(61);
     expect(wave.length).toBeGreaterThan(0);
     for (const segment of wave) {
       expect(VALID_ENEMY_TYPES.has(segment.type)).toBe(true);
@@ -245,5 +245,77 @@ describe('TIER_SCALING applied values', () => {
     for (let i = 0; i < TIER_SCALING.length - 1; i++) {
       expect(tier8.hpMult).toBeGreaterThan(TIER_SCALING[i].hpMult);
     }
+  });
+});
+
+describe('WAVES: kamikaze integration', () => {
+  it('kamikaze appears in waves 18-23 as a modifier segment', () => {
+    for (const waveNum of [18, 19, 20, 21, 22, 23]) {
+      const wave = WAVES[waveNum - 1];
+      const kamikazeSegments = wave.filter((s) => s.type === 'kamikaze');
+      expect(kamikazeSegments.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('kamikaze is in miniBoss scaling category', () => {
+    const wave40 = WAVES[39];
+    for (const segment of wave40) {
+      if (segment.type === 'kamikaze') {
+        expect(segment.count).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe('WAVES: drone_scout + kamikaze in waves 35-40', () => {
+  it.each([35, 36, 37, 38, 39, 40])(
+    'wave %i has at least one kamikaze or drone_scout segment',
+    (waveNum) => {
+      const wave = WAVES[waveNum - 1];
+      const newTypes = wave.filter((s) => s.type === 'kamikaze' || s.type === 'drone_scout');
+      expect(newTypes.length).toBeGreaterThanOrEqual(1);
+    },
+  );
+
+  it('wave 35 has both kamikaze and drone_scout', () => {
+    const wave35 = WAVES[34];
+    expect(wave35.some((s) => s.type === 'kamikaze')).toBe(true);
+    expect(wave35.some((s) => s.type === 'drone_scout')).toBe(true);
+  });
+
+  it('wave 40 has both kamikaze and drone_scout', () => {
+    const wave40 = WAVES[39];
+    expect(wave40.some((s) => s.type === 'kamikaze')).toBe(true);
+    expect(wave40.some((s) => s.type === 'drone_scout')).toBe(true);
+  });
+});
+
+describe('POST_46_WAVES: new themed entries (57-61)', () => {
+  it.each([57, 58, 59, 60, 61])(
+    'post-46 wave %i segments reference valid enemy types',
+    (waveNumber) => {
+      const wave = POST_46_WAVES[waveNumber - 47];
+      expect(wave).toBeDefined();
+      expect(wave.length).toBeGreaterThan(0);
+      for (const segment of wave) {
+        expect(VALID_ENEMY_TYPES.has(segment.type)).toBe(true);
+        expect(segment.count).toBeGreaterThan(0);
+        expect(segment.spawnDelay).toBeGreaterThan(0);
+      }
+    },
+  );
+
+  it('wave 57 (kamikaze swarm) features kamikaze as primary type', () => {
+    const wave57 = POST_46_WAVES[10];
+    const kamikazeCount = wave57
+      .filter((s) => s.type === 'kamikaze')
+      .reduce((sum, s) => sum + s.count, 0);
+    expect(kamikazeCount).toBeGreaterThanOrEqual(20);
+  });
+
+  it('wave 60 (combined assault) features both kamikaze and drone_scout', () => {
+    const wave60 = POST_46_WAVES[13];
+    expect(wave60.some((s) => s.type === 'kamikaze')).toBe(true);
+    expect(wave60.some((s) => s.type === 'drone_scout')).toBe(true);
   });
 });

@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { LEADERBOARD_LIMIT } from "@/app/(main)/tools/brat-td/gameConfig";
 
 export const revalidate = 0;
-
-const LEADERBOARD_LIMIT = 10;
 
 type LeaderboardRow = {
   user_id: string;

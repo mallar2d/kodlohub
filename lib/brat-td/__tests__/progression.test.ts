@@ -124,7 +124,7 @@ describe('TOWER_UNLOCK_LEVELS: monotonic', () => {
     }
   });
 
-  it('all 11 towers have an unlock level defined', () => {
+  it('all 12 towers have an unlock level defined', () => {
     const expectedTowers = [
       'hammer',
       'boomerang',
@@ -134,6 +134,7 @@ describe('TOWER_UNLOCK_LEVELS: monotonic', () => {
       'infinix',
       'chain',
       'candy',
+      'flamethrower',
       'coffee',
       'bankomat',
       'monolith',
@@ -143,6 +144,10 @@ describe('TOWER_UNLOCK_LEVELS: monotonic', () => {
       expect(TOWER_UNLOCK_LEVELS[tower]).toBeTypeOf('number');
       expect(TOWER_UNLOCK_LEVELS[tower]).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('flamethrower unlocks at level 18', () => {
+    expect(TOWER_UNLOCK_LEVELS.flamethrower).toBe(18);
   });
 });
 

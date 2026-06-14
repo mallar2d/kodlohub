@@ -1,0 +1,34 @@
+/**
+ * Deterministic seeded pseudo-random number generator (mulberry32).
+ * Ensures endless wave generation is reproducible given the same session seed.
+ */
+
+export function createSeededRandom(seed: number): () => number {
+  let s = seed | 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Returns a random integer in [min, max] inclusive using the provided rng. */
+export function randomInt(rng: () => number, min: number, max: number): number {
+  return Math.floor(rng() * (max - min + 1)) + min;
+}
+
+/** Returns a random float in [min, max) using the provided rng. */
+export function randomFloat(rng: () => number, min: number, max: number): number {
+  return rng() * (max - min) + min;
+}
+
+/** Returns true with the given probability using the provided rng. */
+export function randomChance(rng: () => number, probability: number): boolean {
+  return rng() < probability;
+}
+
+/** Picks a random element from an array using the provided rng. */
+export function randomPick<T>(rng: () => number, arr: T[]): T {
+  return arr[Math.floor(rng() * arr.length)];
+}
