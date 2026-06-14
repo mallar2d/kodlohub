@@ -1565,19 +1565,23 @@ function SessionSummaryPanel({ summary }: { summary: SessionSummary }) {
 function LeaderboardPreview({ entries }: { entries: LeaderboardEntry[] }) {
   if (entries.length === 0) return null;
   return (
-    <div className="w-full max-w-xs mb-4 text-left">
+    <div className="w-full max-w-sm mb-4 text-left">
       <p className="micro-cap text-ink-mute mb-2 text-center">ЛЕДЕРБОРД</p>
       <div className="bg-zinc-900/80 border border-hairline-dark rounded p-2 max-h-48 overflow-y-auto">
         {entries.map((e, i) => (
-          <div key={i} className={`flex items-center justify-between py-1 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
-            <span className="flex items-center gap-2 min-w-0">
+          <div key={i} className={`flex items-center justify-between py-1.5 px-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+            <span className="flex items-center gap-2 min-w-0 flex-1">
               <span className="w-5 text-right font-bold shrink-0">{i + 1}.</span>
-              <span className="truncate">
-                {e.activeTitle && <span className="text-cyan-300 mr-1">[{e.activeTitle}]</span>}
-                {e.name}
+              <span className="flex items-center gap-1.5 min-w-0 flex-1">
+                {e.activeTitle && (
+                  <span className="text-cyan-400 text-[9px] uppercase font-bold tracking-wider shrink-0 bg-cyan-950/40 border border-cyan-800/40 px-1 py-0.5 rounded leading-none">
+                    {e.activeTitle}
+                  </span>
+                )}
+                <span className="truncate font-semibold">{e.name}</span>
               </span>
             </span>
-            <span className="font-bold shrink-0">{e.score}</span>
+            <span className="font-bold shrink-0 pl-2">{e.score}</span>
           </div>
         ))}
       </div>
@@ -5329,17 +5333,21 @@ export default function BratTDClient() {
                 ))}
               </div>
             </div>
-            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
               {leaderboard.slice(0, 10).map((e, i) => (
-                <div key={`${e.name}-${e.score}-${i}`} className={`flex items-center justify-between gap-2 rounded border border-hairline-dark/70 bg-black/35 px-2 py-1.5 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
-                  <span className="flex min-w-0 items-center gap-2">
+                <div key={`${e.name}-${e.score}-${i}`} className={`flex items-center justify-between gap-3 rounded border border-hairline-dark/70 bg-black/35 px-3 py-2 text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-orange-400" : "text-on-primary-mute"}`}>
+                  <span className="flex min-w-0 items-center gap-2 flex-1">
                     <span className="w-5 shrink-0 text-right font-bold">{i + 1}.</span>
-                    <span className="truncate">
-                      {e.activeTitle && <span className="text-cyan-300 mr-1">[{e.activeTitle}]</span>}
-                      {e.name}
+                    <span className="flex items-center gap-1.5 min-w-0 flex-1">
+                      {e.activeTitle && (
+                        <span className="text-cyan-400 text-[10px] uppercase font-bold tracking-wider shrink-0 bg-cyan-950/40 border border-cyan-800/40 px-1.5 py-0.5 rounded leading-none">
+                          {e.activeTitle}
+                        </span>
+                      )}
+                      <span className="truncate font-semibold">{e.name}</span>
                     </span>
                   </span>
-                  <span className="shrink-0 font-bold">{leaderboardKind === "fastest_victory" ? formatSeconds(e.durationSeconds ?? 0) : e.score}</span>
+                  <span className="shrink-0 font-bold pl-2">{leaderboardKind === "fastest_victory" ? formatSeconds(e.durationSeconds ?? 0) : e.score}</span>
                 </div>
               ))}
             </div>
