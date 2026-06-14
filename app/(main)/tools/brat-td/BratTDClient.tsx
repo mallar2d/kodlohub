@@ -183,6 +183,7 @@ interface ActiveEnemy {
   isCamo?: boolean;
   isRegen?: boolean;
   isLead?: boolean;
+  isCeramic?: boolean;
   shieldHp?: number;
   shieldRegenTimer?: number;
   isPhantomCamo?: boolean;
@@ -2311,6 +2312,7 @@ export default function BratTDClient() {
       isCamo: baseConfig.isCamo,
       isRegen: baseConfig.isRegen,
       isLead: baseConfig.isLead,
+      isCeramic: baseConfig.isCeramic,
       isPhantomCamo: baseConfig.isPhantomCamo,
       isExploder: baseConfig.isExploder,
       isHealer: baseConfig.isHealer,
@@ -2945,6 +2947,7 @@ export default function BratTDClient() {
                   isCamo: baseConfig.isCamo,
                   isRegen: baseConfig.isRegen,
                   isLead: baseConfig.isLead,
+                  isCeramic: baseConfig.isCeramic,
                   isPhantomCamo: baseConfig.isPhantomCamo,
                   isExploder: baseConfig.isExploder,
                   isHealer: baseConfig.isHealer,
@@ -3190,6 +3193,9 @@ export default function BratTDClient() {
               if ((enemy.isCamo || enemy.isPhantomCamo) && !mine.camoDetection) continue;
 
               const applyMineDamage = (target: ActiveEnemy, dmg: number) => {
+                if (mine.explodes && (target.isLead || target.isCeramic)) {
+                  dmg = Math.floor(dmg * 1.5);
+                }
                 if (mine.ignoresArmor) { /* no reduction */ }
                 else if (target.isSuperArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.75 * (1 - (mine.armorPierce || 0))));
                 else if (target.isArmored && !mine.ignoresArmor) dmg = Math.floor(dmg * (1 - 0.5 * (1 - (mine.armorPierce || 0))));
@@ -4087,6 +4093,9 @@ export default function BratTDClient() {
                       }
                       if (proj.explodeDmg && other.id !== enemy.id) {
                         let splashDmg = proj.explodeDmg;
+                        if (other.isLead || other.isCeramic) {
+                          splashDmg = Math.floor(splashDmg * 1.5);
+                        }
                         if (other.shieldHp !== undefined && other.shieldHp > 0) {
                           const absorbed = Math.min(other.shieldHp, splashDmg);
                           other.shieldHp -= absorbed;
@@ -4133,7 +4142,7 @@ export default function BratTDClient() {
                 
                 if (proj.copilotBug) {
                   enemy.hasCopilotBug = true;
-                  enemy.bugExplodeDmg = proj.bugExplodeDmg || 50;
+                  enemy.bugExplodeDmg = proj.bugExplodeDmg || 75;
                   enemy.bugExplodeRadius = proj.bugExplodeRadius || 80;
                   enemy.bugContagion = proj.bugContagion || false;
                 }
@@ -4173,6 +4182,9 @@ export default function BratTDClient() {
                   if (other.id === enemy.id || other.hp <= 0) return;
                   if (getDistance(enemy.x, enemy.y, other.x, other.y) > explosionRadius) return;
                   let splashDmg = proj.explodeDmg || 0;
+                  if (other.isLead || other.isCeramic) {
+                    splashDmg = Math.floor(splashDmg * 1.5);
+                  }
                   if (other.shieldHp !== undefined && other.shieldHp > 0) {
                     const absorbed = Math.min(other.shieldHp, splashDmg);
                     other.shieldHp -= absorbed;
@@ -4271,7 +4283,7 @@ export default function BratTDClient() {
 
             // Check Copilot Bug explosion
             if (enemy.hasCopilotBug) {
-              const explodeDmg = enemy.bugExplodeDmg || 50;
+              const explodeDmg = enemy.bugExplodeDmg || 75;
               const explodeRad = enemy.bugExplodeRadius || 80;
               spawnFloatingText(enemy.x, enemy.y - 15, "BUG EXPLOSION!", "#a855f7");
               spawnHitParticles(enemy.x, enemy.y, "#a855f7", 15, "square");
@@ -4280,7 +4292,11 @@ export default function BratTDClient() {
               enemiesRef.current.forEach((other) => {
                 if (other.id !== enemy.id && other.hp > 0 && getDistance(enemy.x, enemy.y, other.x, other.y) <= explodeRad) {
                   const wasAliveOther = other.hp > 0;
-                  other.hp -= explodeDmg;
+                  let dmg = explodeDmg;
+                  if (other.isLead || other.isCeramic) {
+                    dmg = Math.floor(dmg * 1.5);
+                  }
+                  other.hp -= dmg;
                   // If other dies from explosion, attribute kill to nearest Infinix tower
                   if (wasAliveOther && other.hp <= 0) {
                     const sourceTower = towersRef.current

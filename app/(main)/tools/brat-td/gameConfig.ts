@@ -143,6 +143,7 @@ export interface EnemyConfig {
   isLead?: boolean;
   isPhantomCamo?: boolean;
   isExploder?: boolean;
+  isCeramic?: boolean;
   glitchDistance?: number;
   shieldHp?: number;
   shieldRegenDelay?: number;
@@ -282,18 +283,18 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає молоток у найближчого брата. Базовий юніт.",
     cost: 200,
     range: 140,
-    damage: 28,
+    damage: 42,
     fireRate: 1.1,
     color: "#38bdf8", // Sky blue
     emoji: "🔨",
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "hammer_sharp", name: "Гострий молоток", description: "Збільшує шкоду молотка на 5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
-        { id: "hammer_steel", name: "Сталеве гартування", description: "Шкода +10, пробиття (пірс) +1.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10, pierce: (s.pierce || 1) + 1 }) },
-        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +25, радіус +10, пірс +2.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 25, range: s.range + 10, pierce: (s.pierce || 1) + 2 }) },
-        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +45, пірс +2.", cost: 1662, effect: (s) => ({ ...s, damage: s.damage + 45, pierce: (s.pierce || 1) + 2 }) },
-        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+100), радіус (+35) та великий пірс (+6).", cost: 7523, effect: (s) => ({ ...s, damage: s.damage + 100, range: s.range + 35, pierce: (s.pierce || 1) + 6 }) }
+        { id: "hammer_sharp", name: "Гострий молоток", description: "Збільшує шкоду молотка на 7.5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 7.5 }) },
+        { id: "hammer_steel", name: "Сталеве гартування", description: "Шкода +15, пробиття (пірс) +1.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 1) + 1 }) },
+        { id: "hammer_heavy", name: "Важкий молоток", description: "Шкода +37.5, радіус +10, пірс +2.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 37.5, range: s.range + 10, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_breaker", name: "Руйнівник граніту", description: "Шкода +67.5, пірс +2.", cost: 1662, effect: (s) => ({ ...s, damage: s.damage + 67.5, pierce: (s.pierce || 1) + 2 }) },
+        { id: "hammer_thor", name: "Молот Тора ЗТ", description: "Велетенська шкода (+150), радіус (+35) та великий пірс (+6).", cost: 7523, effect: (s) => ({ ...s, damage: s.damage + 150, range: s.range + 35, pierce: (s.pierce || 1) + 6 }) }
       ],
       path2: [
         { id: "hammer_fast", name: "Швидка рука", description: "Збільшує швидкість атаки на 15%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
@@ -349,15 +350,15 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Стріляє святими цукерками «Рачки», які сповільнюють братів на 50%.",
     cost: 275,
     range: 150,
-    damage: 6,
+    damage: 9,
     fireRate: 1.5,
     color: "#f97316", // Orange
     emoji: "🍬",
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "candy_sweet", name: "Солодкий удар", description: "Шкода від цукерок +3.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
-        { id: "candy_press", name: "Карамель-прес", description: "Шкода +7, slow-duration +60.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 7, slowDurationBonus: (s.slowDurationBonus || 0) + 60 }) },
+        { id: "candy_sweet", name: "Солодкий удар", description: "Шкода від цукерок +4.5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 4.5 }) },
+        { id: "candy_press", name: "Карамель-прес", description: "Шкода +10.5, slow-duration +60.", cost: 300, effect: (s) => ({ ...s, damage: s.damage + 10.5, slowDurationBonus: (s.slowDurationBonus || 0) + 60 }) },
         { id: "candy_dust", name: "Пил часу", description: "Сповільнені вороги отримують на 15% більше шкоди від усіх джерел.", cost: 721, effect: (s) => ({ ...s, damageDebuff: 1.15 }) },
         { id: "candy_paralysis", name: "Цукровий параліч", description: "Сповільнення збільшується з 50% до 33%.", cost: 1662, effect: (s) => ({ ...s, slowFactorBonus: 0.17 }) },
         { id: "candy_stop", name: "Абсолютний стоп", description: "Сповільнення стає 66%, вороги отримують на 60% більше шкоди.", cost: 6893, effect: (s) => ({ ...s, slowFactorBonus: 0.33, damageDebuff: 1.6 }) }
@@ -366,15 +367,15 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "candy_big", name: "Великі рачки", description: "Дальність стрільби цукерками +15px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 15 }) },
         { id: "candy_dispense", name: "Швидкий викид", description: "Швидкість стрільби цукерками +25%.", cost: 260, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.75 }) },
         { id: "candy_teacher", name: "Дар викладачці", description: "Цукерки вибухають при влучанні (радіус 60px).", cost: 935, effect: (s) => ({ ...s, isAoESlow: true }) },
-        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px, наносить 15 шкоди.", cost: 2136, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 15 }) },
-        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Вибух у 150px наносить 80 шкоди, миттєво стопить натовп.", cost: 8153, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 80, range: s.range + 20 }) }
+        { id: "candy_cloud", name: "Рачкове хмариння", description: "Вибух покриває 100px, наносить 22.5 шкоди.", cost: 2136, effect: (s) => ({ ...s, range: s.range + 15, isAoESlow: true, explodeDmg: 22.5 }) },
+        { id: "candy_singularity", name: "Рачкова сингулярність", description: "Вибух у 150px наносить 120 шкоди, миттєво стопить натовп.", cost: 8153, effect: (s) => ({ ...s, isAoESlow: true, explodeDmg: 120, range: s.range + 20 }) }
       ],
       path3: [
         { id: "candy_sugar_cheap", name: "Дешевий цукор", description: "Мікростан 0.2с при попаданні.", cost: 78, effect: (s) => ({ ...s, microStunDuration: 12 }) },
         { id: "candy_cheap", name: "Кишеньковий запас", description: "Швидкість атаки +20%, камуфляж-детекція.", cost: 195, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80, camoDetection: true }) },
         { id: "candy_bakery", name: "Свята цукерня", description: "Швидкість стрільби збільшується на 15%.", cost: 638, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
         { id: "candy_vending", name: "Автомат рачків", description: "Стріляє цукерками на 20% швидше.", cost: 1806, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.80 }) },
-        { id: "candy_conveyor", name: "Конвеєр Коростишева", description: "Шкода +20, 50% шанс перекинути мікростан та сповільнення на сусіда.", cost: 6270, effect: (s) => ({ ...s, damage: s.damage + 20, spreadChance: 0.50 }) }
+        { id: "candy_conveyor", name: "Конвеєр Коростишева", description: "Шкода +30, 50% шанс перекинути мікростан та сповільнення на сусіда.", cost: 6270, effect: (s) => ({ ...s, damage: s.damage + 30, spreadChance: 0.50 }) }
       ]
     }
   },
@@ -383,7 +384,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода. Бачить камуфляж.",
     cost: 450,
     range: 120,
-    damage: 30,
+    damage: 45,
     fireRate: 0.8,
     color: "#a855f7", // Purple
     emoji: "📱",
@@ -391,10 +392,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 5.", cost: 185, effect: (s) => ({ ...s, damage: s.damage + 5 }) },
-        { id: "infinix_discharge", name: "Цифровий розряд", description: "Шкода +15.", cost: 400, effect: (s) => ({ ...s, damage: s.damage + 15 }) },
+        { id: "infinix_voltage", name: "Висока напруга", description: "Збільшує середню шкоду на 7.5.", cost: 185, effect: (s) => ({ ...s, damage: s.damage + 7.5 }) },
+        { id: "infinix_discharge", name: "Цифровий розряд", description: "Шкода +22.5.", cost: 400, effect: (s) => ({ ...s, damage: s.damage + 22.5 }) },
         { id: "infinix_gacha", name: "Гача-зрив", description: "5% шанс на джекпот (4x від поточної шкоди).", cost: 1056, effect: (s) => ({ ...s, gachaChance: 0.05, gachaDamageMultiplier: 4 }) },
-        { id: "infinix_jackpot", name: "Джекпот-адикт", description: "Шанс джекпоту 10% (5x шкоди).", cost: 2376, effect: (s) => ({ ...s, gachaChance: 0.10, gachaDamageMultiplier: 5, damage: s.damage + 10 }) },
+        { id: "infinix_jackpot", name: "Джекпот-адикт", description: "Шанс джекпоту 10% (5x шкоди), шкода +15.", cost: 2376, effect: (s) => ({ ...s, gachaChance: 0.10, gachaDamageMultiplier: 5, damage: s.damage + 15 }) },
         { id: "infinix_pull", name: "5-Зірковий пул", description: "Шанс джекпоту 16% (6x шкоди).", cost: 9405, effect: (s) => ({ ...s, gachaChance: 0.16, gachaDamageMultiplier: 6 }) }
       ],
       path2: [
@@ -407,9 +408,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path3: [
         { id: "infinix_4g", name: "Сигнал 4G", description: "Дальність стрільби вежі +25px.", cost: 130, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "infinix_5g", name: "Антена 5G", description: "Дальність вежі +40px.", cost: 300, effect: (s) => ({ ...s, range: s.range + 40 }) },
-        { id: "infinix_copilot", name: "Copilot Manager", description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 50 шкоди навколо.", cost: 1188, effect: (s) => ({ ...s, copilotBug: true }) },
-        { id: "infinix_worm", name: "Мережевий черв", description: "Вибух багу наносить 90 шкоди в радіусі 100px.", cost: 2616, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 90, bugExplodeRadius: 100 }) },
-        { id: "infinix_super", name: "Суперкомп'ютер", description: "Вибух наносить 250 шкоди, розповсюджуючи баг на сусідніх ворогів.", cost: 10035, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 250, bugExplodeRadius: 150, bugContagion: true }) }
+        { id: "infinix_copilot", name: "Copilot Manager", description: "Заражає ворога багом. При смерті ворога з багом, він вибухає на 75 шкоди навколо.", cost: 1188, effect: (s) => ({ ...s, copilotBug: true }) },
+        { id: "infinix_worm", name: "Мережевий черв", description: "Вибух багу наносить 135 шкоди в радіусі 100px.", cost: 2616, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 135, bugExplodeRadius: 100 }) },
+        { id: "infinix_super", name: "Суперкомп'ютер", description: "Вибух наносить 375 шкоди, розповсюджуючи баг на сусідніх ворогів.", cost: 10035, effect: (s) => ({ ...s, copilotBug: true, bugExplodeDmg: 375, bugExplodeRadius: 150, bugContagion: true }) }
       ]
     }
   },
@@ -418,7 +419,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
     cost: 350,
     range: 82,
-    damage: 11.5,
+    damage: 17.25,
     fireRate: 0.9,
     color: "#22c55e", // Green
     emoji: "💨",
@@ -426,11 +427,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     tackCount: 6,
     upgrades: {
       path1: [
-        { id: "gas_sharp", name: "Їдкі Шипи", description: "Шкода шипів +3.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 3 }) },
+        { id: "gas_sharp", name: "Їдкі Шипи", description: "Шкода шипів +4.5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 4.5 }) },
         { id: "gas_more", name: "Більше Форсунок", description: "+2 газові шипи за залп.", cost: 300, effect: (s) => ({ ...s, tackCount: (s.tackCount || 6) + 2 }) },
-        { id: "gas_corrosive", name: "Корозійний Газ", description: "Шкода +8, шипи краще беруть броню.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 8, antiArmor: true }) },
-        { id: "gas_blade", name: "Газові Леза", description: "Шкода +14, пірс +1, +2 шипи.", cost: 2136, effect: (s) => ({ ...s, damage: s.damage + 14, pierce: (s.pierce || 1) + 1, tackCount: (s.tackCount || 6) + 2 }) },
-        { id: "gas_inferno", name: "Токсичне Кільце", description: "Шкода +28, пірс +2, +4 шипи, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 28, pierce: (s.pierce || 1) + 2, tackCount: (s.tackCount || 6) + 4, ignoresArmor: true }) }
+        { id: "gas_corrosive", name: "Корозійний Газ", description: "Шкода +12, шипи краще беруть броню.", cost: 770, effect: (s) => ({ ...s, damage: s.damage + 12, antiArmor: true }) },
+        { id: "gas_blade", name: "Газові Леза", description: "Шкода +21, пірс +1, +2 шипи.", cost: 2136, effect: (s) => ({ ...s, damage: s.damage + 21, pierce: (s.pierce || 1) + 1, tackCount: (s.tackCount || 6) + 2 }) },
+        { id: "gas_inferno", name: "Токсичне Кільце", description: "Шкода +42, пірс +2, +4 шипи, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 42, pierce: (s.pierce || 1) + 2, tackCount: (s.tackCount || 6) + 4, ignoresArmor: true }) }
       ],
       path2: [
         { id: "gas_fast", name: "Швидкий Клапан", description: "Швидкість стрільби +18%.", cost: 155, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.82 }) },
@@ -443,8 +444,8 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "gas_range", name: "Довгі Сопла", description: "Дальність +18px.", cost: 108, effect: (s) => ({ ...s, range: s.range + 18 }) },
         { id: "gas_scanner", name: "Біо-Сканер", description: "Виявляє камуфляж, дальність +12px.", cost: 260, effect: (s) => ({ ...s, camoDetection: true, range: s.range + 12 }) },
         { id: "gas_glitch", name: "Глючний Газ", description: "Шипи вимикають телепорти ворогів при влучанні.", cost: 847, effect: (s) => ({ ...s, disableGlitch: true }) },
-        { id: "gas_gacha", name: "Гача-Форсунка", description: "6% шанс на 80 додаткової шкоди при влучанні.", cost: 2280, effect: (s) => ({ ...s, gachaChance: 0.06, gachaDamageOverride: 80 }) },
-        { id: "gas_entropy", name: "Ентропійний Ротор", description: "Шипи вимикають здібності, +12 шкоди, +4 шипи.", cost: 19000, effect: (s) => ({ ...s, damage: s.damage + 12, tackCount: (s.tackCount || 6) + 4, disableGlitch: true, disableAbilities: true }) }
+        { id: "gas_gacha", name: "Гача-Форсунка", description: "6% шанс на 120 додаткової шкоди при влучанні.", cost: 2280, effect: (s) => ({ ...s, gachaChance: 0.06, gachaDamageOverride: 120 }) },
+        { id: "gas_entropy", name: "Ентропійний Ротор", description: "Шипи вимикають здібності, +18 шкоди, +4 шипи.", cost: 19000, effect: (s) => ({ ...s, damage: s.damage + 18, tackCount: (s.tackCount || 6) + 4, disableGlitch: true, disableAbilities: true }) }
       ]
     }
   },
@@ -453,7 +454,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Снайпер з дальністю на всю карту. Бачить камуфляж, б'є боляче, але рідко.",
     cost: 400,
     range: 1000,
-    damage: 162,
+    damage: 243,
     fireRate: 3.0,
     color: "#f43f5e",
     emoji: "🎯",
@@ -461,11 +462,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "sniper_heavy_cal", name: "Важкий калібр", description: "Шкода +40.", cost: 265, effect: (s) => ({ ...s, damage: s.damage + 40 }) },
-        { id: "sniper_armor_piercing", name: "Бронебійний", description: "Шкода +60, ігнорує броню.", cost: 600, effect: (s) => ({ ...s, damage: s.damage + 60, ignoresArmor: true }) },
-        { id: "sniper_explosive_round", name: "Вибуховий заряд", description: "Шкода +80, снаряди вибухають (радіус 50px).", cost: 1485, effect: (s) => ({ ...s, damage: s.damage + 80, explodeDmg: 40 }) },
-        { id: "sniper_anti_material", name: "Антиматеріальний", description: "Шкода +150, пробиває будь-яку броню.", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 150, ignoresArmor: true }) },
-        { id: "sniper_tactical_nuke", name: "Тактичний ядерний", description: "Шкода +400, вибух 120px, пробиває 3 цілі.", cost: 9405, effect: (s) => ({ ...s, damage: s.damage + 400, explodeDmg: 200, pierce: (s.pierce || 1) + 2 }) }
+        { id: "sniper_heavy_cal", name: "Важкий калібр", description: "Шкода +60.", cost: 265, effect: (s) => ({ ...s, damage: s.damage + 60 }) },
+        { id: "sniper_armor_piercing", name: "Бронебійний", description: "Шкода +90, ігнорує броню.", cost: 600, effect: (s) => ({ ...s, damage: s.damage + 90, ignoresArmor: true }) },
+        { id: "sniper_explosive_round", name: "Вибуховий заряд", description: "Шкода +120, снаряди вибухають (радіус 50px).", cost: 1485, effect: (s) => ({ ...s, damage: s.damage + 120, explodeDmg: 60 }) },
+        { id: "sniper_anti_material", name: "Антиматеріальний", description: "Шкода +225, пробиває будь-яку броню.", cost: 3324, effect: (s) => ({ ...s, damage: s.damage + 225, ignoresArmor: true }) },
+        { id: "sniper_tactical_nuke", name: "Тактичний ядерний", description: "Шкода +600, вибух 120px, пробиває 3 цілі.", cost: 9405, effect: (s) => ({ ...s, damage: s.damage + 600, explodeDmg: 300, pierce: (s.pierce || 1) + 2 }) }
       ],
       path2: [
         { id: "sniper_fast_reload", name: "Швидка перезарядка", description: "Швидкість атаки +15%.", cost: 265, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
@@ -488,18 +489,18 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Б'є блискавкою, що перескакує між ворогами. Кожен перескок зменшує шкоду снаряду на 20%.",
     cost: 600,
     range: 120,
-    damage: 11,
+    damage: 16.5,
     fireRate: 1.15,
     color: "#0ea5e9",
     emoji: "⚡",
     pierce: 3,
     upgrades: {
       path1: [
-        { id: "chain_voltage", name: "Підвищена напруга", description: "Шкода +8.", cost: 210, effect: (s) => ({ ...s, damage: s.damage + 8 }) },
-        { id: "chain_overload", name: "Перевантаження", description: "Шкода +15, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 3) + 1 }) },
-        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +20, +1 ланцюг.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 20, pierce: (s.pierce || 3) + 1 }) },
-        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +35, +2 ланцюги.", cost: 2850, effect: (s) => ({ ...s, damage: s.damage + 35, pierce: (s.pierce || 3) + 2 }) },
-        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +70, +4 ланцюги, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 70, pierce: (s.pierce || 3) + 4, ignoresArmor: true }) }
+        { id: "chain_voltage", name: "Підвищена напруга", description: "Шкода +12.", cost: 210, effect: (s) => ({ ...s, damage: s.damage + 12 }) },
+        { id: "chain_overload", name: "Перевантаження", description: "Шкода +22.5, +1 ланцюг.", cost: 495, effect: (s) => ({ ...s, damage: s.damage + 22.5, pierce: (s.pierce || 3) + 1 }) },
+        { id: "chain_arc", name: "Електрична дуга", description: "Шкода +30, +1 ланцюг.", cost: 1188, effect: (s) => ({ ...s, damage: s.damage + 30, pierce: (s.pierce || 3) + 1 }) },
+        { id: "chain_plasma", name: "Плазмовий розряд", description: "Шкода +52.5, +2 ланцюги.", cost: 2850, effect: (s) => ({ ...s, damage: s.damage + 52.5, pierce: (s.pierce || 3) + 2 }) },
+        { id: "chain_tesla", name: "Котушка Тесла", description: "Шкода +105, +4 ланцюги, ігнорує броню.", cost: 8318, effect: (s) => ({ ...s, damage: s.damage + 105, pierce: (s.pierce || 3) + 4, ignoresArmor: true }) }
       ],
       path2: [
         { id: "chain_conductivity", name: "Провідність", description: "Швидкість атаки +15%.", cost: 210, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
@@ -522,7 +523,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 20 мін.",
     cost: 400,
     range: 150,
-    damage: 15,
+    damage: 22.5,
     fireRate: 3.5,
     color: "#ef4444",
     emoji: "💣",
@@ -530,11 +531,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     maxMines: 20,
     upgrades: {
       path1: [
-        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +4.", cost: 248, effect: (s) => ({ ...s, damage: s.damage + 4 }) },
-        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +7, кожна міна витримує +1 влучання.", cost: 462, effect: (s) => ({ ...s, damage: s.damage + 7, pierce: (s.pierce || 3) + 1, explodeDmg: (s.explodeDmg || 0) + 10 }) },
-        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +12, міна вибухає при контакті (AoE).", cost: 1001, effect: (s) => ({ ...s, damage: s.damage + 12, mineExplodes: true, explodeDmg: (s.explodeDmg || 0) + 20 }) },
-        { id: "kladmen_c4", name: "C4", description: "Шкода +20, пробиває броню, радіус вибуху +15px.", cost: 3234, effect: (s) => ({ ...s, damage: s.damage + 20, ignoresArmor: true, explodeDmg: (s.explodeDmg || 0) + 15, mineExplodes: true }) },
-        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +55, радіус +25px, 6 цілей.", cost: 12128, effect: (s) => ({ ...s, damage: s.damage + 55, pierce: (s.pierce || 3) + 3, explodeDmg: (s.explodeDmg || 0) + 25, mineExplodes: true, ignoresArmor: true }) }
+        { id: "kladmen_powerful", name: "Потужний заряд", description: "Шкода мін +6.", cost: 248, effect: (s) => ({ ...s, damage: s.damage + 6 }) },
+        { id: "kladmen_cluster", name: "Касетна міна", description: "Шкода +10.5, кожна міна витримує +1 влучання.", cost: 462, effect: (s) => ({ ...s, damage: s.damage + 10.5, pierce: (s.pierce || 3) + 1, explodeDmg: (s.explodeDmg || 0) + 15 }) },
+        { id: "kladmen_tnt", name: "ТНТ", description: "Шкода +18, міна вибухає при контакті (AoE).", cost: 1001, effect: (s) => ({ ...s, damage: s.damage + 18, mineExplodes: true, explodeDmg: (s.explodeDmg || 0) + 30 }) },
+        { id: "kladmen_c4", name: "C4", description: "Шкода +30, пробиває броню, радіус вибуху +15px.", cost: 3234, effect: (s) => ({ ...s, damage: s.damage + 30, ignoresArmor: true, explodeDmg: (s.explodeDmg || 0) + 22.5, mineExplodes: true }) },
+        { id: "kladmen_nuke", name: "Ядерна міна", description: "Шкода +82.5, радіус +25px, 6 цілей.", cost: 12128, effect: (s) => ({ ...s, damage: s.damage + 82.5, pierce: (s.pierce || 3) + 3, explodeDmg: (s.explodeDmg || 0) + 37.5, mineExplodes: true, ignoresArmor: true }) }
       ],
       path2: [
         { id: "kladmen_fast_deploy", name: "Швидке мінування", description: "Швидкість встановлення +10%.", cost: 248, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.90 }) },
@@ -591,7 +592,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Аналог Super Monkey: дорогий, дуже швидко кидає гранітні уламки. Без базового камуфляжу.",
     cost: 1600,
     range: 165,
-    damage: 16,
+    damage: 24,
     fireRate: 0.14,
     color: "#9ca3af",
     emoji: "🗿",
@@ -599,11 +600,11 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     pierce: 1,
     upgrades: {
       path1: [
-        { id: "mono_sharp", name: "Гострі Уламки", description: "Шкода +15.", cost: 780, effect: (s) => ({ ...s, damage: s.damage + 15 }) },
-        { id: "mono_dense", name: "Щільний Граніт", description: "Шкода +20, пірс +1.", cost: 1800, effect: (s) => ({ ...s, damage: s.damage + 20, pierce: (s.pierce || 1) + 1 }) },
-        { id: "mono_plasma", name: "Плазмовий Кар'єр", description: "Шкода +40.", cost: 4290, effect: (s) => ({ ...s, damage: s.damage + 40 }) },
-        { id: "mono_sun", name: "Сонячний Моноліт", description: "Шкода +75, пірс +2.", cost: 9720, effect: (s) => ({ ...s, damage: s.damage + 75, pierce: (s.pierce || 1) + 2 }) },
-        { id: "mono_temple", name: "Храм Коростишева", description: "Шкода +150, вибух 50px, пірс +3.", cost: 26550, effect: (s) => ({ ...s, damage: s.damage + 150, explodeDmg: 70, pierce: (s.pierce || 1) + 3 }) }
+        { id: "mono_sharp", name: "Гострі Уламки", description: "Шкода +22.5.", cost: 780, effect: (s) => ({ ...s, damage: s.damage + 22.5 }) },
+        { id: "mono_dense", name: "Щільний Граніт", description: "Шкода +30, пірс +1.", cost: 1800, effect: (s) => ({ ...s, damage: s.damage + 30, pierce: (s.pierce || 1) + 1 }) },
+        { id: "mono_plasma", name: "Плазмовий Кар'єр", description: "Шкода +60.", cost: 4290, effect: (s) => ({ ...s, damage: s.damage + 60 }) },
+        { id: "mono_sun", name: "Сонячний Моноліт", description: "Шкода +112.5, пірс +2.", cost: 9720, effect: (s) => ({ ...s, damage: s.damage + 112.5, pierce: (s.pierce || 1) + 2 }) },
+        { id: "mono_temple", name: "Храм Коростишева", description: "Шкода +225, вибух 50px, пірс +3.", cost: 26550, effect: (s) => ({ ...s, damage: s.damage + 225, explodeDmg: 105, pierce: (s.pierce || 1) + 3 }) }
       ],
       path2: [
         { id: "mono_hands", name: "Швидкі Руки", description: "Швидкість атаки +12%.", cost: 720, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.88 }) },
@@ -617,7 +618,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
         { id: "mono_camo", name: "Радар Кар'єру", description: "Виявляє камуфляж, пірс +1.", cost: 1350, effect: (s) => ({ ...s, camoDetection: true, pierce: (s.pierce || 1) + 1 }) },
         { id: "mono_knock", name: "Гравітаційний Удар", description: "10% шанс оглушити на 0.5с, дальність +20px, ігнорує броню.", cost: 3465, effect: (s) => ({ ...s, freezeChance: 0.10, range: s.range + 20, ignoresArmor: true }) },
         { id: "mono_emp", name: "Кам'яний EMP", description: "20% оглушення, вимикає здібності.", cost: 8280, effect: (s) => ({ ...s, freezeChance: 0.20, freezeDurationBonus: 30, disableAbilities: true }) },
-        { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +35 шкоди, камуфляж, здібності вимкнено.", cost: 30000, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 35, camoDetection: true, disableAbilities: true }) }
+        { id: "mono_avatar", name: "Аватар Подро", description: "30% оглушення, +52.5 шкоди, камуфляж, здібності вимкнено.", cost: 30000, effect: (s) => ({ ...s, freezeChance: 0.30, freezeDurationBonus: 60, damage: s.damage + 52.5, camoDetection: true, disableAbilities: true }) }
       ]
     }
   },
@@ -626,18 +627,18 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає бумеранг, який б'є ворогів на виліті та поверненні. Може вдарити одну ціль двічі.",
     cost: 250,
     range: 135,
-    damage: 16,
+    damage: 24,
     fireRate: 1.25,
     color: "#d97706",
     emoji: "🪃",
     pierce: 4,
     upgrades: {
       path1: [
-        { id: "boomerang_sharp", name: "Гострі Краї", description: "Шкода бумеранга +6.", cost: 140, effect: (s) => ({ ...s, damage: s.damage + 6 }) },
+        { id: "boomerang_sharp", name: "Гострі Краї", description: "Шкода бумеранга +9.", cost: 140, effect: (s) => ({ ...s, damage: s.damage + 9 }) },
         { id: "boomerang_twin", name: "Подвійний Бумеранг", description: "Пробиття +1.", cost: 320, effect: (s) => ({ ...s, pierce: (s.pierce || 1) + 1 }) },
-        { id: "boomerang_glaive", name: "Глефа Подро", description: "Шкода +15, пробиття +1.", cost: 858, effect: (s) => ({ ...s, damage: s.damage + 15, pierce: (s.pierce || 1) + 1 }) },
-        { id: "boomerang_moab", name: "MOAB-прес", description: "Шкода +25, шанс оглушити на 0.5с.", cost: 1896, effect: (s) => ({ ...s, damage: s.damage + 25, freezeChance: 0.15 }) },
-        { id: "boomerang_lord", name: "Лорд Глеф", description: "Шкода +50, пробиття +3, ігнорує броню.", cost: 7800, effect: (s) => ({ ...s, damage: s.damage + 50, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
+        { id: "boomerang_glaive", name: "Глефа Подро", description: "Шкода +22.5, пробиття +1.", cost: 858, effect: (s) => ({ ...s, damage: s.damage + 22.5, pierce: (s.pierce || 1) + 1 }) },
+        { id: "boomerang_moab", name: "MOAB-прес", description: "Шкода +37.5, шанс оглушити на 0.5с.", cost: 1896, effect: (s) => ({ ...s, damage: s.damage + 37.5, freezeChance: 0.15 }) },
+        { id: "boomerang_lord", name: "Лорд Глеф", description: "Шкода +75, пробиття +3, ігнорує броню.", cost: 7800, effect: (s) => ({ ...s, damage: s.damage + 75, pierce: (s.pierce || 1) + 3, ignoresArmor: true }) }
       ],
       path2: [
         { id: "boomerang_fast", name: "Швидкий Мет", description: "Швидкість атаки +15%.", cost: 160, effect: (s) => ({ ...s, fireRate: s.fireRate * 0.85 }) },
@@ -649,9 +650,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
       path3: [
         { id: "boomerang_long", name: "Дальній Кидок", description: "Дальність +25px.", cost: 120, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "boomerang_eagle", name: "Орлине Око", description: "Дальність +20px, бачить камуфляж.", cost: 280, effect: (s) => ({ ...s, range: s.range + 20, camoDetection: true }) },
-        { id: "boomerang_bounce", name: "Рикошет", description: "Шкода +15.", cost: 792, effect: (s) => ({ ...s, damage: s.damage + 15 }) },
-        { id: "boomerang_chain", name: "Ланцюговий Бумеранг", description: "Шкода +20.", cost: 1980, effect: (s) => ({ ...s, damage: s.damage + 20 }) },
-        { id: "boomerang_eternal", name: "Вічна Глефа", description: "Шкода +40.", cost: 7125, effect: (s) => ({ ...s, damage: s.damage + 40 }) }
+        { id: "boomerang_bounce", name: "Рикошет", description: "Шкода +22.5.", cost: 792, effect: (s) => ({ ...s, damage: s.damage + 22.5 }) },
+        { id: "boomerang_chain", name: "Ланцюговий Бумеранг", description: "Шкода +30.", cost: 1980, effect: (s) => ({ ...s, damage: s.damage + 30 }) },
+        { id: "boomerang_eternal", name: "Вічна Глефа", description: "Шкода +60.", cost: 7125, effect: (s) => ({ ...s, damage: s.damage + 60 }) }
       ]
     }
   }
@@ -1624,6 +1625,7 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
   let isLead = base.isLead;
   let isCamo = base.isCamo;
   let isPhantomCamo = base.isPhantomCamo;
+  let isCeramic = type === "ceramic" || activeModifiers.has("ceramic");
   const isFlying = base.isFlying || false;
 
   // Tier inheritance: higher tiers gain abilities
@@ -1702,6 +1704,7 @@ export function getEnemyStatsForWave(type: string, waveNumber: number, modifiers
     isCamo,
     isPhantomCamo,
     isExploder: base.isExploder,
+    isCeramic,
     isHealer: base.isHealer,
     isGlitching: base.isGlitching,
     glitchDistance: base.glitchDistance,
