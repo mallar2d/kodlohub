@@ -409,9 +409,9 @@ type SessionSummary = {
 type DifficultyKey = "easy" | "normal" | "hard";
 
 const DIFFICULTY_CONFIG: Record<DifficultyKey, { label: string; description: string; lives: number; gold: number; hpMult: number; speedMult: number; rewardMult: number }> = {
-  easy: { label: "Легко", description: "+ресурси, м'якша братва", lives: 125, gold: 450, hpMult: 0.85, speedMult: 0.95, rewardMult: 1.1 },
-  normal: { label: "Нормально", description: "чесний Коростишів", lives: 100, gold: 350, hpMult: 1, speedMult: 1, rewardMult: 1 },
-  hard: { label: "Пекло", description: "братва без гальм", lives: 75, gold: 300, hpMult: 1.18, speedMult: 1.08, rewardMult: 0.92 }
+  easy: { label: "Легко", description: "+ресурси, м'якша братва", lives: 375, gold: 450, hpMult: 0.85, speedMult: 0.95, rewardMult: 1.1 },
+  normal: { label: "Нормально", description: "чесний Коростишів", lives: 300, gold: 350, hpMult: 1, speedMult: 1, rewardMult: 1 },
+  hard: { label: "Пекло", description: "братва без гальм", lives: 225, gold: 300, hpMult: 1.18, speedMult: 1.08, rewardMult: 0.92 }
 };
 
 type ObstacleConfig = Obstacle;
@@ -1739,7 +1739,7 @@ export default function BratTDClient() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // --- REACT STATE FOR UI ---
-  const [lives, setLives] = useState(100);
+  const [lives, setLives] = useState(300);
   const [gold, setGold] = useState(350);
   const [wave, setWave] = useState(1);
   const [isWaveActive, setIsWaveActive] = useState(false);
@@ -1782,7 +1782,7 @@ export default function BratTDClient() {
   const selectedMapIdRef = useRef(DEFAULT_MAP_ID);
   const settingsRef = useRef(DEFAULT_SETTINGS);
   const progressionRef = useRef<ProgressionState>(getDefaultProgression());
-  const waveStartLivesRef = useRef(100);
+  const waveStartLivesRef = useRef(300);
   const waveKillsRef = useRef(0);
   const gameStartFrameRef = useRef(0);
   const sessionPlayerXpRef = useRef(0);
@@ -1803,7 +1803,7 @@ export default function BratTDClient() {
   const minesRef = useRef<Mine[]>([]);
 
   // Synchronized refs for the requestAnimationFrame loop to prevent stale values
-  const livesRef = useRef(100);
+  const livesRef = useRef(300);
   const goldRef = useRef(350);
   const waveRef = useRef(1);
   const isWaveActiveRef = useRef(false);
@@ -4240,7 +4240,7 @@ export default function BratTDClient() {
       drawSceneBackground(ctx, theme, frameCountRef.current, activeMap.decor);
       drawTrack(ctx, theme, frameCountRef.current, activeMap.routes, activeRouteIds);
       activeMap.gates.forEach((gate) => {
-        drawGate(ctx, gate.x, gate.y, gate.isExit && livesRef.current < 40 ? "#ef4444" : gate.color, gate.label, gate.isExit);
+        drawGate(ctx, gate.x, gate.y, gate.isExit && livesRef.current < 120 ? "#ef4444" : gate.color, gate.label, gate.isExit);
       });
 
       // --- Draw Mines ---

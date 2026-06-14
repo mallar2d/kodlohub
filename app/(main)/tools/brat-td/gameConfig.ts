@@ -5,7 +5,7 @@ export interface PathPoint {
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
-export const GAME_VERSION = "0.6";
+export const GAME_VERSION = "0.6.1";
 
 export const PATH: PathPoint[] = [
   { x: 0, y: 100 },
