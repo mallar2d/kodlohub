@@ -1236,8 +1236,11 @@ function processTowers(ctx: EngineContext): void {
         const dx = target.x - tower.x;
         const dy = target.y - tower.y;
         let angle = Math.atan2(dy, dx);
+        let projColor = tower.color;
         if (tower.type === "flamethrower") {
           angle += (getPureRandom() - 0.5) * 0.08;
+          const hue = Math.floor(getPureRandom() * 55); // Red (0) to yellow/yellow-orange (55)
+          projColor = `hsl(${hue}, 100%, 50%)`;
         }
 
         const newProj: Projectile = {
@@ -1249,7 +1252,7 @@ function processTowers(ctx: EngineContext): void {
           speed: tower.type === "infinix" ? 14 : 7, // Infinix beam is very fast
           damage: ctx.cb.getEffectiveTowerDamage(tower),
           emoji: tower.emoji,
-          color: tower.color,
+          color: projColor,
           towerId: tower.id,
           fireDoTDamage: tower.fireDoTDamage,
           fireDoTDuration: tower.fireDoTDuration,
@@ -1347,7 +1350,7 @@ function processTowers(ctx: EngineContext): void {
             y: tower.y,
             vx: Math.cos(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
             vy: Math.sin(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 3 + 2),
-            color: tower.color,
+            color: projColor,
             size: Math.random() * 3 + 1,
             life: 8,
             maxLife: 8
