@@ -54,8 +54,25 @@ export default function SlopusClient() {
         throw new Error(errData.error || `Помилка сервера: ${response.status}`);
       }
 
-      const data = await response.json();
-      setMessages([...newMessages, { role: "assistant", content: data.content }]);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Не вдалося відкрити потік відповіді");
+
+      const decoder = new TextDecoder();
+      let done = false;
+      let streamedContent = "";
+
+      // Add a placeholder message for the assistant
+      setMessages([...newMessages, { role: "assistant", content: "" }]);
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          streamedContent += chunk;
+          setMessages([...newMessages, { role: "assistant", content: streamedContent }]);
+        }
+      }
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Не вдалося отримати відповідь від Слопуса.";

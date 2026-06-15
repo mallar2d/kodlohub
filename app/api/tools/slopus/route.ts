@@ -169,6 +169,7 @@ ${postsText}
           ...messages,
         ],
         temperature: 0.75,
+        stream: true,
       }),
     });
 
@@ -181,10 +182,59 @@ ${postsText}
       );
     }
 
-    const responseData = await response.json();
-    const assistantContent = responseData.choices?.[0]?.message?.content || "";
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          controller.close();
+          return;
+        }
 
-    return NextResponse.json({ content: assistantContent });
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              const cleanedLine = line.trim();
+              if (!cleanedLine) continue;
+              if (cleanedLine === "data: [DONE]") continue;
+
+              if (cleanedLine.startsWith("data: ")) {
+                try {
+                  const parsed = JSON.parse(cleanedLine.slice(6));
+                  // Stream only delta.content, skipping reasoning_content (thinking block)
+                  const content = parsed.choices?.[0]?.delta?.content || "";
+                  if (content) {
+                    controller.enqueue(new TextEncoder().encode(content));
+                  }
+                } catch {
+                  // Ignore JSON parse errors on incomplete chunk lines
+                }
+              }
+            }
+          }
+        } catch (err) {
+          controller.error(err);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    });
   } catch (error) {
     console.error("Error in Slopus route handler:", error);
     const errorMessage = error instanceof Error ? error.message : "Внутрішня помилка сервера";
