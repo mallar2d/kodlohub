@@ -1,0 +1,223 @@
+{
+  "schema_version": 2,
+  "active_work_id": "brat-td-improvements-2f143a2d",
+  "works": {
+    "brat-td-improvements-2f143a2d": {
+      "work_id": "brat-td-improvements-2f143a2d",
+      "active_plan": "/home/mallar2d/Проекти/lpds/kodlohost/.omo/plans/brat-td-improvements.md",
+      "plan_name": "brat-td-improvements",
+      "status": "completed",
+      "started_at": "2026-06-14T16:29:30.684Z",
+      "updated_at": "2026-06-14T18:51:31.332Z",
+      "session_ids": [
+        "opencode:ses_1392f7637ffe9QsXVG0t4jZnoh"
+      ],
+      "session_origins": {
+        "opencode:ses_1392f7637ffe9QsXVG0t4jZnoh": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {
+        "todo:1": {
+          "task_key": "todo:1",
+          "task_label": "1",
+          "task_title": "Set up vitest + test config",
+          "session_id": "opencode:ses_139041b0affesOHQbDQPP5ZS8F",
+          "agent": "Sisyphus-Junior",
+          "category": "quick",
+          "updated_at": "2026-06-14T16:48:05.610Z",
+          "started_at": "2026-06-14T16:41:03.218Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T16:48:05.610Z",
+          "elapsed_ms": 422392
+        },
+        "todo:3": {
+          "task_key": "todo:3",
+          "task_label": "3",
+          "task_title": "Fix cosmetics rendering (effects not shown on canvas)",
+          "session_id": "opencode:ses_138efb53cffeLcB5MXnJGHehqF",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "started_at": "2026-06-14T16:49:11.162Z",
+          "status": "completed",
+          "updated_at": "2026-06-14T17:02:45.601Z",
+          "ended_at": "2026-06-14T17:02:45.601Z",
+          "elapsed_ms": 814439
+        },
+        "todo:8": {
+          "task_key": "todo:8",
+          "task_label": "8",
+          "task_title": "Extract engine.ts (game loop, update, spawn, collision)",
+          "session_id": "opencode:ses_138e93f4effem4uyKQkb7Xxttw",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "updated_at": "2026-06-14T17:22:03.852Z",
+          "started_at": "2026-06-14T17:21:21.484Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T17:22:03.852Z",
+          "elapsed_ms": 42368
+        },
+        "todo:9": {
+          "task_key": "todo:9",
+          "task_label": "9",
+          "task_title": "Extract renderer.ts (Canvas 2D drawing, particles, effects)",
+          "session_id": "opencode:ses_138d802aeffe1KG9TV64wHrRXj",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "updated_at": "2026-06-14T17:35:18.181Z",
+          "started_at": "2026-06-14T17:34:39.173Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T17:35:18.181Z",
+          "elapsed_ms": 39008
+        },
+        "todo:13": {
+          "task_key": "todo:13",
+          "task_label": "13",
+          "task_title": "New enemy: Камікадзе-Брат (kamikaze rusher)",
+          "session_id": "opencode:ses_138cbc526ffeZXkKAkA497zMzT",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "updated_at": "2026-06-14T18:07:22.602Z",
+          "started_at": "2026-06-14T17:41:21.480Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T18:07:22.602Z",
+          "elapsed_ms": 1561122
+        },
+        "todo:16": {
+          "task_key": "todo:16",
+          "task_label": "16",
+          "task_title": "New wave configurations",
+          "session_id": "opencode:ses_138ae8980ffeo9xEZgKgBueC8H",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "updated_at": "2026-06-14T18:28:34.895Z",
+          "started_at": "2026-06-14T18:28:00.645Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T18:28:34.895Z",
+          "elapsed_ms": 34250
+        },
+        "todo:18": {
+          "task_key": "todo:18",
+          "task_label": "18",
+          "task_title": "Enhanced Canvas 2D visuals",
+          "session_id": "opencode:ses_1389b22d0ffedRY007Qo7Qrr3f",
+          "agent": "Sisyphus-Junior",
+          "category": "visual-engineering",
+          "updated_at": "2026-06-14T18:36:16.561Z",
+          "started_at": "2026-06-14T18:35:37.720Z",
+          "status": "completed",
+          "ended_at": "2026-06-14T18:36:16.561Z",
+          "elapsed_ms": 38841
+        }
+      },
+      "ended_at": "2026-06-14T18:51:31.332Z",
+      "elapsed_ms": 8520648
+    }
+  },
+  "active_plan": "/home/mallar2d/Проекти/lpds/kodlohost/.omo/plans/brat-td-improvements.md",
+  "started_at": "2026-06-14T16:29:30.684Z",
+  "status": "completed",
+  "updated_at": "2026-06-14T18:51:31.332Z",
+  "session_ids": [
+    "opencode:ses_1392f7637ffe9QsXVG0t4jZnoh"
+  ],
+  "session_origins": {
+    "opencode:ses_1392f7637ffe9QsXVG0t4jZnoh": "direct"
+  },
+  "plan_name": "brat-td-improvements",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Set up vitest + test config",
+      "session_id": "opencode:ses_139041b0affesOHQbDQPP5ZS8F",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-06-14T16:48:05.610Z",
+      "started_at": "2026-06-14T16:41:03.218Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T16:48:05.610Z",
+      "elapsed_ms": 422392
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Fix cosmetics rendering (effects not shown on canvas)",
+      "session_id": "opencode:ses_138efb53cffeLcB5MXnJGHehqF",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "started_at": "2026-06-14T16:49:11.162Z",
+      "status": "completed",
+      "updated_at": "2026-06-14T17:02:45.601Z",
+      "ended_at": "2026-06-14T17:02:45.601Z",
+      "elapsed_ms": 814439
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Extract engine.ts (game loop, update, spawn, collision)",
+      "session_id": "opencode:ses_138e93f4effem4uyKQkb7Xxttw",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-06-14T17:22:03.852Z",
+      "started_at": "2026-06-14T17:21:21.484Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T17:22:03.852Z",
+      "elapsed_ms": 42368
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Extract renderer.ts (Canvas 2D drawing, particles, effects)",
+      "session_id": "opencode:ses_138d802aeffe1KG9TV64wHrRXj",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-06-14T17:35:18.181Z",
+      "started_at": "2026-06-14T17:34:39.173Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T17:35:18.181Z",
+      "elapsed_ms": 39008
+    },
+    "todo:13": {
+      "task_key": "todo:13",
+      "task_label": "13",
+      "task_title": "New enemy: Камікадзе-Брат (kamikaze rusher)",
+      "session_id": "opencode:ses_138cbc526ffeZXkKAkA497zMzT",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-06-14T18:07:22.602Z",
+      "started_at": "2026-06-14T17:41:21.480Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T18:07:22.602Z",
+      "elapsed_ms": 1561122
+    },
+    "todo:16": {
+      "task_key": "todo:16",
+      "task_label": "16",
+      "task_title": "New wave configurations",
+      "session_id": "opencode:ses_138ae8980ffeo9xEZgKgBueC8H",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-06-14T18:28:34.895Z",
+      "started_at": "2026-06-14T18:28:00.645Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T18:28:34.895Z",
+      "elapsed_ms": 34250
+    },
+    "todo:18": {
+      "task_key": "todo:18",
+      "task_label": "18",
+      "task_title": "Enhanced Canvas 2D visuals",
+      "session_id": "opencode:ses_1389b22d0ffedRY007Qo7Qrr3f",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-06-14T18:36:16.561Z",
+      "started_at": "2026-06-14T18:35:37.720Z",
+      "status": "completed",
+      "ended_at": "2026-06-14T18:36:16.561Z",
+      "elapsed_ms": 38841
+    }
+  },
+  "agent": "atlas",
+  "ended_at": "2026-06-14T18:51:31.332Z",
+  "elapsed_ms": 8520648
+}

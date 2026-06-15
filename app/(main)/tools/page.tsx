@@ -39,6 +39,11 @@ const tools = [
     name: "BRAT TD",
     description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.",
   },
+  {
+    href: "/tools/slopus",
+    name: "СЛОПУС AI",
+    description: "ШІ-агент Слопус. Знає все про сайт, гру Брат ТД, документи та лор. Твій гід та помічник.",
+  },
 ];
 
 export default function ToolsPage() {

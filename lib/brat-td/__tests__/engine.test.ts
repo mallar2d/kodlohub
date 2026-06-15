@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { updateGame } from '../engine';
 import type { EngineContext, EngineRefs } from '../engine';
 import type { ActiveEnemy, Projectile } from '../types';
+import { SpatialGrid } from '../spatial-grid';
 
 describe('Brat TD Engine: Shotgunning Protection', () => {
   it('prevents multiple gas projectiles from the same tower from hitting an enemy in the same frame burst', () => {
@@ -118,6 +119,7 @@ describe('Brat TD Engine: Shotgunning Protection', () => {
       settingsRef: { current: { particles: true, effectLimits: false, screenShake: false } },
       difficultyRef: { current: 'normal' },
       selectedMapIdRef: { current: 'map_1' },
+      enemyGridRef: { current: new SpatialGrid<ActiveEnemy>() },
       pendingEventsRef: { current: [] },
       mineProjectilesRef: { current: [] },
       towersRef: { current: [] },

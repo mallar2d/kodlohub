@@ -77,6 +77,7 @@ import {
   tryPlaceTower as tryPlaceTowerAction,
   type TowerActionsConfig,
 } from "@/lib/brat-td/tower-actions";
+import { SpatialGrid } from "@/lib/brat-td/spatial-grid";
 import { useCanvasInput } from "@/lib/brat-td/canvas-input";
 import type {
   ActiveEnemy,
@@ -207,6 +208,7 @@ export default function BratTDClient() {
   const projectileTrailRef = useRef<{ x: number; y: number; color: string; alpha: number; size: number }[]>([]);
   const explosionRingsRef = useRef<ExplosionRing[]>([]);
   const waveAnnouncementRef = useRef<{ wave: number; frameStart: number } | null>(null);
+  const enemyGridRef = useRef(new SpatialGrid<ActiveEnemy>());
 
   const spawnQueueRef = useRef<{ type: string; delay: number; modifiers?: EnemyModifier[]; routeId?: string }[]>([]);
   const spawnTimerRef = useRef<number>(0);
@@ -294,6 +296,7 @@ export default function BratTDClient() {
       projectileTrailRef,
       explosionRingsRef,
       waveAnnouncementRef,
+      enemyGridRef,
       spawnQueueRef,
       spawnTimerRef,
       waveTotalEnemiesRef,

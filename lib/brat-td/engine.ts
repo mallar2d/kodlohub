@@ -30,6 +30,7 @@ import {
 } from "@/app/(main)/tools/brat-td/gameConfig";
 import { SoundEvent } from "@/lib/brat-td/audio";
 import { calculateTowerBuffs } from "./pure";
+import { SpatialGrid } from "./spatial-grid";
 import type {
   ActiveEnemy,
   EnemyModifier,
@@ -97,6 +98,8 @@ export interface EngineRefs {
   settingsRef: { current: { particles: boolean; effectLimits: boolean; screenShake: boolean } };
   difficultyRef: { current: "easy" | "normal" | "hard" };
   selectedMapIdRef: { current: string };
+  /** Per-frame spatial grid of living enemies — rebuilt each simulation tick. */
+  enemyGridRef: { current: SpatialGrid<ActiveEnemy> };
   // Mutable mid-frame buffer for wave-clear notifications that need to
   // trigger side-effects (achievements, victory). Filled by `updateGame`,
   // drained by the React layer between frames.
@@ -642,6 +645,9 @@ function processEnemies(ctx: EngineContext): void {
   for (let i = refs.enemiesRef.current.length - 1; i >= 0; i--) {
     const enemy = refs.enemiesRef.current[i];
 
+    // Skip dead and dying enemies — their death animation plays in processDeadEnemies
+    if (enemy.hp <= 0 || enemy.isDying) continue;
+
     let activeAntiRegen = 0;
 
     // Check if frozen
@@ -1001,14 +1007,14 @@ function processTowers(ctx: EngineContext): void {
     }
     // Check if affected by Gas Brat debuff (slow attack rate)
     let speedDebuff = 1.0;
-    refs.enemiesRef.current.forEach((enemy) => {
+    for (const enemy of refs.enemyGridRef.current.queryRadius(tower.x, tower.y, 120)) {
       if (enemy.isSlowingTowers) {
         const dist = ctx.cb.getDistance(tower.x, tower.y, enemy.x, enemy.y);
         if (dist <= 120) { // range of Gas Brat smell aura
           speedDebuff = Math.min(speedDebuff, 0.6); // 40% slow
         }
       }
-    });
+    }
 
     // Tick cooldown
     if (tower.cooldown > 0) {
@@ -1133,11 +1139,13 @@ function processTowers(ctx: EngineContext): void {
       const projCap = ARRAY_CAPS.PROJECTILES * (refs.settingsRef.current.effectLimits ? 1 : 2);
       const particleCap = ARRAY_CAPS.PARTICLES * (refs.settingsRef.current.effectLimits ? 1 : 2);
       if (tower.cooldown <= 0 && refs.enemiesRef.current.length > 0) {
-        const targetsInRange = refs.enemiesRef.current.filter((e) => {
+        const effectiveRange = ctx.cb.getEffectiveTowerRange(tower);
+        const candidates = refs.enemyGridRef.current.queryRadius(tower.x, tower.y, effectiveRange);
+        const targetsInRange = candidates.filter((e) => {
           if (e.isCamo && !isCamoCapable) return false;
           if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
           if (e.isFlying && !ANTI_AIR_TOWERS.has(tower.type)) return false;
-          return ctx.cb.getDistance(tower.x, tower.y, e.x, e.y) <= ctx.cb.getEffectiveTowerRange(tower);
+          return ctx.cb.getDistance(tower.x, tower.y, e.x, e.y) <= effectiveRange;
         });
 
         if (targetsInRange.length > 0) {
@@ -1269,12 +1277,14 @@ function processTowers(ctx: EngineContext): void {
     // Target selection for projectile towers (Hammer, Candy, Infinix)
     if (tower.cooldown <= 0 && refs.enemiesRef.current.length > 0) {
       // Find enemies in range
-      const targetsInRange = refs.enemiesRef.current.filter((e) => {
+      const effectiveRange = ctx.cb.getEffectiveTowerRange(tower);
+      const candidates = refs.enemyGridRef.current.queryRadius(tower.x, tower.y, effectiveRange);
+      const targetsInRange = candidates.filter((e) => {
         if (e.isCamo && !isCamoCapable) return false;
         // Phantom camo requires higher level detection
         if (e.isPhantomCamo && !tower.camoDetection && !tower.hasCamoBuff) return false;
         if (e.isFlying && !ANTI_AIR_TOWERS.has(tower.type)) return false;
-        return ctx.cb.getDistance(tower.x, tower.y, e.x, e.y) <= ctx.cb.getEffectiveTowerRange(tower);
+        return ctx.cb.getDistance(tower.x, tower.y, e.x, e.y) <= effectiveRange;
       });
 
       if (targetsInRange.length > 0) {
@@ -1618,17 +1628,17 @@ function processProjectiles(ctx: EngineContext): void {
       proj.spinRotation = (proj.spinRotation ?? proj.angle) + 0.22;
     }
 
-    // Collision detection with ALL enemies
+    // Collision detection using spatial grid
     let hasSpliced = false;
-    for (let eIdx = refs.enemiesRef.current.length - 1; eIdx >= 0; eIdx--) {
-      const enemy = refs.enemiesRef.current[eIdx];
+    const hitRadius = proj.type === "gas" ? 14 : 8;
+    const queryRadius = hitRadius + 40; // generous broad-phase
+    for (const enemy of refs.enemyGridRef.current.queryRadius(proj.x, proj.y, queryRadius)) {
       if (enemy.hp <= 0) continue;
       if (enemy.isCamo && !proj.camoDetection) continue;
       if (enemy.isFlying && !ANTI_AIR_TOWERS.has(proj.type)) continue;
 
       // Check collision distance
       const colDist = ctx.cb.getDistance(proj.x, proj.y, enemy.x, enemy.y);
-      const hitRadius = proj.type === "gas" ? 14 : 8;
       if (colDist <= enemy.radius + hitRadius && !proj.hitEnemyIds.includes(enemy.id)) {
         // Prevent Tack Shooter (gas) shotgunning abuse:
         // limit hits from the same gas tower to at most once per 15 frames for this enemy.
@@ -2212,6 +2222,9 @@ function handleEnemyDeath(ctx: EngineContext, enemy: ActiveEnemy, index: number)
   // Mark for death fade-out (renderer draws fading sprite for 10 frames)
   enemy.isDying = true;
   enemy.deathFrame = refs.frameCountRef.current;
+  // Clear effect stacks so they don't leak to children or double-count
+  enemy.fireDoTStacks = undefined;
+  enemy.shieldHp = undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2244,6 +2257,10 @@ export function updateGame(ctx: EngineContext): void {
 
     // --- 3. PROCESS ENEMIES ---
     processEnemies(ctx);
+
+    // --- BUILD ENEMY SPATIAL GRID (after spawn + movement, before targeting) ---
+    refs.enemyGridRef.current.clear();
+    refs.enemyGridRef.current.insertAll(refs.enemiesRef.current);
 
     // --- 4. TOWERS TARGET & FIRE ---
     processTowers(ctx);

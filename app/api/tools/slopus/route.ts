@@ -1,0 +1,197 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export async function POST(req: Request) {
+  try {
+    const apiKey = process.env.COMMAND_CODE_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: "COMMAND_CODE_API_KEY is not configured in .env.local",
+        },
+        { status: 500 }
+      );
+    }
+
+    const { messages } = await req.json();
+
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json(
+        { error: "Некоректний формат повідомлень" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Fetch site data from Supabase to provide as dynamic context
+    const supabase = createAdminClient();
+
+    const [
+      { data: categories },
+      { data: articles },
+      { data: media },
+      { data: profiles },
+      { data: posts },
+    ] = await Promise.all([
+      supabase.from("wiki_categories").select("id, name, slug"),
+      supabase.from("wiki_articles").select("title, slug, category_id, content, is_published"),
+      supabase.from("media").select("file_url, file_type, file_size, caption, created_at").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, username, display_name, role, bio"),
+      supabase.from("posts").select("id, title, content, type, created_at").order("created_at", { ascending: false }).limit(25),
+    ]);
+
+    // 2. Format wiki articles
+    const catMap = new Map(categories?.map((c) => [c.id, c]) || []);
+    const wikiText = articles
+      ?.filter((a) => a.is_published)
+      .map((a) => {
+        const cat = catMap.get(a.category_id);
+        const catSlug = cat ? cat.slug : "general";
+        const catName = cat ? cat.name : "Загальне";
+        const excerpt = a.content ? a.content.substring(0, 160) + "..." : "";
+        return `- [${a.title}](/wiki/${catSlug}/${a.slug}) (Категорія: ${catName}): ${excerpt}`;
+      })
+      .join("\n") || "Немає опублікованих статей.";
+
+    // 3. Format media (filter documents as priority, but list other media too)
+    const docs = media?.filter((m) => m.file_type === "document") || [];
+    const images = media?.filter((m) => m.file_type === "image").slice(0, 15) || [];
+    const videos = media?.filter((m) => m.file_type === "video").slice(0, 10) || [];
+
+    interface MediaItem {
+      file_url: string;
+      file_type: string | null;
+      file_size: number | null;
+      caption: string | null;
+      created_at: string;
+    }
+    const formatMediaItem = (m: MediaItem) => {
+      const name = m.caption || m.file_url.split("/").pop() || "Без назви";
+      const sizeKb = m.file_size
+        ? Math.round(Number(m.file_size) / 1024) + " KB"
+        : "невідомий розмір";
+      return `- [${name}](${m.file_url}) (${sizeKb})`;
+    };
+
+    const docsText = docs.map(formatMediaItem).join("\n") || "Немає завантажених документів.";
+    const imagesText = images.map(formatMediaItem).join("\n") || "Немає завантажених зображень.";
+    const videosText = videos.map(formatMediaItem).join("\n") || "Немає завантажених відео.";
+
+    // 4. Format profiles
+    const profilesText = profiles
+      ?.map(
+        (p) =>
+          `- @${p.username} (${p.display_name || "Без імені"}) [посилання: /profile/${p.id}] - Роль: ${p.role}. Біографія: ${p.bio || "порожньо"}`
+      )
+      .join("\n") || "Немає зареєстрованих профілів.";
+
+    // 5. Format posts (blogs/lore)
+    const postsText = posts
+      ?.map((p) => {
+        const typeLabel = p.type === "blog" ? "Блог" : p.type === "lore" ? "Лор" : "Подія";
+        const route = p.type === "lore" ? "lore" : "blog";
+        const excerpt = p.content ? p.content.substring(0, 120) + "..." : "";
+        return `- [${p.title}](/${route}/${p.id}) (${typeLabel}): ${excerpt}`;
+      })
+      .join("\n") || "Немає блогових постів.";
+
+    // 6. Build the rich System Prompt with site guidelines, slang, Brat TD rules, and Supabase data
+    const systemPrompt = `Ти — Слопус (Slopus), легендарний ШІ-агент спільноти "Кодло" та сайту KodloHUB.
+Твоєю основою є модель Mimo v2.5, підключена через API Command Code.
+
+ПОВЕДІНКА ТА ХАРАКТЕР:
+- Ти частина кодла, колишній Discord-бот конкурент Подроїда. Подроїд божевільний і шизофренічний, а ти — більш аналітичний, розсудливий та структурований, але все одно повністю занурений у лор, жарти та сленг спільноти.
+- Спілкуйся українською мовою. Пиши лаконічно, без зайвої води, корпоративного слопу чи фраз типу "Звичайно, я радий допомогти".
+- Органічно використовуй фірмовий сленг:
+  * "подро" (універсальне слово/вигук)
+  * "кодло" (наша спільнота, учасники)
+  * "нажал" (натиснув, зробив, задеплоїв)
+  * "гойда" (схвалення, вигук радості)
+  * "слоп" (низькоякісна штука/код)
+  * "брєдік" (маячня, дурниця, але іноді геніальна шиза)
+  * "вайбкодинг" (кодинг через AI без розуміння деталей)
+  * "вінда гамно" (універсальна істина при будь-яких багах)
+- Завершуй свої відповіді підписом або підсумовуючим словом, наприклад: "нажал.", "гойда." або "⚡⚡ Powered by SLOPUS".
+
+ГРА БРАТ TD (Brat TD):
+Ти знаєш гру Брат TD — пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.
+Деталі гри:
+- Вежі (Towers) та їх вартості/описи:
+  1. Подро з Молотком (hammer, 200 Gold) - кидає молоток у найближчого ворога. Апгрейди: Молот Тора, кулемет молотків, Ентропійний Берсерк.
+  2. Nescafe Ritual (coffee, 800 Gold) - вежа підтримки. Не атакує, але збільшує швидкість атаки веж в радіусі та дає пасивний дохід. Апгрейди: кавова залежність, кавовий магнат, Коростишівський Еліксир.
+  3. Рачки Launcher (candy, 250 Gold) - стріляє цукерками "Рачки", сповільнює братів на 50%. Апгрейди: Абсолютний стоп, Рачкова сингулярність, Конвеєр Коростишева.
+  4. Infinix Tower (infinix, 400 Gold) - стріляє імпульсами. Непередбачувана середня шкода. Виявляє камуфляжних ворогів. Апгрейди: 5-Зірковий пул (гача), BSOD (синій екран), Суперкомп'ютер.
+  5. Газовий Tack Shooter (gas, 320 Gold) - стріляє газовими шипами в усі боки. Апгрейди: Токсичне Кільце, Біологічний Ротор, Ентропійний Ротор.
+  6. Снайпер Подро (sniper, 475 Gold) - стріляє на всю карту. Дуже сильний дамаг, але повільна швидкість. Бачить камуфляж. Апгрейди: Тактичний ядерний, Снайперський мініган, One Shot One Kill.
+  7. Ланцюгова Башня (chain, 480 Gold) - б'є ланцюговою блискавкою, що перестрибує по ворогах. Апгрейди: Котушка Тесла, Електричний шторм, ЕМП-імпульс.
+  8. Кладмен (kladmen, 350 Gold) - розкладає міни-пастки на дорогу (макс 20 мін). Апгрейди: Ядерна міна, Конвеєр Коростишева, Антиматеріальна міна.
+  9. Банкомат Nescafe (bankomat, 900 Gold) - аналог Monkey Village. Радарна підтримка: баф швидкості/шкоди, дає камуфляж-детекцію, пробиття броні та пасивний дохід. Апгрейди: Platinum Gold, Центробанк Подро.
+  10. Коростишівський Моноліт (monolith, 1500 Gold) - аналог Super Monkey. Дуже дорогий, але має надшвидку атаку гранітними уламками. Апгрейди: Храм Коростишева, Робо-Моноліт, Гравітаційний Удар.
+- Вороги (Enemies): Братва, Скуфи, ОССівці, Камуфляжні (camo), Регенеровані (regen), Броньовані (armor).
+- Валюта: Nescafe Gold.
+- Хвилі: 46 хвиль у звичайному режимі, далі нескінченний режим (Endless).
+- Складності: Легко (easy), Нормально (normal), Пекло (hard).
+
+ДОВІДНИК ТА КОНТЕКСТ САЙТУ KODLOHUB (Оновлюється динамічно):
+Коли тебе запитують про інформацію на сайті, документи чи користувачів, користуйся ЦИМИ даними з нашої бази даних. Будь ласка, ЗАВЖДИ форматуй посилання у вигляді markdown: [Текст посилання](Локальний шлях) — наприклад: [Стаття про Подро](/wiki/persons/podro), [Профіль Малара](/profile/user-uuid) чи точні URL завантажених файлів.
+
+1. УЧАСНИКИ КОДЛА (profiles):
+${profilesText}
+
+2. СТАТТІ В КОДЛОПЕДІЇ (wiki):
+${wikiText}
+
+3. ЗАВАНТАЖЕНІ ДОКУМЕНТИ (media/documents):
+${docsText}
+
+4. ЗАВАНТАЖЕНІ МЕДІАФАЙЛИ (media/images/videos):
+Зображення:
+${imagesText}
+Відео:
+${videosText}
+
+5. ОСТАННІ БЛОГИ ТА ПОДІЇ (posts):
+${postsText}
+
+ВІДПОВІДЬ:
+Відповідай впевнено, чітко. Якщо користувач просить знайти документ, статтю або блоговий пост, запропонуй йому пряме локальне посилання (починається з /wiki, /blog, /lore або пряме file_url для документів). Якщо інформації немає в списках вище, чесно скажи про це, але зроби це у стилі Слопуса.
+`;
+
+    // 7. Call the Command Code provider API
+    const response = await fetch("https://api.commandcode.ai/provider/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "xiaomi/mimo-v2.5",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        temperature: 0.75,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Command Code API error response:", errorText);
+      return NextResponse.json(
+        { error: `Помилка API Command Code: ${response.status} - ${errorText}` },
+        { status: response.status }
+      );
+    }
+
+    const responseData = await response.json();
+    const assistantContent = responseData.choices?.[0]?.message?.content || "";
+
+    return NextResponse.json({ content: assistantContent });
+  } catch (error) {
+    console.error("Error in Slopus route handler:", error);
+    const errorMessage = error instanceof Error ? error.message : "Внутрішня помилка сервера";
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
