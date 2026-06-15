@@ -15,7 +15,7 @@ import { createSeededRandom } from "@/lib/brat-td/seeded-random";
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 500;
-export const GAME_VERSION = "0.7.5";
+export const GAME_VERSION = "0.8";
 export const DEFAULT_DIFFICULTY_KEY: "easy" | "normal" | "hard" = "normal";
 
 export const PATH: PathPoint[] = [
@@ -182,7 +182,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   coffee: {
     name: "Nescafe Ritual",
     description: "Підтримка. Не атакує, але збільшує швидкість атаки башт поруч та генерує пасивний дохід.",
-    cost: 1350,
+    cost: 800,
     range: 110,
     damage: 0,
     fireRate: 0,
@@ -190,21 +190,21 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     emoji: "☕",
     upgrades: {
       path1: [
-        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +5%.", cost: 792, effect: (s) => ({ ...s, buffMultiplier: 0.05 }) },
+        { id: "coffee_aromatic", name: "Ароматна кава", description: "Баф швидкості атаки стає +5%.", cost: 350, effect: (s) => ({ ...s, buffMultiplier: 0.05 }) },
         { id: "coffee_sugar", name: "Кава з цукром", description: "Баф швидкості атаки стає +5%.", cost: 1612, effect: (s) => ({ ...s, buffMultiplier: 0.05 }) },
         { id: "coffee_no_sugar", name: "Gold без цукру", description: "Баф швидкості атаки стає +10%.", cost: 4335, effect: (s) => ({ ...s, buffMultiplier: 0.10 }) },
         { id: "coffee_concentrate", name: "Надконцентрат", description: "Баф швидкості атаки стає +15%.", cost: 10692, effect: (s) => ({ ...s, buffMultiplier: 0.15 }) },
         { id: "coffee_addiction", name: "Кавова залежність", description: "Баф швидкості атаки сусідніх веж стає +25%.", cost: 34485, effect: (s) => ({ ...s, buffMultiplier: 0.25 }) }
       ],
       path2: [
-        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 25px.", cost: 636, effect: (s) => ({ ...s, range: s.range + 25 }) },
+        { id: "coffee_sieve", name: "Широке сито", description: "Збільшує радіус дії бафу на 25px.", cost: 300, effect: (s) => ({ ...s, range: s.range + 25 }) },
         { id: "coffee_pour", name: "Термоядерний розлив", description: "Радіус бафу +30px.", cost: 1287, effect: (s) => ({ ...s, range: s.range + 30 }) },
         { id: "coffee_shot", name: "Енергетичний шот", description: "Приносить +100 Gold наприкінці кожної хвилі.", cost: 3480, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 100 }) },
         { id: "coffee_thermos", name: "Термос АТБ", description: "Приносить ще +250 Gold наприкінці кожної хвилі.", cost: 8910, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 250 }) },
         { id: "coffee_tycoon", name: "Кавовий магнат", description: "Приносить величезні +900 Gold наприкінці кожної хвилі.", cost: 27588, effect: (s) => ({ ...s, endOfWaveBonus: (s.endOfWaveBonus || 0) + 900 }) }
       ],
       path3: [
-        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +5% до шкоди.", cost: 792, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5 }) },
+        { id: "coffee_sour", name: "Кислинка", description: "Вежі в радіусі отримують +5% до шкоди.", cost: 350, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5 }) },
         { id: "coffee_bitter", name: "Гіркота", description: "Вежі в радіусі отримують ще +5% до шкоди.", cost: 1872, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 5 }) },
         { id: "coffee_roast", name: "Міцне обсмаження", description: "+10% шкоди, +25px дальності та виявлення камуфляжу для веж поруч.", cost: 5055, effect: (s) => ({ ...s, damageBuff: (s.damageBuff || 0) + 10, rangeBuff: (s.rangeBuff || 0) + 25, camoDetectionBuff: true }) },
         { id: "coffee_mocha", name: "Мокко Підсилення", description: "Швидкість атаки веж в радіусі +10%.", cost: 11214, effect: (s) => ({ ...s, buffMultiplier: (s.buffMultiplier || 0.05) + 0.10 }) },
@@ -215,10 +215,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   candy: {
     name: "Рачки Launcher",
     description: "Стріляє святими цукерками «Рачки», які сповільнюють братів на 50%.",
-    cost: 275,
+    cost: 250,
     range: 150,
-    damage: 9,
-    fireRate: 1.5,
+    damage: 11,
+    fireRate: 1.2,
     color: "#f97316", // Orange
     emoji: "🍬",
     pierce: 1,
@@ -249,9 +249,9 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   infinix: {
     name: "Infinix Tower",
     description: "Стріляє нестабільними цифровими імпульсами. Непередбачувана шкода. Бачить камуфляж.",
-    cost: 450,
+    cost: 400,
     range: 120,
-    damage: 45,
+    damage: 50,
     fireRate: 0.8,
     color: "#a855f7", // Purple
     emoji: "📱",
@@ -284,14 +284,14 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   gas: {
     name: "Газовий Tack Shooter",
     description: "Стріляє газовими шипами в усі боки. Сильний у поворотах дороги, але більше не має пасивної aura-шкоди.",
-    cost: 350,
+    cost: 320,
     range: 82,
     damage: 17.25,
     fireRate: 0.9,
     color: "#22c55e", // Green
     emoji: "💨",
     pierce: 1,
-    tackCount: 6,
+    tackCount: 8,
     upgrades: {
       path1: [
         { id: "gas_sharp", name: "Їдкі Шипи", description: "Шкода шипів +4.5.", cost: 130, effect: (s) => ({ ...s, damage: s.damage + 4.5 }) },
@@ -319,10 +319,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   sniper: {
     name: "Снайпер Подро",
     description: "Снайпер з дальністю на всю карту. Бачить камуфляж, б'є боляче, але рідко.",
-    cost: 400,
+    cost: 475,
     range: 1000,
-    damage: 243,
-    fireRate: 3.0,
+    damage: 225,
+    fireRate: 2.5,
     color: "#f43f5e",
     emoji: "🎯",
     camoDetection: true,
@@ -354,10 +354,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   chain: {
     name: "Ланцюгова Башня",
     description: "Б'є блискавкою, що перескакує між ворогами. Кожен перескок зменшує шкоду снаряду на 20%.",
-    cost: 600,
-    range: 120,
-    damage: 16.5,
-    fireRate: 1.15,
+    cost: 480,
+    range: 130,
+    damage: 22,
+    fireRate: 1.0,
     color: "#0ea5e9",
     emoji: "⚡",
     pierce: 3,
@@ -388,10 +388,10 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   kladmen: {
     name: "Кладмен",
     description: "Кидає міни-пастки на дорогу. Міни наносять шкоду ворогам, що проходять повз, і зникають після кількох влучань. Макс 20 мін.",
-    cost: 400,
+    cost: 350,
     range: 150,
-    damage: 22.5,
-    fireRate: 3.5,
+    damage: 30,
+    fireRate: 2.8,
     color: "#ef4444",
     emoji: "💣",
     pierce: 2,
@@ -423,7 +423,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   bankomat: {
     name: "Банкомат Nescafe",
     description: "Аналог Monkey Village: не атакує, але підсилює башти поруч, відкриває камуфляж/броню та дає економіку.",
-    cost: 1200,
+    cost: 900,
     range: 105,
     damage: 0,
     fireRate: 0,
@@ -457,7 +457,7 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
   monolith: {
     name: "Коростишівський Моноліт",
     description: "Аналог Super Monkey: дорогий, дуже швидко кидає гранітні уламки. Без базового камуфляжу.",
-    cost: 1600,
+    cost: 1500,
     range: 165,
     damage: 24,
     fireRate: 0.14,
@@ -494,8 +494,8 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Кидає бумеранг, який б'є ворогів на виліті та поверненні. Може вдарити одну ціль двічі.",
     cost: 250,
     range: 135,
-    damage: 24,
-    fireRate: 1.25,
+    damage: 32,
+    fireRate: 1.15,
     color: "#d97706",
     emoji: "🪃",
     pierce: 4,
@@ -528,12 +528,12 @@ export const TOWER_CONFIGS: Record<string, TowerConfig> = {
     description: "Палить братів вогнем. Наносить шкоду отрутою тривалу в часі (DoT) — ідеально проти регенів.",
     cost: 500,
     range: 120,
-    damage: 3,
-    fireRate: 0.12,
+    damage: 5,
+    fireRate: 0.15,
     color: "#dc2626", // Red-orange (fire)
     emoji: "🔥",
-    // Fire DoT: 8 damage over 4 seconds, stacks up to 3 times
-    fireDoTDamage: 8,
+    // Fire DoT: 10 damage over 4 seconds, stacks up to 3 times
+    fireDoTDamage: 10,
     fireDoTDuration: 240, // 4 seconds at 60fps
     fireDoTMaxStacks: 3,
     upgrades: {
@@ -1723,7 +1723,7 @@ export const ARRAY_CAPS = {
 
 export const ANTI_AIR_TOWERS = new Set(["candy", "infinix", "sniper", "chain", "monolith"]);
 export const SUPPORT_TOWERS = new Set(["coffee", "bankomat"]);
-export const COFFEE_BUFF_DEFAULTS = { attackSpeed: 0.05, range: 0.25, damage: 0.15 };
+export const COFFEE_BUFF_DEFAULTS = { attackSpeed: 0.08, range: 0.25, damage: 0.15 };
 export const SHIELD_REGEN_DELAY_FRAMES = 360;
 export const HEALER_BASE_HEAL = 0.1;
 export const HEALER_HP_SCALING = 0.0001;
