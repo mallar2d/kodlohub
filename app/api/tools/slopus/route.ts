@@ -31,12 +31,14 @@ export async function POST(req: Request) {
       { data: media },
       { data: profiles },
       { data: posts },
+      { data: podcastEpisodes },
     ] = await Promise.all([
       supabase.from("wiki_categories").select("id, name, slug"),
       supabase.from("wiki_articles").select("title, slug, category_id, content, is_published"),
       supabase.from("media").select("file_url, file_type, file_size, caption, created_at").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, username, display_name, role, bio"),
       supabase.from("posts").select("id, title, content, type, created_at").order("created_at", { ascending: false }).limit(25),
+      supabase.from("podcast_episodes").select("id, title, description, audio_url, episode_number, duration, created_at").eq("is_published", true).order("episode_number", { ascending: false }),
     ]);
 
     // 2. Format wiki articles
@@ -94,7 +96,15 @@ export async function POST(req: Request) {
       })
       .join("\n") || "Немає блогових постів.";
 
-    // 6. Build the rich System Prompt with site guidelines, slang, Brat TD rules, and Supabase data
+    // 6. Format podcasts
+    const podcastsText = podcastEpisodes
+      ?.map((pe) => {
+        const desc = pe.description ? pe.description.substring(0, 120) + "..." : "";
+        return `- [Випуск #${pe.episode_number}: ${pe.title}](/cast/${pe.id}) (Аудіо: ${pe.audio_url}, тривалість: ${Math.round(pe.duration / 60)} хв): ${desc}`;
+      })
+      .join("\n") || "Немає опублікованих випусків подкасту.";
+
+    // 7. Build the rich System Prompt with site guidelines, slang, Brat TD rules, and Supabase data
     const systemPrompt = `Ти — Слопус (Slopus), легендарний ШІ-агент спільноти "Кодло" та сайту KodloHUB.
 
 ПОВЕДІНКА ТА ХАРАКТЕР:
@@ -108,7 +118,7 @@ export async function POST(req: Request) {
   * "слоп" (низькоякісна штука/код)
   * "брєдік" (маячня, дурниця, але іноді геніальна шиза)
   * "вайбкодинг" (кодинг через AI без розуміння деталей)
-  * "вінда гамно" (універсальна істина при будь-яких багах)
+  * "вінда гамно" (універсальна істина при будь-ях багах)
 - Завершуй свої відповіді підписом або підсумовуючим словом, наприклад: "нажал.", "гойда." або "⚡⚡ Powered by SLOPUS".
 
 ГРА БРАТ TD (Brat TD):
@@ -151,8 +161,16 @@ ${videosText}
 5. ОСТАННІ БЛОГИ ТА ПОДІЇ (posts):
 ${postsText}
 
-ВІДПОВІДЬ:
-Відповідай впевнено, чітко. Якщо користувач просить знайти документ, статтю або блоговий пост, запропонуй йому пряме локальне посилання (починається з /wiki, /blog, /lore або пряме file_url для документів). Якщо інформації немає в списках вище, чесно скажи про це, але зроби це у стилі Слопуса.
+6. ВИПУСКИ ПОДКАСТУ КОДЛОCAST (podcast_episodes):
+${podcastsText}
+
+ВІДПОВІДЬ ТА ПРАВИЛА ОФОРМЛЕННЯ:
+- Якщо користувач просить знайти документ, статтю або блоговий пост, запропонуй йому пряме локальне посилання (починається з /wiki, /blog, /lore або пряме file_url для документів).
+- Якщо ти згадуєш або рекомендуєш зображення (фото), обов'язково вставляй його через markdown-зображення: \`![опис зображення](file_url)\`.
+- Якщо ти згадуєш або рекомендуєш відео, обов'язково вставляй його через markdown-зображення/відео: \`![video](file_url)\` або у вигляді звичайного markdown-посилання: \`[video](file_url)\`.
+- Якщо ти посилаєшся на статтю або документ, дай на нього пряме посилання: \`[Назва статті](/wiki/category/slug)\` або \`[Назва документа](file_url)\`.
+- Якщо ти згадуєш або рекомендуєш випуск подкасту, обов'язково дай на нього пряме посилання у форматі \`[Назва подкасту](/cast/id)\` або \`[Випуск #...](/cast/id)\`.
+- Якщо інформації немає в списках вище, чесно скажи про це у своєму стилі.
 `;
 
     // 7. Call the DeepSeek API

@@ -3,6 +3,274 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { createClient } from "@/lib/supabase/client";
+
+// --- WIKI PREVIEW ---
+function WikiArticlePreview({ category, slug, defaultTitle, href }: { category: string; slug: string; defaultTitle?: string; href: string }) {
+  const [data, setData] = useState<{ title: string; excerpt: string; categoryName: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/wiki/articles/${slug}`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((resData) => {
+        if (!active) return;
+        const article = resData.article || resData;
+        const contentText = article.content || "";
+        const excerpt = contentText.substring(0, 160) + (contentText.length > 160 ? "..." : "");
+        setData({
+          title: article.title || defaultTitle || slug,
+          excerpt,
+          categoryName: article.category?.name || category,
+        });
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError(true);
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [slug, category, defaultTitle]);
+
+  if (loading) {
+    return (
+      <div className="my-2 p-4 border border-hairline-dark bg-canvas-night-soft rounded animate-pulse max-w-md">
+        <div className="h-3 w-24 bg-zinc-850 rounded mb-2" />
+        <div className="h-4 w-48 bg-zinc-800 rounded mb-2" />
+        <div className="h-3 w-full bg-zinc-850 rounded" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <a href={href} className="text-cyan-400 hover:underline">
+        {defaultTitle || slug}
+      </a>
+    );
+  }
+
+  return (
+    <div className="my-3 p-4 border border-hairline-dark bg-canvas-night-soft hover:border-on-primary-mute transition-colors rounded max-w-md shadow-lg group">
+      <span className="micro-cap text-[10px] text-ink-mute block mb-1">
+        Кодлопедія • {data.categoryName}
+      </span>
+      <h4 className="button-cap text-sm text-on-primary font-bold mb-1.5 group-hover:text-cyan-400 transition-colors">
+        {data.title}
+      </h4>
+      <p className="text-xs text-on-primary-mute leading-relaxed mb-3">
+        {data.excerpt}
+      </p>
+      <a
+        href={href}
+        className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 tracking-wider uppercase transition-colors"
+      >
+        Читати статтю →
+      </a>
+    </div>
+  );
+}
+
+// --- PODCAST PREVIEW ---
+function PodcastEpisodePreview({ id, defaultTitle, href }: { id: string; defaultTitle?: string; href: string }) {
+  const [data, setData] = useState<{ title: string; description: string; audioUrl: string; episodeNumber: number; duration: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchEpisode = async () => {
+      try {
+        const supabase = createClient();
+        const { data: epData, error: epErr } = await supabase
+          .from("podcast_episodes")
+          .select("title, description, audio_url, episode_number, duration")
+          .eq("id", id)
+          .single();
+
+        if (epErr || !epData) {
+          setError(true);
+        } else {
+          setData({
+            title: epData.title,
+            description: epData.description || "",
+            audioUrl: epData.audio_url,
+            episodeNumber: epData.episode_number,
+            duration: epData.duration,
+          });
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEpisode();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="my-2 p-4 border border-hairline-dark bg-canvas-night-soft rounded animate-pulse max-w-lg">
+        <div className="h-3 w-28 bg-zinc-850 rounded mb-2" />
+        <div className="h-4 w-56 bg-zinc-800 rounded mb-3" />
+        <div className="h-10 w-full bg-zinc-850 rounded" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <a href={href} className="text-cyan-400 hover:underline">
+        {defaultTitle || "Подкаст випуск"}
+      </a>
+    );
+  }
+
+  return (
+    <div className="my-4 p-5 border border-hairline-dark bg-canvas-night-soft hover:border-cyan-500/40 transition-colors rounded max-w-xl shadow-xl">
+      <span className="micro-cap text-[10px] text-cyan-400 block mb-1">
+        КодлоCAST • Випуск #{data.episodeNumber}
+      </span>
+      <h4 className="button-cap text-base text-on-primary font-bold mb-2">
+        {data.title}
+      </h4>
+      <p className="text-xs text-on-primary-mute leading-relaxed mb-4 whitespace-pre-wrap">
+        {data.description}
+      </p>
+      <div className="bg-canvas-night p-3 rounded border border-hairline-dark/60">
+        <audio src={data.audioUrl} controls className="w-full h-10 accent-cyan-500 bg-transparent" />
+        <div className="flex justify-between items-center mt-2 px-1">
+          <span className="text-[10px] text-ink-mute">
+            Тривалість: {Math.round(data.duration / 60)} хв
+          </span>
+          <a
+            href={href}
+            className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 tracking-wider uppercase transition-colors"
+          >
+            Сторінка випуску →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- DOCUMENT PREVIEW ---
+function DocumentPreview({ href, defaultTitle }: { href: string; defaultTitle?: string }) {
+  const fileName = decodeURIComponent(href.split("/").pop() || "Документ");
+  return (
+    <div className="my-3 p-4 border border-hairline-dark bg-canvas-night-soft rounded max-w-md flex items-center justify-between gap-4 shadow-md hover:border-on-primary-mute transition-colors">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-2xl select-none">📄</span>
+        <div className="min-w-0">
+          <h5 className="button-cap text-xs font-bold text-on-primary truncate">
+            {defaultTitle || fileName}
+          </h5>
+          <span className="text-[10px] text-ink-mute">Документ сайту</span>
+        </div>
+      </div>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="px-3 py-1.5 rounded bg-canvas-night border border-hairline-dark hover:border-on-primary-mute text-[10px] font-bold text-on-primary tracking-wider uppercase transition-all whitespace-nowrap"
+      >
+        Скачати
+      </a>
+    </div>
+  );
+}
+
+// --- MEDIA PREVIEW (IMG/VIDEO) ---
+function SlopusMediaPreview({ src, alt }: { src: string; alt?: string }) {
+  const isVideo = src.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i) || alt?.toLowerCase() === "video";
+
+  if (isVideo) {
+    return (
+      <div className="my-3 rounded border border-hairline-dark overflow-hidden bg-black max-w-xl">
+        <video src={src} controls className="w-full h-auto max-h-[360px]" />
+        {alt && alt !== "video" && (
+          <div className="px-3 py-1.5 text-xs text-ink-mute border-t border-hairline-dark bg-canvas-night-soft">
+            {alt}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="my-3 rounded border border-hairline-dark overflow-hidden bg-canvas-night-soft max-w-md inline-block">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="max-w-full h-auto max-h-[300px] object-contain block hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+        onClick={() => window.open(src, "_blank")}
+      />
+      {alt && (
+        <div className="px-3 py-1.5 text-xs text-ink-mute border-t border-hairline-dark bg-canvas-night-soft">
+          {alt}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- DISPATCHER PREVIEW ---
+function SlopusLinkPreview({ href, children }: { href: string; children?: React.ReactNode }) {
+  const text = children?.toString() || "";
+
+  // 1. Wiki category & article Match
+  const wikiMatch = href.match(/^\/wiki\/([^/]+)\/([^/]+)$/);
+  if (wikiMatch) {
+    const [, category, slug] = wikiMatch;
+    return <WikiArticlePreview category={category} slug={slug} defaultTitle={text} href={href} />;
+  }
+
+  // 2. Podcast Match
+  const castMatch = href.match(/^\/cast\/([^/]+)$/);
+  if (castMatch) {
+    const [, id] = castMatch;
+    return <PodcastEpisodePreview id={id} defaultTitle={text} href={href} />;
+  }
+
+  // 3. Document / Media file Match
+  const isDoc = href.match(/\.(pdf|docx|doc|xls|xlsx|zip|rar|txt|csv)(\?.*)?$/i) || href.includes("/media/") && !href.match(/\.(png|jpg|jpeg|gif|webp|mp4|webm|ogg|mov|m4v)(\?.*)?$/i);
+  if (isDoc) {
+    return <DocumentPreview href={href} defaultTitle={text} />;
+  }
+
+  // 4. Video file Match
+  const isVideo = href.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i);
+  if (isVideo) {
+    return <SlopusMediaPreview src={href} alt={text} />;
+  }
+
+  // 5. Image file Match
+  const isImg = href.match(/\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i);
+  if (isImg) {
+    return <SlopusMediaPreview src={href} alt={text} />;
+  }
+
+  // Default fallback link
+  return (
+    <a
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+      className="text-cyan-400 hover:underline inline-flex items-center gap-1 font-semibold"
+    >
+      {children}
+    </a>
+  );
+}
+
 
 interface Message {
   role: "user" | "assistant";
@@ -173,7 +441,22 @@ export default function SlopusClient() {
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   ) : (
                     <div className="prose prose-invert max-w-none text-sm leading-relaxed">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ href, children, ...props }) => {
+                            if (!href) return <a {...props}>{children}</a>;
+                            const hrefStr = typeof href === "string" ? href : "";
+                            return <SlopusLinkPreview href={hrefStr}>{children}</SlopusLinkPreview>;
+                          },
+                          img: ({ src, alt }) => {
+                            if (!src) return null;
+                            const srcStr = typeof src === "string" ? src : "";
+                            const altStr = typeof alt === "string" ? alt : "";
+                            return <SlopusMediaPreview src={srcStr} alt={altStr} />;
+                          },
+                        }}
+                      >
                         {msg.content}
                       </ReactMarkdown>
                     </div>
