@@ -139,8 +139,8 @@ describe('TIER_SCALING: structure and values', () => {
     expect(tier4.inheritsArmor).toBe(true);
     expect(tier4.inheritsLead).toBe(false);
     expect(tier4.inheritsCamo).toBe(false);
-    expect(tier7.inheritsLead).toBe(true);
-    expect(tier8.inheritsCamo).toBe(true);
+    expect(tier7.inheritsLead).toBe(false);
+    expect(tier8.inheritsCamo).toBe(false);
     // Ensure tier 5 inherits at least everything tier 4 has
     expect(tier5.inheritsRegen).toBe(true);
     expect(tier5.inheritsArmor).toBe(true);

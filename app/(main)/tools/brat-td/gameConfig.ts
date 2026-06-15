@@ -52,9 +52,9 @@ export const TIER_SCALING = [
   // tier 6: brutal (waves 47-56)
   { hpMult: 8.0, speedMult: 1.25, damageReduce: 0.40, rewardMult: 2.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
   // tier 7: nightmare (waves 57-66)
-  { hpMult: 14.0, speedMult: 1.35, damageReduce: 0.50, rewardMult: 3.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: true, inheritsCamo: false },
+  { hpMult: 14.0, speedMult: 1.35, damageReduce: 0.50, rewardMult: 3.5, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
   // tier 8: apocalypse (waves 67+)
-  { hpMult: 22.0, speedMult: 1.45, damageReduce: 0.60, rewardMult: 5.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: true, inheritsCamo: true },
+  { hpMult: 22.0, speedMult: 1.45, damageReduce: 0.60, rewardMult: 5.0, inheritsRegen: true, inheritsArmor: true, inheritsLead: false, inheritsCamo: false },
 ];
 
 export function getTierForWave(waveNumber: number): number {
