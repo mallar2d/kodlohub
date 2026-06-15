@@ -160,6 +160,7 @@ export interface EngineCallbacks {
 
   // Context flag — does this run on the endless map?
   isEndless: boolean;
+  isSandbox: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -535,18 +536,21 @@ function handleWaveCleared(ctx: EngineContext): void {
   }
   ctx.cb.setScore((prev) => prev + clearedWave * 50);
   const perfectWave = refs.livesRef.current >= refs.waveStartLivesRef.current;
-  ctx.cb.addPlayerXp((clearedWave * 15 + refs.waveKillsRef.current * 3 + (clearedWave === 46 ? 1000 : 0)) * (perfectWave ? 1.5 : 1));
 
   const earnedAchievements: string[] = [];
-  if (clearedWave >= 1) earnedAchievements.push("first_wave");
-  if (clearedWave >= 10) earnedAchievements.push("wave_10");
-  if (clearedWave >= 20) earnedAchievements.push("wave_20");
-  if (clearedWave >= 30) earnedAchievements.push("wave_30");
-  if (clearedWave >= 40) earnedAchievements.push("wave_40");
-  if (clearedWave >= 46) earnedAchievements.push("wave_46");
-  if (clearedWave >= 46 && refs.difficultyRef.current === "hard") earnedAchievements.push("hard_mode");
-  if (clearedWave >= 70 && isEndless) earnedAchievements.push("endless_70");
-  ctx.cb.awardAchievements(earnedAchievements);
+  if (!ctx.cb.isSandbox) {
+    ctx.cb.addPlayerXp((clearedWave * 15 + refs.waveKillsRef.current * 3 + (clearedWave === 46 ? 1000 : 0)) * (perfectWave ? 1.5 : 1));
+
+    if (clearedWave >= 1) earnedAchievements.push("first_wave");
+    if (clearedWave >= 10) earnedAchievements.push("wave_10");
+    if (clearedWave >= 20) earnedAchievements.push("wave_20");
+    if (clearedWave >= 30) earnedAchievements.push("wave_30");
+    if (clearedWave >= 40) earnedAchievements.push("wave_40");
+    if (clearedWave >= 46) earnedAchievements.push("wave_46");
+    if (clearedWave >= 46 && refs.difficultyRef.current === "hard") earnedAchievements.push("hard_mode");
+    if (clearedWave >= 70 && isEndless) earnedAchievements.push("endless_70");
+    ctx.cb.awardAchievements(earnedAchievements);
+  }
 
   ctx.cb.pushLog(finalBonus > 0
     ? `Накат братви відбито! +${finalBonus} ☕ (${clearBonus ? `хвиля ${clearBonus}` : ""}${clearBonus && bonusGold ? " + " : ""}${bonusGold ? `економіка ${bonusGold}` : ""}).`
@@ -565,7 +569,7 @@ function handleWaveCleared(ctx: EngineContext): void {
   });
 
   // Check victory conditions (after wave 46)
-  if (clearedWave === 46 && !isEndless) {
+  if (clearedWave === 46 && !isEndless && !ctx.cb.isSandbox) {
     ctx.cb.markCurrentMapCompleted();
     refs.gameStatusRef.current = "victory";
     ctx.cb.setGameStatus("victory");
@@ -763,6 +767,7 @@ function processEnemies(ctx: EngineContext): void {
         if (enemy.pathIndex >= route.points.length) {
           // Reached the end: player loses lives
           ctx.cb.setLives((prev) => {
+            if (ctx.cb.isSandbox) return prev;
             const newLives = Math.max(0, prev - enemy.damage);
             if (newLives <= 0) {
               refs.gameStatusRef.current = "gameover";

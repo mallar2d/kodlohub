@@ -73,6 +73,7 @@ import {
   buyUpgrade as buyUpgradeAction,
   sellSelectedTower as sellSelectedTowerAction,
   spawnEnemyCallback as spawnEnemyAction,
+  spawnSandboxEnemy as spawnSandboxEnemyAction,
   tryPlaceTower as tryPlaceTowerAction,
   type TowerActionsConfig,
 } from "@/lib/brat-td/tower-actions";
@@ -108,6 +109,7 @@ import { ShopPanel } from "@/components/brat-td/ShopPanel";
 import { StatusBar } from "@/components/brat-td/StatusBar";
 import { UpgradePanel } from "@/components/brat-td/UpgradePanel";
 import { WavePreview } from "@/components/brat-td/WavePreview";
+import { SandboxPanel } from "@/components/brat-td/SandboxPanel";
 
 const PROGRESSION_CONFIG = {
   towerConfigs: TOWER_CONFIGS,
@@ -134,6 +136,8 @@ export default function BratTDClient() {
   const [isPaused, setIsPaused] = useState(false);
   const [gameSpeed, setGameSpeed] = useState<1 | 2 | 3 | 5>(1);
   const [isEndless, setIsEndless] = useState(false);
+  const [isSandbox, setIsSandbox] = useState(false);
+  const isSandboxRef = useRef(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [score, setScore] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyKey>(DEFAULT_DIFFICULTY_KEY);
@@ -336,6 +340,7 @@ export default function BratTDClient() {
       spawnHitParticles,
       spawnFloatingText,
       isEndless,
+      isSandbox,
     };
     return { refs, cb };
   };
@@ -432,6 +437,7 @@ export default function BratTDClient() {
     awardAchievements: (ids) => awardAchievements(ids, progressionCtx),
     getMapById,
     PROGRESSION_CONFIG,
+    isSandbox,
   };
 
   const tryPlaceTower = (type: string, x: number, y: number) => tryPlaceTowerAction(type, x, y, towerCtx);
@@ -545,6 +551,8 @@ export default function BratTDClient() {
     gameStatusRef.current = "playing";
     setIsPaused(false);
     setIsEndless(false);
+    setIsSandbox(false);
+    isSandboxRef.current = false;
     setScore(0);
     waveKillsRef.current = 0;
     gameStartFrameRef.current = frameCountRef.current;
@@ -563,9 +571,60 @@ export default function BratTDClient() {
     pushLog(`Карта: ${activeMap.name}. Складність: ${diffConfig.label}. Поставте першого юніта!`);
   };
 
+  const startSandboxGame = () => {
+    const activeMap = getActiveMap();
+    towersRef.current = [];
+    enemiesRef.current = [];
+    projectilesRef.current = [];
+    mineProjectilesRef.current = [];
+    particlesRef.current = [];
+    floatingTextsRef.current = [];
+    speedTrailsRef.current = [];
+    minesRef.current = [];
+    setLives(999999);
+    livesRef.current = 999999;
+    setGold(999999);
+    goldRef.current = 999999;
+    setWave(1);
+    waveRef.current = 1;
+    setIsWaveActive(false);
+    isWaveActiveRef.current = false;
+    setGameStatus("playing");
+    gameStatusRef.current = "playing";
+    setIsPaused(false);
+    setIsEndless(false);
+    setIsSandbox(true);
+    isSandboxRef.current = true;
+    setScore(0);
+    waveKillsRef.current = 0;
+    gameStartFrameRef.current = frameCountRef.current;
+    sessionSeedRef.current = Date.now();
+    sessionSummaryDoneRef.current = true;
+    setSessionSummary(null);
+    setAchievementToasts([]);
+    setSelectedShopTower(null);
+    setSelectedPlacedTowerId(null);
+    setSelectedTower(null);
+    pushLog(`🏖️ Sandbox: ${activeMap.name}. Всі вежі безкоштовні, нескінченні життя та золото.`);
+  };
+
+  const handleSandboxSpawnEnemy = (type: string, tier: number, modifiers: EnemyModifier[], count: number, routeId?: string) => {
+    const towerCtxForSpawn = {
+      enemiesRef,
+      waveRef,
+      difficultyRef,
+      selectedMapIdRef,
+      getMapById,
+    };
+    spawnSandboxEnemyAction(type, tier, modifiers, routeId, count, towerCtxForSpawn);
+    if (!isWaveActiveRef.current) {
+      pushLog(`🏖️ Спавнено ${count}× ${type} (Tier ${tier})`);
+    }
+  };
+
   useEffect(() => {
-    if (gold >= 5000) awardAchievements(["rich"], progressionCtx);
-  }, [gold]);
+    if (!isSandbox && gold >= 5000) awardAchievements(["rich"], progressionCtx);
+  }, [gold, isSandbox]);
 
   useEffect(() => {
     goldRef.current = gold;
@@ -642,7 +701,7 @@ export default function BratTDClient() {
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [selectedShopTower, isMouseOnCanvas, selectedPlacedTowerId, isEndless]);
+  }, [selectedShopTower, isMouseOnCanvas, selectedPlacedTowerId, isEndless, isSandbox]);
 
   useEffect(() => {
     const syncInterval = setInterval(() => {
@@ -680,6 +739,7 @@ export default function BratTDClient() {
   };
 
   const handleSubmitScore = async () => {
+    if (isSandbox) return;
     const name = playerName.trim() || "Анонім";
     const finalWave = gameStatusRef.current === "victory" ? wave : wave - 1;
     addToLocalLeaderboard(name, score, finalWave, progressionRef.current);
@@ -718,6 +778,7 @@ export default function BratTDClient() {
           score={score}
           wave={wave}
           isEndless={isEndless}
+          isSandbox={isSandbox}
           isWaveActive={isWaveActive}
           isPaused={isPaused}
           gameSpeed={gameSpeed}
@@ -732,6 +793,36 @@ export default function BratTDClient() {
           onStartNextWave={startNextWave}
           onStartGame={startGame}
         />
+
+        {gameStatus === "playing" && isSandbox && (
+          <SandboxPanel
+            wave={wave}
+            selectedMapId={selectedMapId}
+            isWaveActive={isWaveActive}
+            onSpawnEnemy={handleSandboxSpawnEnemy}
+            onSetWave={(w: number) => { setWave(w); waveRef.current = w; }}
+            onStartWave={startNextWave}
+            onClearAllEnemies={() => {
+              enemiesRef.current = [];
+              spawnQueueRef.current = [];
+              if (isWaveActiveRef.current) {
+                setIsWaveActive(false);
+                isWaveActiveRef.current = false;
+              }
+            }}
+            onInstantWaveClear={() => {
+              enemiesRef.current = [];
+              spawnQueueRef.current = [];
+              if (isWaveActiveRef.current) {
+                isWaveActiveRef.current = false;
+                setIsWaveActive(false);
+                pushLog(`🏖️ Хвиля ${wave} очищена (sandbox).`);
+              }
+            }}
+            onSetGold={(amount: number) => { setGold(amount); goldRef.current = amount; }}
+            onSetLives={(amount: number) => { setLives(amount); livesRef.current = amount; }}
+          />
+        )}
 
         <div className="relative border border-hairline-dark rounded overflow-hidden aspect-[8/5] w-full bg-black shadow-xl shadow-cyan-950/25">
           <canvas
@@ -827,6 +918,7 @@ export default function BratTDClient() {
               onSelectDifficulty={setDifficulty}
               progression={progression}
               onStartGame={startGame}
+              onStartSandbox={startSandboxGame}
             />
           )}
         </div>
@@ -854,6 +946,7 @@ export default function BratTDClient() {
             gameStatus={gameStatus}
             progression={progression}
             ctx={progressionCtx}
+            isSandbox={isSandbox}
             onSell={sellSelectedTower}
             onClose={() => {
               setSelectedPlacedTowerId(null);
@@ -888,6 +981,7 @@ export default function BratTDClient() {
             gameStatus={gameStatus}
             selectedShopTower={selectedShopTower}
             progression={progression}
+            isSandbox={isSandbox}
             onSelect={setSelectedShopTower}
             onDragStart={(type) => {
               draggedTowerTypeRef.current = type;

@@ -944,6 +944,8 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   }
 };
 
+export const ENEMY_TYPE_KEYS = Object.keys(ENEMY_CONFIGS);
+
 const MODIFIER_UNLOCK_WAVE: Record<EnemyModifier, number> = {
   lead: 16,
   camo: 20,

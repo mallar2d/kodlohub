@@ -16,6 +16,7 @@ export interface IdleOverlayProps {
   onSelectDifficulty: (key: DifficultyKey) => void;
   progression: ProgressionState;
   onStartGame: () => void;
+  onStartSandbox?: () => void;
 }
 
 export function IdleOverlay(props: IdleOverlayProps) {
@@ -26,6 +27,7 @@ export function IdleOverlay(props: IdleOverlayProps) {
     onSelectDifficulty,
     progression,
     onStartGame,
+    onStartSandbox,
   } = props;
   return (
     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
@@ -50,9 +52,16 @@ export function IdleOverlay(props: IdleOverlayProps) {
           Свинець не любить газ/Infinix/Candy/бронебійне. Камо треба бачити. Після 46 є 10 handcrafted post-game хвиль.
         </p>
       </div>
-      <button onClick={onStartGame} className="btn-ghost text-cyan-400 hover:text-white mb-6">
-        ПРИЙНЯТИ НАКАТ
-      </button>
+      <div className="flex gap-3 mb-6">
+        <button onClick={onStartGame} className="btn-ghost text-cyan-400 hover:text-white">
+          ПРИЙНЯТИ НАКАТ
+        </button>
+        {onStartSandbox && (
+          <button onClick={onStartSandbox} className="btn-ghost text-amber-400 hover:text-white border-amber-700/50">
+            🏖️ SANDBOX
+          </button>
+        )}
+      </div>
     </div>
   );
 }

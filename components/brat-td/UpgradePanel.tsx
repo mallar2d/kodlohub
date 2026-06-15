@@ -25,6 +25,7 @@ export interface UpgradePanelProps {
   gameStatus: "idle" | "playing" | "gameover" | "victory";
   progression: ProgressionState;
   ctx: Pick<ProgressionActionsConfig, "towersRef" | "progressionRef" | "pushLog" | "PROGRESSION_CONFIG" | "setProgression">;
+  isSandbox?: boolean;
   onSell: () => void;
   onClose: () => void;
   onBuyUpgrade: (pathIndex: number) => void;
@@ -47,6 +48,7 @@ export function UpgradePanel(props: UpgradePanelProps) {
     gameStatus,
     progression,
     ctx,
+    isSandbox,
     onSell,
     onClose,
     onBuyUpgrade,
@@ -140,6 +142,7 @@ export function UpgradePanel(props: UpgradePanelProps) {
             gameStatus={gameStatus}
             progression={progression}
             ctx={ctx}
+            isSandbox={isSandbox}
             onBuy={() => onBuyUpgrade(pathIndex)}
           onUnlock={() => unlockTierForTower(tower.type, pathIndex, getNextTier(tower, pathIndex), ctx)}
         />
@@ -350,6 +353,7 @@ function UpgradePath({
   gameStatus,
   progression,
   ctx,
+  isSandbox,
   onBuy,
   onUnlock,
 }: {
@@ -359,30 +363,31 @@ function UpgradePath({
   gameStatus: "idle" | "playing" | "gameover" | "victory";
   progression: ProgressionState;
   ctx: Pick<ProgressionActionsConfig, "towersRef" | "progressionRef" | "pushLog" | "PROGRESSION_CONFIG" | "setProgression">;
+  isSandbox?: boolean;
   onBuy: () => void;
   onUnlock: () => void;
 }) {
   const pathName = getPathName(tower, pathIndex);
   const currentTier = getCurrentTier(tower, pathIndex);
   const pathUpgrades = getPathUpgrades(tower, pathIndex);
-  const isLocked = !checkUpgradeAllowed(
+  const isLocked = !isSandbox && !checkUpgradeAllowed(
     tower.path1Tier,
     tower.path2Tier,
     tower.path3Tier,
     pathIndex
   );
   const nextUpgrade = currentTier < 5 ? pathUpgrades[currentTier] : null;
-  const canAfford = nextUpgrade ? gold >= nextUpgrade.cost : false;
+  const canAfford = isSandbox || (nextUpgrade ? gold >= nextUpgrade.cost : false);
   const nextTier = currentTier + 1;
-  const tierUnlocked = nextUpgrade
+  const tierUnlocked = isSandbox || (nextUpgrade
     ? isTierUnlocked(tower.type, pathIndex, nextTier, progression)
-    : true;
+    : true);
   const unlockCost = TIER_UNLOCK_COSTS[nextTier];
   const masteryXp = progression.towerMastery[tower.type]?.towerXp ?? 0;
   const canUnlockTier = Boolean(
     unlockCost && masteryXp >= unlockCost && (nextTier !== 5 || progression.playerLevel >= 25)
   );
-  const t5PathTaken = hasT5ForTowerPath(tower.type, pathIndex, tower.id, ctx);
+  const t5PathTaken = !isSandbox && hasT5ForTowerPath(tower.type, pathIndex, tower.id, ctx);
 
   return (
     <div
@@ -453,7 +458,7 @@ function UpgradePath({
                 {nextUpgrade.name} (T{currentTier + 1})
               </span>
               <span className="text-xs font-semibold text-yellow-500 font-[var(--font-display)]">
-                ☕ {nextUpgrade.cost}
+                {isSandbox ? "FREE ☕" : `☕ ${nextUpgrade.cost}`}
               </span>
             </div>
             <p className="text-[11px] text-on-primary-mute leading-relaxed">

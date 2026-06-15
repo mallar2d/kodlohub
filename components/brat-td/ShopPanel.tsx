@@ -16,6 +16,7 @@ export interface ShopPanelProps {
   gameStatus: "idle" | "playing" | "gameover" | "victory";
   selectedShopTower: string | null;
   progression: ProgressionState;
+  isSandbox?: boolean;
   onSelect: (type: string | null) => void;
   onDragStart: (type: string) => void;
   onDragEnd: () => void;
@@ -32,6 +33,7 @@ export function ShopPanel(props: ShopPanelProps) {
     gameStatus,
     selectedShopTower,
     progression,
+    isSandbox,
     onSelect,
     onDragStart,
     onDragEnd,
@@ -52,8 +54,8 @@ export function ShopPanel(props: ShopPanelProps) {
               (TOWER_UNLOCK_LEVELS[a[0]] ?? 0) - (TOWER_UNLOCK_LEVELS[b[0]] ?? 0)
           )
           .map(([type, config]) => {
-            const canAfford = gold >= config.cost;
-            const towerUnlocked = isTowerUnlocked(type, progression);
+            const canAfford = isSandbox || gold >= config.cost;
+            const towerUnlocked = isSandbox || isTowerUnlocked(type, progression);
             const neededLevel = TOWER_UNLOCK_LEVELS[type] ?? 1;
             const isSelected = selectedShopTower === type;
             return (
@@ -98,7 +100,7 @@ export function ShopPanel(props: ShopPanelProps) {
                     </span>
                   </span>
                   <span className="text-xs font-bold font-[var(--font-display)] text-yellow-500">
-                    {towerUnlocked ? `GOLD ${config.cost}` : `LVL ${neededLevel}`}
+                    {isSandbox ? "FREE" : towerUnlocked ? `GOLD ${config.cost}` : `LVL ${neededLevel}`}
                   </span>
                 </button>
                 <div className="absolute z-50 left-0 right-0 bottom-full mb-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">

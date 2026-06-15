@@ -106,6 +106,7 @@ export interface TowerActionsConfig extends TowerActionsRefs, TowerActionsSetter
   progressionRef: { current: ProgressionState };
   selectedPlacedTower: PlacedTower | null;
   PROGRESSION_CONFIG: ProgressionActionsConfig["PROGRESSION_CONFIG"];
+  isSandbox?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -130,12 +131,12 @@ export function tryPlaceTower(
 ): boolean {
   const config = TOWER_CONFIGS[type];
   if (!config) return false;
-  if (!isTowerUnlocked(type, ctx.progressionRef.current)) {
+  if (!ctx.isSandbox && !isTowerUnlocked(type, ctx.progressionRef.current)) {
     const neededLevel = TOWER_UNLOCK_LEVELS[type] ?? 1;
     ctx.pushLog(`${config.name} відкривається на рівні ${neededLevel}.`);
     return false;
   }
-  if (ctx.goldRef.current < config.cost) {
+  if (!ctx.isSandbox && ctx.goldRef.current < config.cost) {
     ctx.pushLog("Недостатньо Nescafe Gold!");
     return false;
   }
@@ -206,12 +207,18 @@ export function tryPlaceTower(
   }
   ctx.towersRef.current.push(newTower);
   if (ctx.towersRef.current.length >= 10) {
-    ctx.awardAchievements(["tower_farm"]);
+    if (!ctx.isSandbox) ctx.awardAchievements(["tower_farm"]);
   }
-  ctx.setGold((prev) => prev - config.cost);
+  if (!ctx.isSandbox) {
+    ctx.setGold((prev) => prev - config.cost);
+  }
   ctx.pushLog(`Створено юніт: ${config.name}!`);
   ctx.emitSound(SoundEvent.TOWER_FIRE, type);
-  ctx.spawnFloatingText(x, y - 20, `-${config.cost} ☕`, "#ef4444");
+  if (ctx.isSandbox) {
+    ctx.spawnFloatingText(x, y - 20, `FREE 🏖️`, "#22c55e");
+  } else {
+    ctx.spawnFloatingText(x, y - 20, `-${config.cost} ☕`, "#ef4444");
+  }
   return true;
 }
 
@@ -272,6 +279,7 @@ export function buyUpgrade(
   );
   if (!tower) return;
   if (
+    !ctx.isSandbox &&
     !checkUpgradeAllowed(tower.path1Tier, tower.path2Tier, tower.path3Tier, pathIndex)
   ) {
     ctx.pushLog("Цей шлях заблоковано правилами крос-пасингу BTD6!");
@@ -297,6 +305,7 @@ export function buyUpgrade(
       ? tower.path2Tier + 1
       : tower.path3Tier + 1;
   if (
+    !ctx.isSandbox &&
     nextTier >= 3 &&
     !isTierUnlocked(tower.type, pathIndex, nextTier, ctx.progressionRef.current)
   ) {
@@ -304,6 +313,7 @@ export function buyUpgrade(
     return;
   }
   if (
+    !ctx.isSandbox &&
     nextTier === 5 &&
     hasT5ForTowerPath(tower.type, pathIndex, tower.id, ctx)
   ) {
@@ -312,39 +322,43 @@ export function buyUpgrade(
     );
     return;
   }
-  if (ctx.goldRef.current < upgrade.cost) {
+  if (!ctx.isSandbox && ctx.goldRef.current < upgrade.cost) {
     ctx.pushLog("Недостатньо Nescafe Gold для апгрейду!");
     return;
   }
   const newStats = upgrade.effect(buildUpgradeStats(tower));
-  ctx.setGold((prev) => prev - upgrade!.cost);
+  if (!ctx.isSandbox) {
+    ctx.setGold((prev) => prev - upgrade!.cost);
+  }
   tower.upgradesBought.push(upgrade.id);
   if (pathIndex === 0) tower.path1Tier++;
   else if (pathIndex === 1) tower.path2Tier++;
   else if (pathIndex === 2) tower.path3Tier++;
-  if (nextTier === 5) ctx.awardAchievements(["first_t5"]);
-  ctx.setProgression((prev) => {
-    const mastery = prev.towerMastery[tower.type] ?? {
-      towerXp: 0,
-      unlockedTiers: [],
-      highestTierAchieved: 2,
-    };
-    const next = normalizeProgression(
-      {
-        ...prev,
-        towerMastery: {
-          ...prev.towerMastery,
-          [tower.type]: {
-            ...mastery,
-            highestTierAchieved: Math.max(mastery.highestTierAchieved, nextTier),
+  if (nextTier === 5 && !ctx.isSandbox) ctx.awardAchievements(["first_t5"]);
+  if (!ctx.isSandbox) {
+    ctx.setProgression((prev) => {
+      const mastery = prev.towerMastery[tower.type] ?? {
+        towerXp: 0,
+        unlockedTiers: [],
+        highestTierAchieved: 2,
+      };
+      const next = normalizeProgression(
+        {
+          ...prev,
+          towerMastery: {
+            ...prev.towerMastery,
+            [tower.type]: {
+              ...mastery,
+              highestTierAchieved: Math.max(mastery.highestTierAchieved, nextTier),
+            },
           },
         },
-      },
-      ctx.PROGRESSION_CONFIG
-    );
-    ctx.progressionRef.current = next;
-    return next;
-  });
+        ctx.PROGRESSION_CONFIG
+      );
+      ctx.progressionRef.current = next;
+      return next;
+    });
+  }
   applyUpgradeStats(tower, newStats);
   tower.level += 1;
   if (upgrade.id === "candy_cheap") {
@@ -352,7 +366,11 @@ export function buyUpgrade(
     ctx.spawnFloatingText(tower.x, tower.y - 35, `+40 ☕`, "#22c55e");
   }
   ctx.pushLog(`Апгрейд куплено: ${upgrade.name}!`);
-  ctx.spawnFloatingText(tower.x, tower.y - 20, `-${upgrade.cost} ☕`, "#ef4444");
+  if (ctx.isSandbox) {
+    ctx.spawnFloatingText(tower.x, tower.y - 20, `FREE 🏖️`, "#22c55e");
+  } else {
+    ctx.spawnFloatingText(tower.x, tower.y - 20, `-${upgrade.cost} ☕`, "#ef4444");
+  }
   ctx.spawnHitParticles(tower.x, tower.y, "#facc15", 16, "square");
   const explosionRingCap =
     ARRAY_CAPS.EXPLOSION_RINGS * (ctx.settingsRef.current.effectLimits ? 1 : 2);
@@ -450,4 +468,85 @@ export function spawnEnemyCallback(
   ctx.enemiesRef.current.push(
     applyDifficultyToEnemy(newEnemy, ctx.difficultyRef.current)
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Sandbox enemy spawner — spawns enemies at route start with given tier
+// ─────────────────────────────────────────────────────────────────────────
+
+const TIER_TO_WAVE = [1, 11, 21, 31, 41, 47, 57, 67];
+
+export function spawnSandboxEnemy(
+  type: string,
+  tier: number,
+  modifiers: EnemyModifier[],
+  routeId: string | undefined,
+  count: number,
+  ctx: Pick<TowerActionsConfig, "enemiesRef" | "waveRef" | "difficultyRef" | "selectedMapIdRef" | "getMapById">
+): void {
+  const originalWave = ctx.waveRef.current;
+  ctx.waveRef.current = TIER_TO_WAVE[Math.min(Math.max(tier - 1, 0), 7)];
+
+  const activeMap = ctx.getMapById(ctx.selectedMapIdRef.current);
+  const route = getRouteById(
+    activeMap,
+    routeId ?? getWaveRouteIds(activeMap, ctx.waveRef.current)[0]
+  );
+  const startPoint = route.points[0];
+
+  for (let i = 0; i < count; i++) {
+    const offsetX = (Math.random() - 0.5) * 20;
+    const offsetY = (Math.random() - 0.5) * 20;
+    const baseConfig = getEnemyStatsForWave(type, ctx.waveRef.current, modifiers.length > 0 ? modifiers : undefined);
+    const newEnemy: ActiveEnemy = {
+      id: getPureId(),
+      type,
+      x: startPoint.x + offsetX,
+      y: startPoint.y + offsetY,
+      hp: baseConfig.hp,
+      maxHp: baseConfig.hp,
+      speed: baseConfig.speed,
+      reward: baseConfig.reward,
+      damage: baseConfig.damage,
+      color: baseConfig.color,
+      borderColor: baseConfig.borderColor,
+      radius: baseConfig.radius,
+      name: baseConfig.name,
+      emoji: EMOJI_MAP[type] || "😐",
+      routeId: route.id,
+      pathIndex: 1,
+      distanceTraveled: 0,
+      slowDuration: 0,
+      freezeDuration: 0,
+      gasSlowDuration: 0,
+      abilitiesDisabledDuration: 0,
+      isArmored: baseConfig.isArmored,
+      isSuperArmored: baseConfig.isSuperArmored,
+      isGlitching: baseConfig.isGlitching,
+      glitchDistance: baseConfig.glitchDistance,
+      isSlowingTowers: baseConfig.isSlowingTowers,
+      isSpawningTrail: baseConfig.isSpawningTrail,
+      onDeath: baseConfig.onDeath,
+      isCamo: baseConfig.isCamo,
+      isRegen: baseConfig.isRegen,
+      isLead: baseConfig.isLead,
+      isCeramic: baseConfig.isCeramic,
+      isPhantomCamo: baseConfig.isPhantomCamo,
+      isExploder: baseConfig.isExploder,
+      isHealer: baseConfig.isHealer,
+      isFlying: baseConfig.isFlying,
+      knockbackMultiplier: baseConfig.knockbackMultiplier,
+      shieldHp: baseConfig.shieldHp,
+      maxShieldHp: baseConfig.shieldHp,
+      tier: baseConfig.tier,
+      damageReduce: baseConfig.tier ? TIER_SCALING[baseConfig.tier - 1]?.damageReduce ?? 0 : 0,
+      stunImmune: baseConfig.stunImmune,
+      knockbackImmune: baseConfig.knockbackImmune,
+    };
+    ctx.enemiesRef.current.push(
+      applyDifficultyToEnemy(newEnemy, ctx.difficultyRef.current)
+    );
+  }
+
+  ctx.waveRef.current = originalWave;
 }

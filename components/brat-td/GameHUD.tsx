@@ -13,6 +13,7 @@ export interface GameHUDProps {
   score: number;
   wave: number;
   isEndless: boolean;
+  isSandbox?: boolean;
   isWaveActive: boolean;
   isPaused: boolean;
   gameSpeed: 1 | 2 | 3 | 5;
@@ -37,6 +38,7 @@ export function GameHUD(props: GameHUDProps) {
     score,
     wave,
     isEndless,
+    isSandbox,
     isWaveActive,
     isPaused,
     gameSpeed,
@@ -58,21 +60,23 @@ export function GameHUD(props: GameHUDProps) {
     <div className="card-dark p-4 flex flex-wrap items-center justify-between gap-4 border-hairline-dark">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Stat
-          label="Нерви Кодла (HP)"
+          label={isSandbox ? "Життя (∞)" : "Нерви Кодла (HP)"}
           value={lives}
-          variant={lives <= 35 ? "danger" : "normal"}
-          showHpBar
+          variant={isSandbox ? "gold" : lives <= 35 ? "danger" : "normal"}
+          showHpBar={!isSandbox}
         />
         <Stat
           label="Nescafe Gold (Валюта)"
           value={gold}
           variant="gold"
         />
-        <Stat
-          label="Score"
-          value={score}
-          variant="purple"
-        />
+        {!isSandbox && (
+          <Stat
+            label="Score"
+            value={score}
+            variant="purple"
+          />
+        )}
         <div className="flex flex-col min-w-[140px] h-[52px] justify-between">
           <span className="micro-cap text-ink-mute whitespace-nowrap">
             Накат Братви (Хвиля)
@@ -85,6 +89,9 @@ export function GameHUD(props: GameHUDProps) {
               {wave}{" "}
               {isEndless && (
                 <span className="text-xs text-purple-400 font-normal">Endless</span>
+              )}
+              {isSandbox && (
+                <span className="text-xs text-amber-400 font-normal ml-1">Sandbox</span>
               )}
             </span>
             {isWaveActive && (
