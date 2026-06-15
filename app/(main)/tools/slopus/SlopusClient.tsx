@@ -87,7 +87,7 @@ export default function SlopusClient() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
           </span>
           <span className="micro-cap text-on-primary tracking-wider text-xs">
-            СЛОПУС SYSTEM v2.5 // MIMO_V2.5
+            СЛОПУС SYSTEM v2.5
           </span>
         </div>
         {messages.length > 0 && (
@@ -185,9 +185,9 @@ export default function SlopusClient() {
                 <p className="text-xs text-red-400 font-mono text-center">
                   ⚠️ {error}
                 </p>
-                {error.includes("COMMAND_CODE_API_KEY") && (
+                {error.includes("DEEPSEEK_API_KEY") && (
                   <p className="text-[10px] text-ink-mute text-center mt-2 max-w-md">
-                    Будь ласка, попросіть власника сайту згенерувати ключ у кабінеті Command Code та додати <code>COMMAND_CODE_API_KEY</code> у <code>.env.local</code>.
+                    Будь ласка, попросіть власника сайту отримати ключ у кабінеті DeepSeek та додати <code>DEEPSEEK_API_KEY</code> у <code>.env.local</code>.
                   </p>
                 )}
               </div>

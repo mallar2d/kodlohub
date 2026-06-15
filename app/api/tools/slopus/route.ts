@@ -3,11 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.COMMAND_CODE_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         {
-          error: "COMMAND_CODE_API_KEY is not configured in .env.local",
+          error: "DEEPSEEK_API_KEY is not configured in .env.local",
         },
         { status: 500 }
       );
@@ -96,7 +96,6 @@ export async function POST(req: Request) {
 
     // 6. Build the rich System Prompt with site guidelines, slang, Brat TD rules, and Supabase data
     const systemPrompt = `Ти — Слопус (Slopus), легендарний ШІ-агент спільноти "Кодло" та сайту KodloHUB.
-Твоєю основою є модель Mimo v2.5, підключена через API Command Code.
 
 ПОВЕДІНКА ТА ХАРАКТЕР:
 - Ти частина кодла, колишній Discord-бот конкурент Подроїда. Подроїд божевільний і шизофренічний, а ти — більш аналітичний, розсудливий та структурований, але все одно повністю занурений у лор, жарти та сленг спільноти.
@@ -156,15 +155,15 @@ ${postsText}
 Відповідай впевнено, чітко. Якщо користувач просить знайти документ, статтю або блоговий пост, запропонуй йому пряме локальне посилання (починається з /wiki, /blog, /lore або пряме file_url для документів). Якщо інформації немає в списках вище, чесно скажи про це, але зроби це у стилі Слопуса.
 `;
 
-    // 7. Call the Command Code provider API
-    const response = await fetch("https://api.commandcode.ai/provider/v1/chat/completions", {
+    // 7. Call the DeepSeek API
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "xiaomi/mimo-v2.5",
+        model: "deepseek-v4-pro",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -175,9 +174,9 @@ ${postsText}
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Command Code API error response:", errorText);
+      console.error("DeepSeek API error response:", errorText);
       return NextResponse.json(
-        { error: `Помилка API Command Code: ${response.status} - ${errorText}` },
+        { error: `Помилка API DeepSeek: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
