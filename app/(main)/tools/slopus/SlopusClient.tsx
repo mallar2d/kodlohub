@@ -271,6 +271,21 @@ function SlopusLinkPreview({ href, children }: { href: string; children?: React.
   );
 }
 
+const SlopusMarkdownComponents = {
+  a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
+    if (!href) return <a {...props}>{children}</a>;
+    const hrefStr = typeof href === "string" ? href : "";
+    return <SlopusLinkPreview href={hrefStr}>{children}</SlopusLinkPreview>;
+  },
+  img: ({ src, alt }: React.ComponentPropsWithoutRef<"img">) => {
+    if (!src) return null;
+    const srcStr = typeof src === "string" ? src : "";
+    const altStr = typeof alt === "string" ? alt : "";
+    return <SlopusMediaPreview src={srcStr} alt={altStr} />;
+  },
+};
+
+
 
 interface Message {
   role: "user" | "assistant";
@@ -443,19 +458,7 @@ export default function SlopusClient() {
                     <div className="prose prose-invert max-w-none text-sm leading-relaxed">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
-                        components={{
-                          a: ({ href, children, ...props }) => {
-                            if (!href) return <a {...props}>{children}</a>;
-                            const hrefStr = typeof href === "string" ? href : "";
-                            return <SlopusLinkPreview href={hrefStr}>{children}</SlopusLinkPreview>;
-                          },
-                          img: ({ src, alt }) => {
-                            if (!src) return null;
-                            const srcStr = typeof src === "string" ? src : "";
-                            const altStr = typeof alt === "string" ? alt : "";
-                            return <SlopusMediaPreview src={srcStr} alt={altStr} />;
-                          },
-                        }}
+                        components={SlopusMarkdownComponents}
                       >
                         {msg.content}
                       </ReactMarkdown>
