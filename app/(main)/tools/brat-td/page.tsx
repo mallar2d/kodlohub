@@ -5,11 +5,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "DEMO",
   description:
-    "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви. Захисти свій граніт від джонів та дрон-братів!",
+    "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
   openGraph: {
     title: "DEMO",
     description:
-      "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви. Захисти свій граніт від джонів та дрон-братів!",
+      "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
     url: "https://kodlohub.vercel.app/tools/brat-td",
     images: [
       {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "DEMO",
     description:
-      "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та скажені накати Братви.",
+      "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
     images: ["/og-brattd.png"],
   },
 };
@@ -38,13 +38,23 @@ export default function BratTDPage() {
         <h1 className="heading-section mb-6">DEMO</h1>
 
         <section className="card-dark mb-8 border-on-primary-mute bg-canvas-night-soft/80 p-6">
-          <p className="micro-cap text-ink-mute mb-2">СКОРО ДОСТУПНО</p>
+          <p className="micro-cap text-ink-mute mb-2">BETA ВЖЕ ДОСТУПНА</p>
           <h2 className="heading-sub mb-3">Brat TD: Total PDR Edition</h2>
-          <p className="text-ink-mute max-w-3xl leading-relaxed">
-            Повне PDR-видання скоро стане доступним до завантаження. Готуй місце
-            на диску, тримай граніт під контролем і чекай на тотальний накат
-            братви.
-          </p>
+          <div className="max-w-3xl space-y-4 text-ink-mute leading-relaxed">
+            <p>
+              Установщик для Windows уже доступний до завантаження. Це
+              Beta-версія гри, тому можливі графічні недоліки та проблеми з
+              продуктивністю.
+            </p>
+            <p>Версії для Android і Linux плануються пізніше.</p>
+          </div>
+          <a
+            href="/Brat%20TD_0.8.0_x64-setup.exe"
+            download
+            className="btn-ghost mt-6 inline-flex text-on-primary"
+          >
+            Завантажити для Windows
+          </a>
         </section>
 
         <ErrorBoundary>
