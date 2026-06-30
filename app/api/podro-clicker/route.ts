@@ -51,6 +51,7 @@ export async function GET() {
     const { data: topRows } = await admin
       .from("podro_clicker_leaderboard")
       .select("user_id, career_grams, respect_points, prestige_count")
+      .gt("career_grams", 0)
       .limit(LEADERBOARD_LIMIT);
 
     const topIds = [...new Set((topRows ?? []).map((r) => r.user_id))];
@@ -134,7 +135,16 @@ export async function PATCH(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (existing) {
+    if (!existing) {
+      // Після TRUNCATE/видалення рядка відкриті вкладки намагаються upsert-нути
+      // старий стан без монотонної валідації — відсікаємо явно «відновлений» прогрес.
+      if (state.prestigeCount > 0 || state.respectPoints > 0 || state.careerGrams > 1_000_000) {
+        return NextResponse.json(
+          { error: "Прогрес скинуто — оновіть сторінку" },
+          { status: 409 },
+        );
+      }
+    } else {
       const dbCareer = Number(existing.career_grams ?? 0);
       const dbRespect = Number(existing.respect_points ?? 0);
       const dbPrestige = Number(existing.prestige_count ?? 0);

@@ -18,7 +18,6 @@ const admin = createClient(url, key, {
 
 /** @type {{ table: string; filter: (q: ReturnType<typeof admin.from>) => ReturnType<typeof admin.from> }} */
 const DELETE_TARGETS = [
-  { table: "podro_clicker_progress", filter: (q) => q.neq("user_id", "") },
   { table: "brat_td_tower_mastery", filter: (q) => q.neq("user_id", "") },
   { table: "brat_td_achievements", filter: (q) => q.neq("user_id", "") },
   { table: "brat_td_scores", filter: (q) => q.neq("user_id", "") },
@@ -40,9 +39,34 @@ for (const { table, filter } of DELETE_TARGETS) {
   }
 }
 
-// brat_td_progress зануляється через UPDATE, а не видаляється — інакше клієнт
-// (через застарілий кеш у localStorage) сприймає "немає рядка" як
-// "акаунт ще не грав" і сам перезаписує сервер старими локальними даними.
+// podro_clicker_progress і brat_td_progress зануляються через UPDATE — інакше
+// відкриті вкладки або PATCH upsert без existing відновлюють старий прогрес.
+const { error: clickerError, count: clickerCount } = await admin
+  .from("podro_clicker_progress")
+  .update(
+    {
+      grams: 0,
+      career_grams: 0,
+      total_clicks: 0,
+      helpers: {},
+      upgrades: [],
+      achievements: [],
+      respect_points: 0,
+      prestige_count: 0,
+      last_tick_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { count: "exact" },
+  )
+  .neq("user_id", "");
+
+if (clickerError) {
+  console.error(`✕ podro_clicker_progress: ${clickerError.message}`);
+  process.exitCode = 1;
+} else {
+  console.log(`✓ podro_clicker_progress: занулено ${clickerCount ?? 0} записів`);
+}
+
 const { error: btdError, count: btdCount } = await admin
   .from("brat_td_progress")
   .update(

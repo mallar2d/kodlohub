@@ -4,20 +4,30 @@
 -- Скидає прогрес/лідерборди всіх ігрових тулзів.
 -- НЕ чіпає profiles, пости, лайки, пропозиції Brat TD тощо.
 --
--- ВАЖЛИВО: brat_td_progress зануляється через UPDATE, а НЕ видаляється.
--- Клієнт Brat TD досі кешує прогрес у localStorage браузера. Якщо рядок
--- просто видалити, клієнт після рестарту трактує "немає рядка" як
--- "акаунт ще не грав" і сам перезаписує сервер старими локальними даними —
--- скидання миттєво "відновлюється". Залишаючи рядок із нульовими
--- значеннями, клієнт бачить явний серверний стан і довіряє йому.
+-- ВАЖЛИВО: podro_clicker_progress і brat_td_progress зануляються через UPDATE,
+-- а НЕ видаляються. Відкриті вкладки та клієнтський кеш тримають старий стан;
+-- якщо рядок просто видалити, PATCH upsert без валідації (немає existing)
+-- або beforeunload-пуш відновлює прогрес миттєво. Явний нульовий рядок дає
+-- серверу maxGain-валідацію і syncWithServer baseline для відкритих вкладок.
 
 TRUNCATE TABLE
-  podro_clicker_progress,
   brat_td_tower_mastery,
   brat_td_achievements,
   brat_td_scores,
   hammer_hits,
   podro_nmt_results;
+
+UPDATE podro_clicker_progress SET
+  grams = 0,
+  career_grams = 0,
+  total_clicks = 0,
+  helpers = '{}'::JSONB,
+  upgrades = ARRAY[]::TEXT[],
+  achievements = ARRAY[]::TEXT[],
+  respect_points = 0,
+  prestige_count = 0,
+  last_tick_at = now(),
+  updated_at = now();
 
 UPDATE brat_td_progress SET
   player_level = 1,

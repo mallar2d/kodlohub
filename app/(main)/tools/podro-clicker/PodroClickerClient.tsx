@@ -147,49 +147,57 @@ export default function PodroClickerClient() {
     setLoading(false);
   }, []);
 
-  const persistServer = useCallback(async () => {
-    if (!stateRef.current || !user) return;
-    try {
-      await fetch("/api/podro-clicker", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: stateRef.current }),
-      });
-      serverBaselineRef.current = Math.max(serverBaselineRef.current, stateRef.current.careerGrams);
-    } catch {
-      // мережа підвела — спробуємо наступного разу
-    }
-  }, [user]);
+  const adoptServerState = useCallback(
+    (progress: unknown, serverCareer: number, notify: boolean) => {
+      const fresh = normalizeState(progress ?? {});
+      achievementsRef.current = new Set(fresh.achievements);
+      stateRef.current = fresh;
+      setState(fresh);
+      frameTimeRef.current = Date.now();
+      serverBaselineRef.current = serverCareer;
+      if (notify) toast("Прогрес було скинуто адміністрацією", "error");
+    },
+    [toast],
+  );
+
+  const pushToServerIfCurrent = useCallback(
+    async (notifyOnReset: boolean) => {
+      if (!stateRef.current || !user) return;
+      try {
+        const res = await fetch("/api/podro-clicker", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
+
+        if (serverCareer < serverBaselineRef.current) {
+          adoptServerState(data.progress, serverCareer, notifyOnReset);
+          return;
+        }
+
+        serverBaselineRef.current = Math.max(serverBaselineRef.current, serverCareer);
+
+        const patch = await fetch("/api/podro-clicker", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: stateRef.current }),
+        });
+        if (!patch.ok) return;
+
+        serverBaselineRef.current = Math.max(serverBaselineRef.current, stateRef.current.careerGrams);
+      } catch {
+        // мережа підвела — спробуємо наступного разу
+      }
+    },
+    [user, adoptServerState],
+  );
+
+  const persistServer = useCallback(() => pushToServerIfCurrent(false), [pushToServerIfCurrent]);
 
   // Перевіряє, чи сервер досі узгоджений з тим, що ця вкладка востаннє туди писала.
   // Якщо ні (адмін скинув статистику, поки вкладка була відкрита) — приймаємо
   // серверний стан як новий baseline замість того, щоб затерти його старим
   // прогресом з пам'яті.
-  const syncWithServer = useCallback(async () => {
-    if (!user || !stateRef.current) return;
-    try {
-      const res = await fetch("/api/podro-clicker", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
-
-      if (serverCareer < serverBaselineRef.current) {
-        achievementsRef.current = new Set(data.progress ? (data.progress.achievements ?? []) : []);
-        const fresh = normalizeState(data.progress ?? {});
-        stateRef.current = fresh;
-        setState(fresh);
-        frameTimeRef.current = Date.now();
-        serverBaselineRef.current = serverCareer;
-        toast("Прогрес було скинуто адміністрацією", "error");
-        return;
-      }
-
-      serverBaselineRef.current = Math.max(serverBaselineRef.current, serverCareer);
-      await persistServer();
-    } catch {
-      // мережа підвела — спробуємо наступного разу
-    }
-  }, [user, persistServer, toast]);
+  const syncWithServer = useCallback(() => pushToServerIfCurrent(true), [pushToServerIfCurrent]);
 
   // --- завантаження: залогінений = сервер, гість = localStorage ---
   useEffect(() => {
@@ -267,15 +275,11 @@ export default function PodroClickerClient() {
     const serverId = setInterval(syncWithServer, SERVER_SAVE_INTERVAL_MS);
     const onVisibility = () => {
       persistLocal();
-      if (document.visibilityState === "visible") {
-        void syncWithServer();
-      } else {
-        void persistServer();
-      }
+      void syncWithServer();
     };
     const onUnload = () => {
       persistLocal();
-      void persistServer();
+      void syncWithServer();
     };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("beforeunload", onUnload);
@@ -286,7 +290,7 @@ export default function PodroClickerClient() {
       window.removeEventListener("beforeunload", onUnload);
       onUnload();
     };
-  }, [persistLocal, persistServer, syncWithServer]);
+  }, [persistLocal, syncWithServer]);
 
   const loadMutedPreference = useCallback(() => {
     if (typeof window === "undefined") return;
