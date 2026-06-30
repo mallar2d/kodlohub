@@ -1,3 +1,4 @@
+import BratTdSuggestionForm from "@/components/brat-td/SuggestionForm";
 import BratTDClient from "./BratTDClient";
 import ErrorBoundary from "./ErrorBoundary";
 import type { Metadata } from "next";
@@ -56,6 +57,8 @@ export default function BratTDPage() {
             Завантажити для Windows
           </a>
         </section>
+
+        <BratTdSuggestionForm />
 
         <ErrorBoundary>
           <BratTDClient />

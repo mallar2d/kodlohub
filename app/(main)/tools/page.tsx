@@ -35,6 +35,12 @@ const tools = [
     description: "Раз на годину — БАБАХ! Глобальний лідерборд йобнутих.",
   },
   {
+    href: "/tools/podro-clicker",
+    name: "ПОДРО-КЛІКЕР",
+    description:
+      "Клікер про Подро. Вари НЕСКАФЕ ГОЛД, найми помічників, апгрейдь і шеметуйся за повагу.",
+  },
+  {
     href: "/tools/brat-td",
     name: "BRAT TD",
     description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.",

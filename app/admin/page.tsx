@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import BratTdSuggestionsAdmin from "@/components/admin/BratTdSuggestions";
 import Avatar from "@/components/ui/Avatar";
 import type { User } from "@supabase/supabase-js";
 
@@ -506,6 +507,8 @@ export default function AdminPage() {
             <p className="micro-cap text-ink-mute mt-1">ШЕМЕТОВАНИХ</p>
           </div>
         </div>
+
+        {isOwner && <BratTdSuggestionsAdmin />}
 
         {/* Pending posts */}
         {pendingPosts.length > 0 && (
