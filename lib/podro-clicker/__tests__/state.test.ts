@@ -19,6 +19,8 @@ import {
   createInitialState,
   doPrestige,
   getHelperPrice,
+  getNextPrestigeCareerTarget,
+  getPendingRespectGain,
   isUpgradeVisible,
   normalizeState,
   tick,
@@ -72,12 +74,20 @@ describe("clicker state", () => {
     expect(next.totalClicks).toBe(1);
   });
 
-  it("applies the x22 bonus exactly at 22:00 local hour", () => {
+  it("applies the x22 bonus only during the first 5 minutes after 22:00", () => {
     const state = createInitialState();
-    const podroHour = new Date(2024, 0, 1, 22, 30, 0);
-    const { gained, isSpecial } = applyClick(state, podroHour, () => 0.99);
+    const insideWindow = new Date(2024, 0, 1, 22, 4, 59);
+    const { gained, isSpecial } = applyClick(state, insideWindow, () => 0.99);
     expect(isSpecial).toBe(true);
     expect(gained).toBe(22);
+  });
+
+  it("does not apply the x22 bonus once the 5-minute window has passed", () => {
+    const state = createInitialState();
+    const afterWindow = new Date(2024, 0, 1, 22, 5, 0);
+    const { gained, isSpecial } = applyClick(state, afterWindow, () => 0.99);
+    expect(isSpecial).toBe(false);
+    expect(gained).toBe(1);
   });
 
   it("rolls a critical hit when rng is below crit chance", () => {
@@ -170,6 +180,41 @@ describe("clicker state", () => {
     const state = createInitialState();
     expect(canPrestige(state)).toBe(false);
     expect(doPrestige(state)).toBe(state);
+  });
+
+  it("blocks farming infinite respect by re-prestiging without earning more career grams", () => {
+    let state = createInitialState();
+    state = { ...state, careerGrams: PRESTIGE_THRESHOLD, helpers: { shemetovany: 5 }, upgrades: ["u_spoon"] };
+
+    const afterFirst = doPrestige(state);
+    expect(afterFirst.respectPoints).toBeGreaterThan(0);
+    expect(afterFirst.prestigeCount).toBe(1);
+
+    // Same careerGrams as before — no new coffee earned since the last prestige.
+    expect(getPendingRespectGain(afterFirst)).toBe(0);
+    expect(canPrestige(afterFirst)).toBe(false);
+
+    const afterSecondAttempt = doPrestige(afterFirst);
+    expect(afterSecondAttempt).toBe(afterFirst);
+    expect(afterSecondAttempt.respectPoints).toBe(afterFirst.respectPoints);
+    expect(afterSecondAttempt.prestigeCount).toBe(1);
+  });
+
+  it("allows prestiging again only after career grams grow enough for +1 respect", () => {
+    let state = createInitialState();
+    state = { ...state, careerGrams: PRESTIGE_THRESHOLD };
+    const afterFirst = doPrestige(state);
+    const target = getNextPrestigeCareerTarget(afterFirst);
+    expect(target).toBeGreaterThan(PRESTIGE_THRESHOLD);
+
+    const justBelow = { ...afterFirst, careerGrams: target - 1 };
+    expect(canPrestige(justBelow)).toBe(false);
+
+    const atTarget = { ...afterFirst, careerGrams: target };
+    expect(canPrestige(atTarget)).toBe(true);
+    const afterSecond = doPrestige(atTarget);
+    expect(afterSecond.respectPoints).toBe(afterFirst.respectPoints + 1);
+    expect(afterSecond.prestigeCount).toBe(2);
   });
 
   it("respect points permanently boost production after prestige", () => {

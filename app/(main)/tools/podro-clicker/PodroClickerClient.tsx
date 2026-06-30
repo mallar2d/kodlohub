@@ -15,9 +15,11 @@ import {
   CRIT_QUOTES,
   OFFLINE_MESSAGES,
   SPECIAL_HOUR,
+  SPECIAL_WINDOW_MINUTES,
   STORAGE_KEY,
   formatGrams,
   getRankForCareerGrams,
+  isSpecialHour,
   type HelperId,
 } from "@/lib/podro-clicker/gameConfig";
 import {
@@ -49,10 +51,16 @@ interface Floater {
   crit: boolean;
 }
 
-function secondsUntilNextHour(now: Date, hour: number): number {
+function secondsUntilNextWindowStart(now: Date, hour: number): number {
   const target = new Date(now);
   target.setHours(hour, 0, 0, 0);
   if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+  return Math.max(0, Math.round((target.getTime() - now.getTime()) / 1000));
+}
+
+function secondsUntilWindowEnd(now: Date, hour: number, windowMinutes: number): number {
+  const target = new Date(now);
+  target.setHours(hour, windowMinutes, 0, 0);
   return Math.max(0, Math.round((target.getTime() - now.getTime()) / 1000));
 }
 
@@ -338,8 +346,14 @@ export default function PodroClickerClient() {
   }, []);
 
   const nowDate = useMemo(() => new Date(now), [now]);
-  const isSpecial = nowDate.getHours() === SPECIAL_HOUR;
-  const countdown = useMemo(() => secondsUntilNextHour(nowDate, SPECIAL_HOUR), [nowDate]);
+  const isSpecial = isSpecialHour(nowDate);
+  const countdown = useMemo(
+    () =>
+      isSpecial
+        ? secondsUntilWindowEnd(nowDate, SPECIAL_HOUR, SPECIAL_WINDOW_MINUTES)
+        : secondsUntilNextWindowStart(nowDate, SPECIAL_HOUR),
+    [nowDate, isSpecial],
+  );
 
   const gps = state ? computeEffectiveGps(state, nowDate) : 0;
   const clickPower = state ? computeClickPower(state) : 1;
@@ -427,11 +441,11 @@ export default function PodroClickerClient() {
               {isSpecial && <span className="text-yellow-400 font-bold ml-2">×22 ПОДРО-ГОДИНА</span>}
             </p>
 
-            {!isSpecial && (
-              <p className="text-ink-mute text-[11px] mt-1">
-                До ПОДРО-ГОДИНИ (22:00): {formatDuration(countdown)}
-              </p>
-            )}
+            <p className="text-ink-mute text-[11px] mt-1">
+              {isSpecial
+                ? `ПОДРО-ГОДИНА закінчується через: ${formatDuration(countdown)}`
+                : `До ПОДРО-ГОДИНИ (22:00, ${SPECIAL_WINDOW_MINUTES} хв): ${formatDuration(countdown)}`}
+            </p>
 
             <div className="relative w-full flex-1 flex items-center justify-center min-h-[260px] sm:min-h-[320px] mt-4">
               {quoteBubble && (

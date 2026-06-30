@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { PRESTIGE_THRESHOLD, RESPECT_MULTIPLIER_PER_POINT, formatGrams } from "@/lib/podro-clicker/gameConfig";
-import { canPrestige, getPendingRespectGain, getPrestigeMultiplier, type ClickerState } from "@/lib/podro-clicker/state";
+import { RESPECT_MULTIPLIER_PER_POINT, formatGrams } from "@/lib/podro-clicker/gameConfig";
+import {
+  canPrestige,
+  getNextPrestigeCareerTarget,
+  getPendingRespectGain,
+  getPrestigeMultiplier,
+  type ClickerState,
+} from "@/lib/podro-clicker/state";
 
 interface PrestigePanelProps {
   state: ClickerState;
@@ -14,7 +20,8 @@ export default function PrestigePanel({ state, onPrestige }: PrestigePanelProps)
   const able = canPrestige(state);
   const pendingGain = getPendingRespectGain(state);
   const currentMultiplier = getPrestigeMultiplier(state);
-  const progressPct = Math.min(100, (state.careerGrams / PRESTIGE_THRESHOLD) * 100);
+  const nextTarget = getNextPrestigeCareerTarget(state);
+  const progressPct = Math.min(100, (state.careerGrams / nextTarget) * 100);
 
   return (
     <div className="card-dark p-5">
@@ -43,8 +50,10 @@ export default function PrestigePanel({ state, onPrestige }: PrestigePanelProps)
             />
           </div>
           <p className="text-ink-mute text-[11px]">
-            Зароби {formatGrams(PRESTIGE_THRESHOLD)} г за все життя, щоб відкрити шеметування.
-            Зараз: {formatGrams(state.careerGrams)} г.
+            {state.prestigeCount === 0
+              ? `Зароби ${formatGrams(nextTarget)} г за все життя, щоб відкрити шеметування.`
+              : `Зароби ще кави, щоб шеметування дало +1 повагу (потрібно ${formatGrams(nextTarget)} г за все життя).`}
+            {" "}Зараз: {formatGrams(state.careerGrams)} г.
           </p>
         </>
       ) : confirming ? (

@@ -16,6 +16,7 @@ import {
   RESPECT_MULTIPLIER_PER_POINT,
   SPECIAL_MULTIPLIER,
   UPGRADES_BY_ID,
+  getCareerGramsForRespect,
   getHelperCost,
   getRespectGain,
   isSpecialHour,
@@ -250,18 +251,26 @@ export function applyNewAchievements(state: ClickerState): ClickerState {
   return { ...state, achievements: [...state.achievements, ...newOnes] };
 }
 
-export function canPrestige(state: ClickerState): boolean {
-  return state.careerGrams >= PRESTIGE_THRESHOLD;
+// Респект — чиста функція ВСІХ зароблених за кар'єру грамів (як heavenly chips у Cookie Clicker).
+// Тому шеметування без приросту career grams з моменту останнього шеметування не дає нічого —
+// інакше можна було б крутити престиж нескінченно, не заробляючи жодної кави.
+export function getPendingRespectGain(state: ClickerState): number {
+  return Math.max(0, getRespectGain(state.careerGrams) - state.respectPoints);
 }
 
-export function getPendingRespectGain(state: ClickerState): number {
-  return getRespectGain(state.careerGrams);
+export function canPrestige(state: ClickerState): boolean {
+  return state.careerGrams >= PRESTIGE_THRESHOLD && getPendingRespectGain(state) > 0;
+}
+
+/** Скільки career grams потрібно зібрати, щоб шеметування дало хоча б +1 повагу. */
+export function getNextPrestigeCareerTarget(state: ClickerState): number {
+  return Math.max(PRESTIGE_THRESHOLD, getCareerGramsForRespect(state.respectPoints + 1));
 }
 
 /** "ШЕМЕТУВАННЯ" — престиж-ресет. Career/ачівки/кліки/респект НЕ скидаються. */
 export function doPrestige(state: ClickerState, now: number = Date.now()): ClickerState {
   if (!canPrestige(state)) return state;
-  const gained = getRespectGain(state.careerGrams);
+  const gained = getPendingRespectGain(state);
   return {
     ...state,
     grams: 0,

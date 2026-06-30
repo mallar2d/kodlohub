@@ -301,6 +301,8 @@ export function getRankForCareerGrams(careerGrams: number): RankConfig {
 // --- 22:00 бонус (та сама конвенція, що й у молотка) ---
 export const SPECIAL_HOUR = 22;
 export const SPECIAL_MULTIPLIER = 22;
+// ПОДРО-ГОДИНА триває лише перші 5 хвилин після 22:00, а не всю годину.
+export const SPECIAL_WINDOW_MINUTES = 5;
 
 // --- критичний клік ---
 export const BASE_CRIT_CHANCE = 0.04;
@@ -353,6 +355,12 @@ export function getRespectGain(careerGrams: number): number {
   return Math.floor(Math.pow(careerGrams / 1_000_000, 1 / 3) * 10);
 }
 
+/** Обернена функція до getRespectGain — скільки career grams треба, щоб мати щонайменше N поваги. */
+export function getCareerGramsForRespect(respect: number): number {
+  if (respect <= 0) return 0;
+  return 1_000_000 * Math.pow(respect / 10, 3);
+}
+
 const NUMBER_SUFFIXES: [number, string][] = [
   [1e18, "Кв"],
   [1e15, "Кд"],
@@ -377,5 +385,5 @@ export function formatGrams(value: number, fractionDigits = 1): string {
 }
 
 export function isSpecialHour(date: Date = new Date()): boolean {
-  return date.getHours() === SPECIAL_HOUR;
+  return date.getHours() === SPECIAL_HOUR && date.getMinutes() < SPECIAL_WINDOW_MINUTES;
 }
