@@ -45,7 +45,7 @@ export default function BratTdSuggestionsAdmin() {
   async function fetchSuggestions() {
     const { data, error } = await supabase
       .from("brat_td_suggestions")
-      .select("*, profiles(display_name, username, avatar_url)")
+      .select("*, profiles!user_id(display_name, username, avatar_url)")
       .order("created_at", { ascending: false });
 
     if (error) {
