@@ -43,6 +43,8 @@ type Tab = "shop" | "upgrades" | "achievements" | "leaderboard";
 const LOCAL_SAVE_INTERVAL_MS = 3_000;
 const SERVER_SAVE_INTERVAL_MS = 20_000;
 const TICK_INTERVAL_MS = 200;
+// career_grams у БД — DOUBLE PRECISION; без люфту дрібний дрейф дає хибний «адмін-скидання».
+const SERVER_RESET_SLACK_GRAMS = 1_000;
 
 interface Floater {
   id: number;
@@ -160,44 +162,66 @@ export default function PodroClickerClient() {
     [toast],
   );
 
-  const pushToServerIfCurrent = useCallback(
-    async (notifyOnReset: boolean) => {
-      if (!stateRef.current || !user) return;
-      try {
-        const res = await fetch("/api/podro-clicker", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
-
-        if (serverCareer < serverBaselineRef.current) {
-          adoptServerState(data.progress, serverCareer, notifyOnReset);
-          return;
-        }
-
-        serverBaselineRef.current = Math.max(serverBaselineRef.current, serverCareer);
-
-        const patch = await fetch("/api/podro-clicker", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state: stateRef.current }),
-        });
-        if (!patch.ok) return;
-
-        serverBaselineRef.current = Math.max(serverBaselineRef.current, stateRef.current.careerGrams);
-      } catch {
-        // мережа підвела — спробуємо наступного разу
-      }
-    },
-    [user, adoptServerState],
-  );
-
-  const persistServer = useCallback(() => pushToServerIfCurrent(false), [pushToServerIfCurrent]);
+  const flushToServer = useCallback(async () => {
+    if (!stateRef.current || !user) return false;
+    try {
+      const patch = await fetch("/api/podro-clicker", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: stateRef.current }),
+      });
+      if (!patch.ok) return false;
+      serverBaselineRef.current = Math.max(serverBaselineRef.current, stateRef.current.careerGrams);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [user]);
 
   // Перевіряє, чи сервер досі узгоджений з тим, що ця вкладка востаннє туди писала.
   // Якщо ні (адмін скинув статистику, поки вкладка була відкрита) — приймаємо
   // серверний стан як новий baseline замість того, щоб затерти його старим
   // прогресом з пам'яті.
-  const syncWithServer = useCallback(() => pushToServerIfCurrent(true), [pushToServerIfCurrent]);
+  const syncWithServer = useCallback(async () => {
+    if (!stateRef.current || !user) return;
+    try {
+      const res = await fetch("/api/podro-clicker", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
+
+      if (serverCareer + SERVER_RESET_SLACK_GRAMS < serverBaselineRef.current) {
+        adoptServerState(data.progress, serverCareer, true);
+        return;
+      }
+
+      await flushToServer();
+    } catch {
+      // мережа підвела — спробуємо наступного разу
+    }
+  }, [user, adoptServerState, flushToServer]);
+
+  const persistServer = useCallback(async () => {
+    if (!stateRef.current || !user) return;
+    try {
+      const res = await fetch("/api/podro-clicker", { cache: "no-store" });
+      if (!res.ok) {
+        await flushToServer();
+        return;
+      }
+      const data = await res.json();
+      const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
+
+      if (serverCareer + SERVER_RESET_SLACK_GRAMS < serverBaselineRef.current) {
+        adoptServerState(data.progress, serverCareer, false);
+        return;
+      }
+
+      await flushToServer();
+    } catch {
+      await flushToServer();
+    }
+  }, [user, adoptServerState, flushToServer]);
 
   // --- завантаження: залогінений = сервер, гість = localStorage ---
   useEffect(() => {
@@ -275,11 +299,15 @@ export default function PodroClickerClient() {
     const serverId = setInterval(syncWithServer, SERVER_SAVE_INTERVAL_MS);
     const onVisibility = () => {
       persistLocal();
-      void syncWithServer();
+      if (document.visibilityState === "visible") {
+        void syncWithServer();
+      } else {
+        void persistServer();
+      }
     };
     const onUnload = () => {
       persistLocal();
-      void syncWithServer();
+      void persistServer();
     };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("beforeunload", onUnload);
@@ -290,7 +318,7 @@ export default function PodroClickerClient() {
       window.removeEventListener("beforeunload", onUnload);
       onUnload();
     };
-  }, [persistLocal, syncWithServer]);
+  }, [persistLocal, persistServer, syncWithServer]);
 
   const loadMutedPreference = useCallback(() => {
     if (typeof window === "undefined") return;

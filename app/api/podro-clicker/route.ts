@@ -24,6 +24,27 @@ const MAX_PLAUSIBLE_GRAMS = 1e15;
 const MAX_PLAUSIBLE_CLICKS = 50_000_000;
 const MAX_HELPER_OWNED = 1_000_000;
 
+function isZeroedProgressRow(row: {
+  career_grams: number | null;
+  respect_points: number | null;
+  prestige_count: number | null;
+  total_clicks: number | null;
+}): boolean {
+  return (
+    Number(row.career_grams ?? 0) === 0 &&
+    Number(row.respect_points ?? 0) === 0 &&
+    Number(row.prestige_count ?? 0) === 0 &&
+    Number(row.total_clicks ?? 0) === 0
+  );
+}
+
+function looksLikeStaleRestore(state: ClickerState): boolean {
+  if (state.prestigeCount > 0 || state.respectPoints > 0) return true;
+  if (state.totalClicks > 1_000) return true;
+  if (Object.keys(state.helpers).length > 0) return true;
+  return state.careerGrams > 1_000_000;
+}
+
 function sanitizeIncomingState(raw: unknown): ClickerState {
   const state = normalizeState(raw);
   return {
@@ -138,7 +159,7 @@ export async function PATCH(request: Request) {
     if (!existing) {
       // Після TRUNCATE/видалення рядка відкриті вкладки намагаються upsert-нути
       // старий стан без монотонної валідації — відсікаємо явно «відновлений» прогрес.
-      if (state.prestigeCount > 0 || state.respectPoints > 0 || state.careerGrams > 1_000_000) {
+      if (looksLikeStaleRestore(state)) {
         return NextResponse.json(
           { error: "Прогрес скинуто — оновіть сторінку" },
           { status: 409 },
@@ -163,11 +184,18 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Неможливо зменшити лічильник кліків" }, { status: 400 });
       }
 
-      const lastTick = existing.last_tick_at ? new Date(existing.last_tick_at).getTime() : Date.now();
-      const elapsedSec = Math.max(0, (Date.now() - lastTick) / 1000);
-      const maxGain = elapsedSec * 50_000 + 5_000;
-      if (state.careerGrams > dbCareer + maxGain) {
-        return NextResponse.json({ error: "Недопустимий приріст прогресу" }, { status: 400 });
+      if (!isZeroedProgressRow(existing)) {
+        const lastTick = existing.last_tick_at ? new Date(existing.last_tick_at).getTime() : Date.now();
+        const elapsedSec = Math.max(0, (Date.now() - lastTick) / 1000);
+        const maxGain = elapsedSec * 50_000 + 5_000;
+        if (state.careerGrams > dbCareer + maxGain) {
+          return NextResponse.json({ error: "Недопустимий приріст прогресу" }, { status: 400 });
+        }
+      } else if (looksLikeStaleRestore(state)) {
+        return NextResponse.json(
+          { error: "Прогрес скинуто — оновіть сторінку" },
+          { status: 409 },
+        );
       }
     }
 
