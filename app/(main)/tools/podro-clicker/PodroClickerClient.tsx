@@ -93,6 +93,11 @@ export default function PodroClickerClient() {
   const frameTimeRef = useRef<number>(0);
   const floaterIdRef = useRef(0);
   const quoteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Останні значення, які цей клієнт сам підтвердив як збережені на сервері.
+  // Якщо свіжий GET повертає career grams МЕНШІ за цей baseline — прогрес
+  // скинули десь поза цією вкладкою (адмін), і її застарілий стан у пам'яті
+  // не повинен перезаписати скидання назад.
+  const serverBaselineRef = useRef<number>(0);
 
   const commitState = useCallback(
     (next: ClickerState) => {
@@ -150,10 +155,41 @@ export default function PodroClickerClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: stateRef.current }),
       });
+      serverBaselineRef.current = Math.max(serverBaselineRef.current, stateRef.current.careerGrams);
     } catch {
       // мережа підвела — спробуємо наступного разу
     }
   }, [user]);
+
+  // Перевіряє, чи сервер досі узгоджений з тим, що ця вкладка востаннє туди писала.
+  // Якщо ні (адмін скинув статистику, поки вкладка була відкрита) — приймаємо
+  // серверний стан як новий baseline замість того, щоб затерти його старим
+  // прогресом з пам'яті.
+  const syncWithServer = useCallback(async () => {
+    if (!user || !stateRef.current) return;
+    try {
+      const res = await fetch("/api/podro-clicker", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverCareer = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
+
+      if (serverCareer < serverBaselineRef.current) {
+        achievementsRef.current = new Set(data.progress ? (data.progress.achievements ?? []) : []);
+        const fresh = normalizeState(data.progress ?? {});
+        stateRef.current = fresh;
+        setState(fresh);
+        frameTimeRef.current = Date.now();
+        serverBaselineRef.current = serverCareer;
+        toast("Прогрес було скинуто адміністрацією", "error");
+        return;
+      }
+
+      serverBaselineRef.current = Math.max(serverBaselineRef.current, serverCareer);
+      await persistServer();
+    } catch {
+      // мережа підвела — спробуємо наступного разу
+    }
+  }, [user, persistServer, toast]);
 
   // --- завантаження: залогінений = сервер, гість = localStorage ---
   useEffect(() => {
@@ -171,6 +207,7 @@ export default function PodroClickerClient() {
 
         if (user) {
           clearLocalSave();
+          serverBaselineRef.current = data.progress ? Number(data.progress.careerGrams ?? 0) : 0;
           if (data.progress) {
             applyLoadedState(normalizeState(data.progress), true);
           } else {
@@ -224,24 +261,32 @@ export default function PodroClickerClient() {
     return () => clearInterval(id);
   }, []);
 
-  // --- збереження: локально часто, на сервер рідше ---
+  // --- збереження: локально часто, на сервер рідше (з перевіркою зовнішніх скидань) ---
   useEffect(() => {
     const localId = setInterval(persistLocal, LOCAL_SAVE_INTERVAL_MS);
-    const serverId = setInterval(persistServer, SERVER_SAVE_INTERVAL_MS);
-    const flush = () => {
+    const serverId = setInterval(syncWithServer, SERVER_SAVE_INTERVAL_MS);
+    const onVisibility = () => {
       persistLocal();
-      persistServer();
+      if (document.visibilityState === "visible") {
+        void syncWithServer();
+      } else {
+        void persistServer();
+      }
     };
-    document.addEventListener("visibilitychange", flush);
-    window.addEventListener("beforeunload", flush);
+    const onUnload = () => {
+      persistLocal();
+      void persistServer();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("beforeunload", onUnload);
     return () => {
       clearInterval(localId);
       clearInterval(serverId);
-      document.removeEventListener("visibilitychange", flush);
-      window.removeEventListener("beforeunload", flush);
-      flush();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("beforeunload", onUnload);
+      onUnload();
     };
-  }, [persistLocal, persistServer]);
+  }, [persistLocal, persistServer, syncWithServer]);
 
   const loadMutedPreference = useCallback(() => {
     if (typeof window === "undefined") return;
