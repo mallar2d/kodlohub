@@ -21,7 +21,6 @@ import {
   type GameSettings,
   getDefaultProgression,
   normalizeProgression,
-  mergeProgression,
   loadLocalProgression,
   saveLocalProgression,
   loadSettings,
@@ -351,14 +350,28 @@ export default function BratTDClient() {
   useEffect(() => {
     const load = async () => {
       const local = getLocalLeaderboard();
-      const { leaderboard: global, progress } = await fetchBratTdData(leaderboardKind);
+      const { leaderboard: global, progress, isAuthed } = await fetchBratTdData(leaderboardKind);
       setLeaderboard(mergeLeaderboards(global, local));
+
       const localProgress = loadLocalProgression(TOWER_CONFIGS, MAP_CONFIGS);
-      const mergedProgress = progress
-        ? mergeProgression(localProgress, progress, PROGRESSION_CONFIG)
-        : normalizeProgression(localProgress, PROGRESSION_CONFIG);
-      setProgression(mergedProgress);
-      progressionRef.current = mergedProgress;
+      let resolvedProgress: ProgressionState;
+
+      if (isAuthed && progress) {
+        // У залогіненого гравця вже є рядок прогресу на сервері — він єдине джерело
+        // правди. Інакше застарілий localStorage міг би "оживляти" дані після
+        // ручного скидання статистики в базі (max-merge ніколи не дає зменшити прогрес).
+        resolvedProgress = normalizeProgression(progress, PROGRESSION_CONFIG);
+        saveLocalProgression(resolvedProgress);
+      } else if (isAuthed) {
+        // Залогінений, але рядка на сервері ще не було — це перший вхід,
+        // переносимо гостьовий прогрес з цього браузера на акаунт.
+        resolvedProgress = normalizeProgression(localProgress, PROGRESSION_CONFIG);
+      } else {
+        resolvedProgress = normalizeProgression(localProgress, PROGRESSION_CONFIG);
+      }
+
+      setProgression(resolvedProgress);
+      progressionRef.current = resolvedProgress;
       setProgressionLoaded(true);
     };
     load();

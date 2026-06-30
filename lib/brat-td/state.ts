@@ -472,10 +472,10 @@ export async function fetchGlobalLeaderboard(
 /** Fetches both the global leaderboard and the cloud progression. */
 export async function fetchBratTdData(
   kind: LeaderboardKind = "best_score"
-): Promise<{ leaderboard: LeaderboardEntry[]; progress: ProgressionState | null }> {
+): Promise<{ leaderboard: LeaderboardEntry[]; progress: Partial<ProgressionState> | null; isAuthed: boolean }> {
   try {
-    const res = await fetch(`/api/brat-td?leaderboard=${kind}`);
-    if (!res.ok) return { leaderboard: [], progress: null };
+    const res = await fetch(`/api/brat-td?leaderboard=${kind}`, { cache: "no-store" });
+    if (!res.ok) return { leaderboard: [], progress: null, isAuthed: false };
     const data = await res.json();
     return {
       leaderboard: (data.leaderboard ?? []).map(
@@ -504,10 +504,12 @@ export async function fetchBratTdData(
           mapId: e.map_id,
         })
       ),
-      progress: null, // caller will normalise with its own config
+      // Caller normalizes this raw payload with its own config (gameConfig).
+      progress: (data.progress ?? null) as Partial<ProgressionState> | null,
+      isAuthed: Boolean(data.isAuthed),
     };
   } catch {
-    return { leaderboard: [], progress: null };
+    return { leaderboard: [], progress: null, isAuthed: false };
   }
 }
 

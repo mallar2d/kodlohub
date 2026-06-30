@@ -147,7 +147,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ leaderboard, progress });
+    return NextResponse.json({ leaderboard, progress, isAuthed: !!user });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
