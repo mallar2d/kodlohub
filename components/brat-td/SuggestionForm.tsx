@@ -80,6 +80,14 @@ export default function BratTdSuggestionForm() {
         Подро побачить це в адмін-панелі.
       </p>
 
+      <div className="mb-6 p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10 max-w-2xl">
+        <p className="micro-cap text-yellow-400 mb-1">УВАГА</p>
+        <p className="text-yellow-400/80 text-sm">
+          Пропозиції оновлень стосуються лише Brat TD: Total PDR Edition. Інші версії гри не
+          підтримуються.
+        </p>
+      </div>
+
       {submitted ? (
         <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-4">
           <p className="text-green-400 text-sm mb-3">Пропозицію надіслано. Дякуємо!</p>
