@@ -111,12 +111,35 @@ export default function PodroClickerClient() {
   );
 
   const persistLocal = useCallback(() => {
-    if (!stateRef.current || typeof window === "undefined") return;
+    // Локальне сховище — тільки для гостей. У залогінених сервер єдине джерело правди.
+    if (user || !stateRef.current || typeof window === "undefined") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stateRef.current));
     } catch {
       // localStorage недоступний (приватний режим тощо) — мовчки ігноруємо
     }
+  }, [user]);
+
+  const clearLocalSave = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const applyLoadedState = useCallback((loaded: ClickerState, showOfflineModal: boolean) => {
+    const { state: afterOffline, gained, cappedMs } = applyOfflineProgress(loaded, Date.now());
+    if (showOfflineModal && gained > 1 && cappedMs > 60_000) {
+      const message = OFFLINE_MESSAGES[Math.floor(Math.random() * OFFLINE_MESSAGES.length)];
+      setOfflineModal({ gained, message });
+    }
+    achievementsRef.current = new Set(afterOffline.achievements);
+    stateRef.current = afterOffline;
+    setState(afterOffline);
+    frameTimeRef.current = Date.now();
+    setLoading(false);
   }, []);
 
   const persistServer = useCallback(async () => {
@@ -132,64 +155,54 @@ export default function PodroClickerClient() {
     }
   }, [user]);
 
-  const loadFromLocalStorage = useCallback(() => {
-    let raw: unknown = null;
-    if (typeof window !== "undefined") {
-      try {
-        raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null");
-      } catch {
-        raw = null;
-      }
-    }
-    const loaded = normalizeState(raw ?? {});
-    const { state: afterOffline, gained, cappedMs } = applyOfflineProgress(loaded, Date.now());
-    if (gained > 1 && cappedMs > 60_000) {
-      const message = OFFLINE_MESSAGES[Math.floor(Math.random() * OFFLINE_MESSAGES.length)];
-      setOfflineModal({ gained, message });
-    }
-    achievementsRef.current = new Set(afterOffline.achievements);
-    stateRef.current = afterOffline;
-    setState(afterOffline);
-    frameTimeRef.current = Date.now();
-    setLoading(false);
-  }, []);
-
-  // --- завантаження локального стану + офлайн-прогрес ---
-  useEffect(() => {
-    loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
-
-  // --- синхронізація з сервером (лідерборд завжди, прогрес — якщо авторизований) ---
+  // --- завантаження: залогінений = сервер, гість = localStorage ---
   useEffect(() => {
     if (authLoading) return;
     let cancelled = false;
+
     (async () => {
       try {
         const res = await fetch("/api/podro-clicker", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         if (cancelled) return;
+
         setLeaderboard(Array.isArray(data.leaderboard) ? data.leaderboard : []);
-        if (user && data.progress) {
-          const serverState = normalizeState(data.progress);
-          const local = stateRef.current ?? createInitialState();
-          if (serverState.careerGrams > local.careerGrams) {
-            const merged = applyOfflineProgress(serverState, Date.now()).state;
-            achievementsRef.current = new Set(merged.achievements);
-            stateRef.current = merged;
-            setState(merged);
+
+        if (user) {
+          clearLocalSave();
+          if (data.progress) {
+            applyLoadedState(normalizeState(data.progress), true);
+          } else {
+            applyLoadedState(createInitialState(), false);
           }
+          return;
         }
+
+        let raw: unknown = null;
+        try {
+          raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null");
+        } catch {
+          raw = null;
+        }
+        applyLoadedState(normalizeState(raw ?? {}), true);
       } catch {
-        // ок, лишаємось на локальних даних
+        if (cancelled) return;
+        if (user) {
+          clearLocalSave();
+          applyLoadedState(createInitialState(), false);
+        } else {
+          applyLoadedState(createInitialState(), false);
+        }
       } finally {
         if (!cancelled) setLeaderboardLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user]);
+  }, [authLoading, user, applyLoadedState, clearLocalSave]);
 
   // --- основний тік симуляції ---
   useEffect(() => {

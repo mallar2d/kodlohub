@@ -127,6 +127,40 @@ export async function PATCH(request: Request) {
     const state = sanitizeIncomingState(body?.state);
 
     const admin = createAdminClient();
+
+    const { data: existing } = await admin
+      .from("podro_clicker_progress")
+      .select("career_grams, respect_points, prestige_count, total_clicks, last_tick_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      const dbCareer = Number(existing.career_grams ?? 0);
+      const dbRespect = Number(existing.respect_points ?? 0);
+      const dbPrestige = Number(existing.prestige_count ?? 0);
+      const dbClicks = Number(existing.total_clicks ?? 0);
+
+      if (state.careerGrams < dbCareer) {
+        return NextResponse.json(
+          { error: "Неможливо зменшити career-прогрес" },
+          { status: 400 },
+        );
+      }
+      if (state.respectPoints < dbRespect || state.prestigeCount < dbPrestige) {
+        return NextResponse.json({ error: "Неможливо зменшити престиж" }, { status: 400 });
+      }
+      if (state.totalClicks < dbClicks) {
+        return NextResponse.json({ error: "Неможливо зменшити лічильник кліків" }, { status: 400 });
+      }
+
+      const lastTick = existing.last_tick_at ? new Date(existing.last_tick_at).getTime() : Date.now();
+      const elapsedSec = Math.max(0, (Date.now() - lastTick) / 1000);
+      const maxGain = elapsedSec * 50_000 + 5_000;
+      if (state.careerGrams > dbCareer + maxGain) {
+        return NextResponse.json({ error: "Недопустимий приріст прогресу" }, { status: 400 });
+      }
+    }
+
     const { error } = await admin.from("podro_clicker_progress").upsert({
       user_id: user.id,
       grams: state.grams,
