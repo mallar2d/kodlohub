@@ -9,6 +9,7 @@ import SearchBar from "@/components/ui/SearchBar";
 import Avatar from "@/components/ui/Avatar";
 
 const navLinks = [
+  { href: "/projects", label: "ПРОЄКТИ" },
   { href: "/gallery", label: "ГАЛЕРЕЯ" },
   { href: "/blog", label: "БЛОГ" },
   { href: "/lore", label: "АРТЕФАКТИ" },

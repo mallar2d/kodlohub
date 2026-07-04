@@ -81,6 +81,51 @@ export const GET = withApiAuth(async (request) => {
     }
   }
 
+  const projectUpdateMatch = path.match(/^\/projects\/([^/]+)\/updates\/([^/]+)$/);
+  if (projectUpdateMatch) {
+    const { data } = await admin
+      .from("project_center_updates")
+      .select("slug, title, summary, body_markdown, cover_image_url, project_center_projects(slug, title, short_description, cover_image_url, social_image_url, visibility)")
+      .eq("slug", projectUpdateMatch[2])
+      .eq("status", "published")
+      .maybeSingle();
+    const project = Array.isArray(data?.project_center_projects)
+      ? data?.project_center_projects[0]
+      : data?.project_center_projects;
+    if (data && project?.slug === projectUpdateMatch[1] && ["published", "unlisted", "archived"].includes(project.visibility)) {
+      return apiJson(request, {
+        og: {
+          title: data.title,
+          description: data.summary || data.body_markdown.slice(0, 200),
+          image: data.cover_image_url || project.social_image_url || project.cover_image_url,
+          url: `${base}/projects/${project.slug}/updates/${data.slug}`,
+          type: "article",
+        },
+      });
+    }
+  }
+
+  const projectMatch = path.match(/^\/projects\/([^/]+)$/);
+  if (projectMatch) {
+    const { data } = await admin
+      .from("project_center_projects")
+      .select("slug, title, short_description, cover_image_url, hero_image_url, social_image_url, visibility")
+      .eq("slug", projectMatch[1])
+      .in("visibility", ["published", "unlisted", "archived"])
+      .maybeSingle();
+    if (data) {
+      return apiJson(request, {
+        og: {
+          title: data.title,
+          description: data.short_description,
+          image: data.social_image_url || data.hero_image_url || data.cover_image_url,
+          url: `${base}/projects/${data.slug}`,
+          type: "website",
+        },
+      });
+    }
+  }
+
   return apiError(request, "No OG data found for this URL", 404, "not_found");
 });
 
