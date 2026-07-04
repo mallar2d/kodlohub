@@ -72,7 +72,7 @@ export default function ProjectsClient({
 
   return (
     <div className="space-y-16">
-      <section className="grid gap-4 border-y border-hairline-dark py-6 lg:grid-cols-[1fr_auto] lg:items-end">
+      <section className="sticky top-16 z-30 -mx-4 grid gap-4 border-y border-hairline-dark bg-canvas-night/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:grid-cols-[1fr_auto] lg:items-end">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <input
             value={search}
@@ -109,12 +109,28 @@ export default function ProjectsClient({
       {sections.map((section) => {
         const items = sectionProjects(filtered, section.key);
         if (items.length === 0) return null;
+        const isFeatured = section.key === "featured";
         return (
           <section key={section.key}>
             <p className="micro-cap mb-2 text-ink-mute">{section.eyebrow}</p>
-            <h2 className="heading-section mb-6">{section.title}</h2>
-            <div className="grid gap-6">
-              {items.map((project) => <ProjectCard key={`${section.key}-${project.id}`} project={project} />)}
+            <div className="mb-6 flex items-baseline gap-3">
+              <h2 className="heading-section">{section.title}</h2>
+              <span className="button-cap text-ink-mute">{items.length}</span>
+            </div>
+            <div
+              className={
+                isFeatured
+                  ? "grid gap-6 xl:grid-cols-2"
+                  : "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+              }
+            >
+              {items.map((project) => (
+                <ProjectCard
+                  key={`${section.key}-${project.id}`}
+                  project={project}
+                  variant={isFeatured ? "feature" : "compact"}
+                />
+              ))}
             </div>
           </section>
         );
