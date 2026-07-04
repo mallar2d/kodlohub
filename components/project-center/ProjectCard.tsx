@@ -54,15 +54,24 @@ export default function ProjectCard({ project }: { project: ProjectCardView }) {
         </div>
 
         {project.latest_update ? (
-          <div className="mb-5 border-t border-hairline-dark pt-4">
-            <p className="micro-cap mb-1 text-ink-mute">
-              {updateTypeLabels[project.latest_update.update_type]} / {formatDate(project.latest_update.published_at)}
+          <Link
+            href={`/projects/${project.slug}/updates/${project.latest_update.slug}`}
+            className="mb-5 block border-t border-hairline-dark pt-4 transition-colors hover:border-on-primary-mute"
+            aria-label={`Відкрити останнє оновлення: ${project.latest_update.title}`}
+          >
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <ProjectBadge tone="accent">Останнє оновлення</ProjectBadge>
+              <ProjectBadge tone="muted">{updateTypeLabels[project.latest_update.update_type]}</ProjectBadge>
+              <span className="caption text-ink-mute">{formatDate(project.latest_update.published_at)}</span>
+            </div>
+            <p className="line-clamp-2 text-sm font-bold text-on-primary transition-colors hover:text-on-primary-mute">
+              {project.latest_update.title}
             </p>
-            <p className="line-clamp-2 text-sm font-bold text-on-primary">{project.latest_update.title}</p>
             {project.latest_update.summary && (
               <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-mute">{project.latest_update.summary}</p>
             )}
-          </div>
+            <span className="button-cap mt-3 inline-flex text-on-primary-mute">Читати апдейт</span>
+          </Link>
         ) : (
           <div className="mb-5 border-t border-hairline-dark pt-4">
             <p className="micro-cap text-ink-mute">Оновлень ще немає</p>
