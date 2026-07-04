@@ -27,10 +27,10 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
   const previewImage = project.cover_image_url || project.hero_image_url;
 
   return (
-    <article className="card-dark group grid min-h-[360px] overflow-hidden transition-colors hover:border-on-primary-mute md:grid-cols-[minmax(240px,0.85fr)_1fr]">
+    <article className="card-dark group grid overflow-hidden transition-colors hover:border-on-primary-mute md:grid-cols-[minmax(240px,0.85fr)_1fr]">
       <Link
         href={`/projects/${project.slug}`}
-        className="relative block min-h-[220px] overflow-hidden border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
+        className="relative block aspect-video self-start overflow-hidden border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
         style={{ background: `linear-gradient(135deg, ${accent}33, #000 42%, #0a0a0a)` }}
         aria-label={`Відкрити проєкт ${project.title}`}
       >
