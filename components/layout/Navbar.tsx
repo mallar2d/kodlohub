@@ -89,7 +89,24 @@ export default function Navbar() {
     }
   }, [userMenuOpen]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [pathname]);
+
   return (
+    <>
     <nav className="fixed top-0 left-0 right-0 z-50 bg-canvas-night/80 backdrop-blur-sm border-b border-hairline-dark">
       <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
         <Link
@@ -100,7 +117,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-4 lg:gap-6">
+        <div className="hidden lg:flex items-center gap-4 xl:gap-6">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -143,7 +160,7 @@ export default function Navbar() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 py-2">
+                <div className="absolute right-0 top-full mt-2 w-56 max-h-[calc(100dvh-5rem)] overflow-y-auto bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 py-2">
                   <div className="px-4 py-2 border-b border-hairline-dark">
                     <p className="text-sm text-on-primary truncate">
                       {user.user_metadata?.display_name ||
@@ -244,9 +261,10 @@ export default function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden text-on-primary"
+          className="lg:hidden text-on-primary"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Меню"
+          aria-expanded={menuOpen}
         >
           <svg
             width="24"
@@ -267,9 +285,9 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-canvas-night border-t border-hairline-dark px-4 sm:px-6 py-5 flex flex-col gap-4">
+        <div className="lg:hidden relative z-50 bg-canvas-night border-t border-hairline-dark px-4 sm:px-6 py-5 flex flex-col gap-4 max-h-[calc(100dvh-4.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain">
           <div className="mb-2">
-            <SearchBar />
+            <SearchBar fullWidth />
           </div>
           {navLinks.map((link) => (
             <Link
@@ -283,8 +301,8 @@ export default function Navbar() {
           ))}
           {user ? (
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-4 flex-wrap">
-                <NotificationsBell />
+              <div className="flex flex-col gap-3">
+                <NotificationsBell fullWidth />
                 <Link
                   href="/upload"
                   className="micro-cap text-on-primary-mute hover:text-on-primary flex items-center gap-2"
@@ -365,5 +383,14 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+
+    {menuOpen && (
+      <div
+        className="lg:hidden fixed inset-0 top-[57px] z-40 bg-black/60"
+        onClick={() => setMenuOpen(false)}
+        aria-hidden
+      />
+    )}
+    </>
   );
 }

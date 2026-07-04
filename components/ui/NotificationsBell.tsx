@@ -62,7 +62,11 @@ const defaultIcon = (
   </svg>
 );
 
-export default function NotificationsBell() {
+interface NotificationsBellProps {
+  fullWidth?: boolean;
+}
+
+export default function NotificationsBell({ fullWidth = false }: NotificationsBellProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -152,8 +156,14 @@ export default function NotificationsBell() {
 
   if (!user) return null;
 
+  const dropdownClass =
+    "absolute top-full mt-2 max-h-96 overflow-auto bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 " +
+    (fullWidth
+      ? "left-0 right-0 w-auto"
+      : "right-0 w-[min(20rem,calc(100vw-2rem))]");
+
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={`relative ${fullWidth ? "w-full" : ""}`}>
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 text-on-primary-mute hover:text-on-primary transition-colors"
@@ -170,7 +180,7 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-auto bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50">
+        <div className={dropdownClass}>
           <div className="flex items-center justify-between p-3 border-b border-hairline-dark">
             <span className="button-cap text-on-primary">СПОВІЩЕННЯ</span>
             {unreadCount > 0 && (

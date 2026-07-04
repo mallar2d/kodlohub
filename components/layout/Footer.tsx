@@ -24,6 +24,12 @@ export default function Footer() {
               БЛОГ
             </Link>
             <Link
+              href="/developers"
+              className="micro-cap text-on-primary-mute hover:text-on-primary transition-opacity"
+            >
+              API
+            </Link>
+            <Link
               href="/lore"
               className="micro-cap text-on-primary-mute hover:text-on-primary transition-opacity"
             >

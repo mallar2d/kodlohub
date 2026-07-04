@@ -11,7 +11,11 @@ interface SearchResult {
   wiki: { id: string; slug: string; title: string; wiki_categories?: { name: string; slug: string; icon: string } | null }[];
 }
 
-export default function SearchBar() {
+interface SearchBarProps {
+  fullWidth?: boolean;
+}
+
+export default function SearchBar({ fullWidth = false }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
   const [open, setOpen] = useState(false);
@@ -61,8 +65,14 @@ export default function SearchBar() {
     (results?.lore.length || 0) +
     (results?.wiki.length || 0);
 
+  const dropdownClass =
+    "absolute top-full mt-2 max-h-96 overflow-auto bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 " +
+    (fullWidth
+      ? "left-0 right-0 w-auto"
+      : "right-0 w-[min(20rem,calc(100vw-2rem))]");
+
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={`relative ${fullWidth ? "w-full" : ""}`}>
       <div className="relative">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute"
@@ -82,7 +92,7 @@ export default function SearchBar() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results && setOpen(true)}
           placeholder="ШУКАТИ..."
-          className="w-40 sm:w-56 pl-9 pr-3 py-1.5 bg-canvas-night-soft border border-hairline-dark rounded-full text-on-primary text-xs placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute transition-colors"
+          className={`${fullWidth ? "w-full" : "w-40 sm:w-56"} pl-9 pr-3 py-1.5 bg-canvas-night-soft border border-hairline-dark rounded-full text-on-primary text-xs placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute transition-colors`}
         />
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -92,7 +102,7 @@ export default function SearchBar() {
       </div>
 
       {open && results && totalResults > 0 && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-auto bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50">
+        <div className={dropdownClass}>
           {results.posts.length > 0 && (
             <div className="p-2">
               <p className="micro-cap text-ink-mute px-2 py-1">БЛОГ</p>
@@ -170,7 +180,7 @@ export default function SearchBar() {
       )}
 
       {open && results && totalResults === 0 && !loading && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-canvas-night-soft border border-hairline-dark rounded-lg shadow-xl z-50 p-4 text-center">
+        <div className={`${dropdownClass} p-4 text-center`}>
           <p className="text-sm text-ink-mute">Нічого не знайдено</p>
         </div>
       )}

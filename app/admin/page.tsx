@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 import BratTdSuggestionsAdmin from "@/components/admin/BratTdSuggestions";
+import ApiKeyGrantsPanel from "@/components/admin/ApiKeyGrantsPanel";
 import Avatar from "@/components/ui/Avatar";
 import type { User } from "@supabase/supabase-js";
 
@@ -434,6 +435,12 @@ export default function AdminPage() {
             ДАШБОРД →
           </a>
         </div>
+
+        {isOwner && (
+          <ApiKeyGrantsPanel
+            profiles={profiles.filter((p) => p.role !== "owner" && p.id !== currentUser?.id)}
+          />
+        )}
 
         {/* Storage stats */}
         <div className="mb-12">
