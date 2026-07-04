@@ -74,7 +74,7 @@ export default async function ProjectDetailPage({
             <img
               src={heroImage}
               alt=""
-              className="absolute inset-0 h-full w-full object-contain object-center opacity-80"
+              className="absolute inset-0 h-full w-full object-cover object-center opacity-80"
             />
           </>
         )}
