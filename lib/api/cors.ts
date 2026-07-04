@@ -8,6 +8,8 @@ export function corsHeaders(request: Request): HeadersInit {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type, X-API-Key",
+    "Access-Control-Expose-Headers":
+      "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-Request-Id, Retry-After",
     "Access-Control-Max-Age": "86400",
   };
 

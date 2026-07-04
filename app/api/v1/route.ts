@@ -7,7 +7,7 @@ export const GET = withApiAuth(async (request) => {
   return apiJson(request, {
     name: "KodloHUB API",
     version: "v1",
-    documentation: `${base}/api/v1`,
+    documentation: `${base}/docs`,
     openapi: `${base}/api/v1/openapi`,
     health: `${base}/api/v1/health`,
     authentication: {
@@ -34,7 +34,7 @@ export const GET = withApiAuth(async (request) => {
       activity: `GET ${base}/api/v1/activity`,
       search: `GET ${base}/api/v1/search?q=`,
       posts: `GET|POST ${base}/api/v1/posts`,
-      post: `GET ${base}/api/v1/posts/:id`,
+      post: `GET|PATCH|DELETE ${base}/api/v1/posts/:id`,
       postComments: `GET|POST ${base}/api/v1/posts/:id/comments`,
       profiles: `GET ${base}/api/v1/profiles`,
       profile: `GET ${base}/api/v1/profiles/:id`,
@@ -59,6 +59,7 @@ export const GET = withApiAuth(async (request) => {
       notifications: `POST ${base}/api/v1/notifications`,
       webhooks: `GET|POST ${base}/api/v1/webhooks`,
       webhookDelete: `DELETE ${base}/api/v1/webhooks/:id`,
+      webhookTest: `POST ${base}/api/v1/webhooks/:id/test`,
       slopus: `POST ${base}/api/v1/ai/slopus`,
       adminPendingPosts: `GET ${base}/api/v1/admin/pending-posts`,
       adminModeratePost: `PATCH ${base}/api/v1/admin/posts/:id`,

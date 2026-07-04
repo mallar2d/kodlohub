@@ -30,6 +30,12 @@ export default function Footer() {
               API
             </Link>
             <Link
+              href="/docs"
+              className="micro-cap text-on-primary-mute hover:text-on-primary transition-opacity"
+            >
+              ДОКИ
+            </Link>
+            <Link
               href="/lore"
               className="micro-cap text-on-primary-mute hover:text-on-primary transition-opacity"
             >

@@ -1,55 +1,117 @@
+import { API_GROUPS, type DocEndpoint, type DocField } from "@/lib/api/docs-data";
+
+function schemaType(type: string): Record<string, unknown> {
+  if (type.endsWith("[]")) {
+    return { type: "array", items: schemaType(type.slice(0, -2)) };
+  }
+  switch (type) {
+    case "number":
+      return { type: "number" };
+    case "boolean":
+      return { type: "boolean" };
+    case "object":
+      return { type: "object" };
+    default:
+      return { type: "string" };
+  }
+}
+
+function pathParams(path: string): string[] {
+  return [...path.matchAll(/:([A-Za-z_]+)/g)].map((m) => m[1]);
+}
+
+function requestBody(fields: DocField[]) {
+  const required = fields.filter((f) => f.required).map((f) => f.name);
+  return {
+    required: required.length > 0,
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: Object.fromEntries(
+            fields.map((f) => [f.name, { ...schemaType(f.type), description: f.desc }])
+          ),
+          ...(required.length ? { required } : {}),
+        },
+      },
+    },
+  };
+}
+
+function operation(ep: DocEndpoint, groupTitle: string) {
+  const params = [
+    ...pathParams(ep.path).map((name) => ({
+      name,
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+    })),
+    ...(ep.query ?? []).map((q) => ({
+      name: q.name,
+      in: "query",
+      required: q.required === true,
+      description: q.desc,
+      schema: schemaType(q.type),
+    })),
+  ];
+
+  const descriptionParts = [
+    ep.scope ? `Scope: \`${ep.scope}\`.` : "Не потребує API ключа.",
+    ...(ep.serviceUser ? ["Ключ повинен мати service user."] : []),
+    ...(ep.notes ?? []),
+  ];
+
+  const responses: Record<string, unknown> = {
+    "200": { description: "OK" },
+    ...(ep.method === "POST" ? { "201": { description: "Created" } } : {}),
+    ...(ep.scope
+      ? {
+          "401": { description: "Missing or invalid API key" },
+          "403": { description: "Insufficient scope" },
+          "429": { description: "Rate limit exceeded" },
+        }
+      : {}),
+  };
+
+  return {
+    tags: [groupTitle],
+    summary: ep.title,
+    description: descriptionParts.join(" "),
+    ...(params.length ? { parameters: params } : {}),
+    ...(ep.body?.length ? { requestBody: requestBody(ep.body) } : {}),
+    ...(ep.scope === null ? { security: [] } : {}),
+    responses,
+  };
+}
+
 export function getOpenApiSpec(baseUrl: string) {
+  const paths: Record<string, Record<string, unknown>> = {};
+
+  for (const group of API_GROUPS) {
+    for (const ep of group.endpoints) {
+      const oaPath = ep.path === "/" ? "/" : ep.path.replace(/:([A-Za-z_]+)/g, "{$1}");
+      paths[oaPath] = paths[oaPath] ?? {};
+      paths[oaPath][ep.method.toLowerCase()] = operation(ep, group.title);
+    }
+  }
+
   return {
     openapi: "3.0.3",
     info: {
       title: "KodloHUB API",
-      version: "1.0.0",
-      description: "External API for bots and third-party integrations.",
+      version: "1.1.0",
+      description:
+        "External API for bots and third-party integrations. Docs: " + `${baseUrl}/docs`,
     },
     servers: [{ url: `${baseUrl}/api/v1` }],
     security: [{ bearerAuth: [] }, { apiKeyAuth: [] }],
+    tags: API_GROUPS.map((g) => ({ name: g.title, ...(g.desc ? { description: g.desc } : {}) })),
     components: {
       securitySchemes: {
         bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "API Key" },
         apiKeyAuth: { type: "apiKey", in: "header", name: "X-API-Key" },
       },
     },
-    paths: {
-      "/health": { get: { summary: "Health check", security: [] } },
-      "/me": { get: { summary: "Current API key info" } },
-      "/stats": { get: { summary: "Site statistics" } },
-      "/activity": { get: { summary: "Activity feed" } },
-      "/search": { get: { summary: "Global search", parameters: [{ name: "q", in: "query", required: true }] } },
-      "/posts": { get: { summary: "List posts" }, post: { summary: "Create post (write)" } },
-      "/posts/{id}": { get: { summary: "Get post" } },
-      "/posts/{id}/comments": { get: { summary: "Post comments" }, post: { summary: "Add comment (write)" } },
-      "/profiles": { get: { summary: "List profiles" } },
-      "/profiles/{id}": { get: { summary: "Get profile" } },
-      "/profiles/{id}/posts": { get: { summary: "User posts" } },
-      "/profiles/{id}/media": { get: { summary: "User media" } },
-      "/media": { get: { summary: "List media" } },
-      "/media/{id}": { get: { summary: "Get media" } },
-      "/media/{id}/comments": { get: { summary: "Media comments" }, post: { summary: "Add comment (write)" } },
-      "/lore": { get: { summary: "List lore" } },
-      "/lore/{id}": { get: { summary: "Get lore item" } },
-      "/wiki/categories": { get: { summary: "Wiki categories" } },
-      "/wiki/articles": { get: { summary: "Wiki articles" }, post: { summary: "Create article (admin)" } },
-      "/wiki/articles/{slug}": { get: { summary: "Get wiki article" } },
-      "/wiki/articles/{slug}/revisions": { get: { summary: "Article revisions" } },
-      "/podcast/episodes": { get: { summary: "Podcast episodes" }, post: { summary: "Create episode (admin)" } },
-      "/podcast/settings": { get: { summary: "Podcast settings" } },
-      "/games/hammer": { get: { summary: "Hammer leaderboard" } },
-      "/games/nmt": { get: { summary: "NMT leaderboard" } },
-      "/games/podro-clicker": { get: { summary: "Clicker leaderboard" } },
-      "/games/brat-td": { get: { summary: "Brat TD leaderboard" } },
-      "/og": { get: { summary: "Open Graph metadata", parameters: [{ name: "url", in: "query", required: true }] } },
-      "/notifications": { post: { summary: "Send notification (write)" } },
-      "/webhooks": { get: { summary: "List webhooks" }, post: { summary: "Subscribe webhook (write)" } },
-      "/webhooks/{id}": { delete: { summary: "Unsubscribe webhook (write)" } },
-      "/ai/slopus": { post: { summary: "Slopus AI chat" } },
-      "/admin/pending-posts": { get: { summary: "Pending posts (admin)" } },
-      "/admin/posts/{id}": { patch: { summary: "Moderate post (admin)" } },
-      "/admin/join-requests": { get: { summary: "Join requests (admin)" } },
-    },
+    paths,
   };
 }
