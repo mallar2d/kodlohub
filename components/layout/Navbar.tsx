@@ -15,7 +15,6 @@ const navLinks = [
   { href: "/lore", label: "АРТЕФАКТИ" },
   { href: "/wiki", label: "КОДЛОПЕДІЯ" },
   { href: "/cast", label: "КАСТ" },
-  { href: "/users", label: "УЧАСНИКИ" },
   { href: "/tools", label: "TOOLS" },
 ];
 
