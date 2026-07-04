@@ -14,11 +14,14 @@ function lastUpdateTime(project: ProjectCardView) {
 }
 
 function sectionProjects(projects: ProjectCardView[], section: "featured" | "active" | "paused" | "finished" | "archive") {
-  if (section === "featured") return projects.filter((project) => project.is_featured || project.priority === "main_focus");
-  if (section === "active") return projects.filter((project) => ["active", "prototype", "maintained", "planned"].includes(project.status));
-  if (section === "paused") return projects.filter((project) => project.status === "paused");
-  if (section === "finished") return projects.filter((project) => project.status === "finished");
-  return projects.filter((project) => ["archived", "cancelled", "abandoned"].includes(project.status) || project.visibility === "archived");
+  const isFeatured = (project: ProjectCardView) => project.is_featured || project.priority === "main_focus";
+  if (section === "featured") return projects.filter(isFeatured);
+
+  const rest = projects.filter((project) => !isFeatured(project));
+  if (section === "active") return rest.filter((project) => ["active", "prototype", "maintained", "planned"].includes(project.status));
+  if (section === "paused") return rest.filter((project) => project.status === "paused");
+  if (section === "finished") return rest.filter((project) => project.status === "finished");
+  return rest.filter((project) => ["archived", "cancelled", "abandoned"].includes(project.status) || project.visibility === "archived");
 }
 
 export default function ProjectsClient({

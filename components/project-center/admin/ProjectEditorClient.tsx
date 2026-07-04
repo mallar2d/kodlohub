@@ -103,7 +103,9 @@ export default function ProjectEditorClient({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [saving, setSaving] = useState(false);
+  const [sectionSaving, setSectionSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [localSections, setLocalSections] = useState(sections);
   const [projectForm, setProjectForm] = useState(() => project ? {
     title: project.title,
     slug: project.slug,
@@ -178,7 +180,7 @@ export default function ProjectEditorClient({
     sort_order: 0,
   });
 
-  const sortedSections = useMemo(() => [...sections].sort((a, b) => a.sort_order - b.sort_order), [sections]);
+  const sortedSections = useMemo(() => [...localSections].sort((a, b) => a.sort_order - b.sort_order), [localSections]);
   const sortedUpdates = useMemo(() => [...updates].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()), [updates]);
 
   function updateProjectField<K extends keyof typeof projectForm>(key: K, value: (typeof projectForm)[K]) {
@@ -213,22 +215,47 @@ export default function ProjectEditorClient({
   }
 
   async function createSection() {
-    if (!project) return;
-    const res = await fetch(`/api/admin/projects/${project.id}/sections`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...sectionForm, slug: sectionForm.slug || slugifyProjectCenter(sectionForm.title) }),
-    });
-    if (!res.ok) setMessage((await res.json()).error || "Section error");
-    else {
-      setSectionForm({ ...sectionForm, title: "", slug: "", description: "" });
+    if (!project) {
+      setMessage("Спочатку збережи Overview, потім можна додавати progress sectors.");
+      return;
+    }
+    if (!sectionForm.title.trim()) {
+      setMessage("Введи назву сектору.");
+      return;
+    }
+
+    setSectionSaving(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/projects/${project.id}/sections`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...sectionForm, slug: sectionForm.slug || slugifyProjectCenter(sectionForm.title) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Не вдалося додати сектор");
+      setLocalSections((prev) => [...prev, data.section]);
+      setSectionForm({ ...sectionForm, title: "", slug: "", description: "", progress_percent: 0 });
+      setMessage("Сектор додано.");
       router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Помилка додавання сектору");
+    } finally {
+      setSectionSaving(false);
     }
   }
 
   async function deleteSection(sectionId: string) {
     if (!project || !confirm("Видалити сектор?")) return;
-    await fetch(`/api/admin/projects/${project.id}/sections/${sectionId}`, { method: "DELETE" });
+    setMessage("");
+    const res = await fetch(`/api/admin/projects/${project.id}/sections/${sectionId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setMessage(data.error || "Не вдалося видалити сектор");
+      return;
+    }
+    setLocalSections((prev) => prev.filter((item) => item.id !== sectionId));
+    setMessage("Сектор видалено.");
     router.refresh();
   }
 
@@ -388,6 +415,11 @@ export default function ProjectEditorClient({
           <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="card-dark p-5">
               <h2 className="mb-4 text-xl font-bold uppercase tracking-[0.08em]">Новий сектор</h2>
+              {!project && (
+                <p className="mb-4 rounded border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm leading-6 text-yellow-200">
+                  Спочатку заповни Overview і натисни “Зберегти”. Сектори, оновлення, кнопки й галерея додаються тільки після створення проєкту.
+                </p>
+              )}
               <div className="space-y-4">
                 <Field label="Title" hint="Назва сектору прогресу: Код, UI, Арт, Тестування, Основний текст тощо.">
                   <input className={inputClass} value={sectionForm.title} onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })} />
@@ -408,7 +440,9 @@ export default function ProjectEditorClient({
                   <textarea className={inputClass} value={sectionForm.description} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} />
                 </Field>
                 <label className="flex items-center gap-3" title="Якщо вимкнути, сектор буде прихований від публіки, але owner бачитиме його в адмінці."><input type="checkbox" checked={sectionForm.is_public} onChange={(e) => setSectionForm({ ...sectionForm, is_public: e.target.checked })} /> Public</label>
-                <button onClick={createSection} disabled={!project} className="btn-ghost text-on-primary disabled:opacity-50">Додати сектор</button>
+                <button onClick={createSection} disabled={sectionSaving || !sectionForm.title.trim()} className="btn-ghost text-on-primary disabled:cursor-not-allowed disabled:opacity-50">
+                  {sectionSaving ? "Додавання..." : "Додати сектор"}
+                </button>
               </div>
             </div>
             <div className="space-y-3">

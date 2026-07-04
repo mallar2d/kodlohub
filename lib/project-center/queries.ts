@@ -45,6 +45,27 @@ async function getLatestUpdatesByProject(projectIds: string[]): Promise<Map<stri
   return latest;
 }
 
+async function getPublicSectionsByProject(projectIds: string[]): Promise<Map<string, ProjectProgressSection[]>> {
+  const sectionsByProject = new Map<string, ProjectProgressSection[]>();
+  if (projectIds.length === 0) return sectionsByProject;
+
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("project_center_progress_sections")
+    .select("*")
+    .in("project_id", projectIds)
+    .eq("is_public", true)
+    .order("sort_order", { ascending: true });
+
+  for (const section of ((data || []) as ProjectProgressSection[]).map(normalizeSection)) {
+    const existing = sectionsByProject.get(section.project_id) || [];
+    existing.push(section);
+    sectionsByProject.set(section.project_id, existing);
+  }
+
+  return sectionsByProject;
+}
+
 export const getPublicProjectCards = unstable_cache(
   async (): Promise<ProjectCardView[]> => {
     const supabase = createAdminClient();
@@ -56,12 +77,25 @@ export const getPublicProjectCards = unstable_cache(
       .order("updated_at", { ascending: false });
 
     const projects = (data || []) as ProjectCenterProject[];
-    const latest = await getLatestUpdatesByProject(projects.map((project) => project.id));
+    const projectIds = projects.map((project) => project.id);
+    const [latest, sectionsByProject] = await Promise.all([
+      getLatestUpdatesByProject(projectIds),
+      getPublicSectionsByProject(projectIds),
+    ]);
 
-    return projects.map((project) => ({
-      ...project,
-      latest_update: latest.get(project.id) ?? null,
-    }));
+    return projects.map((project) => {
+      const sections = nestProgressSections(sectionsByProject.get(project.id) || []);
+      const progress =
+        project.progress_mode === "auto"
+          ? calculateProjectProgress(sections, project.progress_percent)
+          : project.progress_percent;
+
+      return {
+        ...project,
+        progress_percent: progress,
+        latest_update: latest.get(project.id) ?? null,
+      };
+    });
   },
   ["project-center-public-cards"],
   { revalidate: 30 },

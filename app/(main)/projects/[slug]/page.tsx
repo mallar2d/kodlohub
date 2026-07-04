@@ -60,14 +60,27 @@ export default async function ProjectDetailPage({
   return (
     <div className="min-h-screen pb-16">
       <section
-        className="relative min-h-[72vh] border-b border-hairline-dark px-4 pb-12 pt-28 sm:px-6"
+        className="relative min-h-[72vh] overflow-hidden border-b border-hairline-dark px-4 pb-12 pt-28 sm:px-6"
         style={{
-          background: heroImage
-            ? `linear-gradient(90deg, rgba(0,0,0,0.94), rgba(0,0,0,0.62), rgba(0,0,0,0.2)), url(${heroImage}) center/cover`
-            : `linear-gradient(135deg, #000 0%, #050505 48%, ${accent}44 100%)`,
+          background: `linear-gradient(135deg, #000 0%, #050505 48%, ${accent}44 100%)`,
         }}
       >
-        <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        {heroImage && (
+          <>
+            <div
+              className="absolute inset-0 scale-110 bg-cover bg-center opacity-35 blur-xl"
+              style={{ backgroundImage: `url(${heroImage})` }}
+            />
+            <img
+              src={heroImage}
+              alt=""
+              className="absolute inset-0 h-full w-full object-contain object-center opacity-80"
+            />
+          </>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70" />
+        <div className="relative mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>
             <nav className="mb-8 flex items-center gap-2">
               <Link href="/projects" className="micro-cap text-ink-mute transition-colors hover:text-on-primary">Проєкти</Link>

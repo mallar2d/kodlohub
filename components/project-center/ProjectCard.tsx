@@ -9,18 +9,24 @@ export default function ProjectCard({ project }: { project: ProjectCardView }) {
   const accent = project.accent_color || "#ffffff";
   const types = project.types || [];
   const tags = project.tags || [];
+  const previewImage = project.cover_image_url || project.hero_image_url;
 
   return (
     <article className="card-dark group grid min-h-[360px] overflow-hidden transition-colors hover:border-on-primary-mute md:grid-cols-[minmax(240px,0.85fr)_1fr]">
       <div
-        className="relative min-h-[220px] border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
+        className="relative min-h-[220px] overflow-hidden border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
         style={{
-          background:
-            project.cover_image_url || project.hero_image_url
-              ? `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.8)), url(${project.cover_image_url || project.hero_image_url}) center/cover`
-              : `linear-gradient(135deg, ${accent}55, #000 46%, #0a0a0a)`,
+          background: `linear-gradient(135deg, ${accent}33, #000 42%, #0a0a0a)`,
         }}
       >
+        {previewImage && (
+          <img
+            src={previewImage}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {project.priority === "main_focus" && <ProjectBadge tone="accent">FOCUS</ProjectBadge>}
           {types.slice(0, 3).map((type) => (

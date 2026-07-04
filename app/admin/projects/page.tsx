@@ -3,6 +3,8 @@ import { getAllProjectCenterAdminData } from "@/lib/project-center/queries";
 import { priorityLabels, statusLabels } from "@/lib/project-center/constants";
 import { formatDate } from "@/lib/project-center/format";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminProjectsPage() {
   const { projects, updates } = await getAllProjectCenterAdminData();
 
