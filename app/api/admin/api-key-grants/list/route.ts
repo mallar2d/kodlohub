@@ -32,7 +32,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("api_key_grants")
-    .select("user_id, granted_by, allowed_scopes, max_rate_limit_per_minute, allow_admin_scope, note, created_at, revoked_at, profiles(display_name, username, avatar_url)")
+    .select("user_id, granted_by, allowed_scopes, max_rate_limit_per_minute, allow_admin_scope, note, created_at, revoked_at, profiles!api_key_grants_user_id_fkey(display_name, username, avatar_url)")
     .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
