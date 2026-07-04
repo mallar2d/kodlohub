@@ -29,6 +29,12 @@ export async function generateMetadata({
       url: publicUrl(`/projects/${data.project.slug}/updates/${data.update.slug}`),
       images: image ? [{ url: image }] : undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title: data.update.title,
+      description,
+      images: image ? [image] : undefined,
+    },
     alternates: {
       canonical: publicUrl(`/projects/${data.project.slug}/updates/${data.update.slug}`),
     },
