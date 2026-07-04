@@ -18,6 +18,7 @@ export interface DocEndpoint {
   title: string;
   scope: DocScope;
   serviceUser?: boolean;
+  contentType?: "json" | "multipart";
   query?: DocField[];
   body?: DocField[];
   response?: string;
@@ -338,6 +339,57 @@ export const API_GROUPS: DocGroup[] = [
   ],
   "pagination": { "limit": 20, "offset": 0, "total": 156 }
 }`,
+      },
+      {
+        method: "POST",
+        path: "/media",
+        title: "Завантажити медіа",
+        scope: "write",
+        serviceUser: true,
+        contentType: "multipart",
+        body: [
+          { name: "file", type: "file", required: true, desc: "Файл (до 100 МБ)" },
+          { name: "caption", type: "string", desc: "Підпис" },
+        ],
+        response: `{
+  "media": {
+    "id": "…",
+    "file_url": "https://cdn.kodlo.host/…",
+    "file_type": "image",
+    "file_size": 20480,
+    "caption": "…",
+    "created_at": "…"
+  }
+}`,
+        notes: [
+          "Тип файлу (image/video/audio/document) визначається автоматично.",
+          "Файл заливається на R2 автором = service user ключа. Тригерить webhook media.uploaded.",
+          "Для файлів понад ~4 МБ або прямого завантаження використовуй /media/presign.",
+          "Альтернатива: application/json з полем file_url — реєструє вже завантажений через presign файл.",
+        ],
+      },
+      {
+        method: "POST",
+        path: "/media/presign",
+        title: "Presign для прямого завантаження",
+        scope: "write",
+        serviceUser: true,
+        body: [
+          { name: "file_name", type: "string", required: true, desc: "Ім'я файлу з розширенням" },
+          { name: "file_type", type: "string", desc: "MIME-тип (напр. image/png)" },
+          { name: "file_size", type: "number", desc: "Розмір у байтах (для валідації ліміту)" },
+        ],
+        response: `{
+  "upload_url": "https://…r2.cloudflarestorage.com/…?X-Amz-Signature=…",
+  "method": "PUT",
+  "headers": { "Content-Type": "image/png" },
+  "file_url": "https://cdn.kodlo.host/…",
+  "expires_in": 600
+}`,
+        notes: [
+          "1) Отримай upload_url. 2) Зроби PUT файлу на нього напряму в R2. 3) POST /api/v1/media з { file_url } для реєстрації.",
+          "URL дійсний 600 секунд.",
+        ],
       },
       { method: "GET", path: "/media/:id", title: "Отримати медіафайл", scope: "read" },
       {

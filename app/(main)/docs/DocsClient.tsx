@@ -47,7 +47,11 @@ function curlFor(ep: DocEndpoint, base: string): string {
   if (ep.scope) {
     lines.push(`  -H "Authorization: Bearer kh_live_ВАШ_КЛЮЧ"`);
   }
-  if (ep.body?.length) {
+  if (ep.contentType === "multipart") {
+    for (const f of ep.body ?? []) {
+      lines.push(f.type === "file" ? `  -F "${f.name}=@./${f.name}.jpg"` : `  -F "${f.name}=..."`);
+    }
+  } else if (ep.body?.length) {
     lines.push(`  -H "Content-Type: application/json"`);
     const sample = Object.fromEntries(
       ep.body.filter((f) => f.required).map((f) => [f.name, sampleValue(f)])
@@ -160,7 +164,12 @@ function EndpointCard({ ep, base }: { ep: DocEndpoint; base: string }) {
 
       <div className="space-y-4">
         {ep.query && ep.query.length > 0 && <FieldTable title="QUERY ПАРАМЕТРИ" fields={ep.query} />}
-        {ep.body && ep.body.length > 0 && <FieldTable title="ТІЛО ЗАПИТУ (JSON)" fields={ep.body} />}
+        {ep.body && ep.body.length > 0 && (
+          <FieldTable
+            title={ep.contentType === "multipart" ? "ФОРМА (multipart/form-data)" : "ТІЛО ЗАПИТУ (JSON)"}
+            fields={ep.body}
+          />
+        )}
 
         <div>
           <p className="micro-cap text-ink-mute mb-2">ЗАПИТ</p>

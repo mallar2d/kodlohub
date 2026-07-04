@@ -11,6 +11,8 @@ function schemaType(type: string): Record<string, unknown> {
       return { type: "boolean" };
     case "object":
       return { type: "object" };
+    case "file":
+      return { type: "string", format: "binary" };
     default:
       return { type: "string" };
   }
@@ -20,12 +22,13 @@ function pathParams(path: string): string[] {
   return [...path.matchAll(/:([A-Za-z_]+)/g)].map((m) => m[1]);
 }
 
-function requestBody(fields: DocField[]) {
+function requestBody(fields: DocField[], contentType: DocEndpoint["contentType"]) {
   const required = fields.filter((f) => f.required).map((f) => f.name);
+  const mime = contentType === "multipart" ? "multipart/form-data" : "application/json";
   return {
     required: required.length > 0,
     content: {
-      "application/json": {
+      [mime]: {
         schema: {
           type: "object",
           properties: Object.fromEntries(
@@ -78,7 +81,7 @@ function operation(ep: DocEndpoint, groupTitle: string) {
     summary: ep.title,
     description: descriptionParts.join(" "),
     ...(params.length ? { parameters: params } : {}),
-    ...(ep.body?.length ? { requestBody: requestBody(ep.body) } : {}),
+    ...(ep.body?.length ? { requestBody: requestBody(ep.body, ep.contentType) } : {}),
     ...(ep.scope === null ? { security: [] } : {}),
     responses,
   };
