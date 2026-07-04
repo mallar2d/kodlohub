@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireProjectCenterOwner } from "@/lib/project-center/auth";
+import { requireCanManageProject } from "@/lib/project-center/auth";
 import { isActionStyle, isActionType, optionalString, requireString } from "@/lib/project-center/validators";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireProjectCenterOwner();
-  if ("error" in auth) return auth.error;
-
   try {
     const { id } = await params;
+    const auth = await requireCanManageProject(id);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const admin = createAdminClient();
     const { data, error } = await admin
@@ -37,10 +37,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireProjectCenterOwner();
+  const { id } = await params;
+  const auth = await requireCanManageProject(id);
   if ("error" in auth) return auth.error;
 
-  const { id } = await params;
   const actionId = new URL(request.url).searchParams.get("actionId");
   if (!actionId) return NextResponse.json({ error: "actionId is required" }, { status: 400 });
 

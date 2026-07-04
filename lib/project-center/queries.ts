@@ -74,6 +74,7 @@ export const getPublicProjectCards = unstable_cache(
       .from("project_center_projects")
       .select("*")
       .in("visibility", PUBLIC_PROJECT_VISIBILITIES)
+      .eq("approval_status", "approved")
       .order("is_featured", { ascending: false })
       .order("updated_at", { ascending: false });
 
@@ -107,7 +108,7 @@ export const getRecentProjectUpdates = unstable_cache(
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("project_center_updates")
-      .select("*, project_center_projects(id, slug, title, status, accent_color, visibility)")
+      .select("*, project_center_projects(id, slug, title, status, accent_color, visibility, approval_status)")
       .eq("status", "published")
       .order("published_at", { ascending: false })
       .limit(limit);
@@ -115,7 +116,7 @@ export const getRecentProjectUpdates = unstable_cache(
     return ((data || []) as Array<ProjectUpdate & { project_center_projects?: ProjectCenterProject | ProjectCenterProject[] }>)
       .map((update) => {
         const project = asSingle(update.project_center_projects);
-        if (!project || !PUBLIC_PROJECT_VISIBILITIES.includes(project.visibility)) return null;
+        if (!project || project.approval_status !== "approved" || !PUBLIC_PROJECT_VISIBILITIES.includes(project.visibility)) return null;
         const { project_center_projects: _projectRelation, ...rest } = update;
         void _projectRelation;
         return {
@@ -142,6 +143,7 @@ export async function getPublicProjectDetail(slug: string): Promise<ProjectDetai
     .select("*")
     .eq("slug", slug)
     .in("visibility", PUBLIC_PROJECT_VISIBILITIES)
+    .eq("approval_status", "approved")
     .maybeSingle();
 
   if (!project) return null;
@@ -199,6 +201,7 @@ export async function getPublicProjectUpdate(projectSlug: string, updateSlug: st
     .select("*")
     .eq("slug", projectSlug)
     .in("visibility", PUBLIC_PROJECT_VISIBILITIES)
+    .eq("approval_status", "approved")
     .maybeSingle();
 
   if (!project) return null;
@@ -236,6 +239,41 @@ export async function getAllProjectCenterAdminData() {
     supabase.from("project_center_updates").select("*").order("updated_at", { ascending: false }),
     supabase.from("project_center_actions").select("*").order("sort_order", { ascending: true }),
     supabase.from("project_center_gallery_items").select("*").order("sort_order", { ascending: true }),
+  ]);
+
+  return {
+    projects: (projectsRes.data || []) as ProjectCenterProject[],
+    sections: ((sectionsRes.data || []) as ProjectProgressSection[]).map(normalizeSection),
+    updates: (updatesRes.data || []) as ProjectUpdate[],
+    actions: (actionsRes.data || []) as ProjectAction[],
+    gallery: (galleryRes.data || []) as ProjectGalleryItem[],
+  };
+}
+
+export async function getProjectCenterUserData(userId: string) {
+  const admin = createAdminClient();
+  const [projectsRes, sectionsRes, updatesRes, actionsRes, galleryRes] = await Promise.all([
+    admin.from("project_center_projects").select("*").eq("created_by", userId).order("updated_at", { ascending: false }),
+    admin
+      .from("project_center_progress_sections")
+      .select("*, project_center_projects!inner(created_by)")
+      .eq("project_center_projects.created_by", userId)
+      .order("sort_order", { ascending: true }),
+    admin
+      .from("project_center_updates")
+      .select("*, project_center_projects!inner(created_by)")
+      .eq("project_center_projects.created_by", userId)
+      .order("updated_at", { ascending: false }),
+    admin
+      .from("project_center_actions")
+      .select("*, project_center_projects!inner(created_by)")
+      .eq("project_center_projects.created_by", userId)
+      .order("sort_order", { ascending: true }),
+    admin
+      .from("project_center_gallery_items")
+      .select("*, project_center_projects!inner(created_by)")
+      .eq("project_center_projects.created_by", userId)
+      .order("sort_order", { ascending: true }),
   ]);
 
   return {

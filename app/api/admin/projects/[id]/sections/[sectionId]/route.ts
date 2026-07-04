@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireProjectCenterOwner } from "@/lib/project-center/auth";
+import { requireCanManageProject } from "@/lib/project-center/auth";
 import { isProgressSectionScope, isProgressStatus, optionalString, parsePercent, parsePositiveWeight, parseSlug, requireString } from "@/lib/project-center/validators";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string; sectionId: string }> }) {
-  const auth = await requireProjectCenterOwner();
-  if ("error" in auth) return auth.error;
-
   try {
     const { id, sectionId } = await params;
+    const auth = await requireCanManageProject(id);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const title = requireString(body.title, "title");
     const admin = createAdminClient();
@@ -42,10 +42,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string; sectionId: string }> }) {
-  const auth = await requireProjectCenterOwner();
+  const { id, sectionId } = await params;
+  const auth = await requireCanManageProject(id);
   if ("error" in auth) return auth.error;
 
-  const { id, sectionId } = await params;
   const admin = createAdminClient();
   const { error } = await admin
     .from("project_center_progress_sections")

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireProjectCenterOwner } from "@/lib/project-center/auth";
+import { requireCanManageProject } from "@/lib/project-center/auth";
 import { isUpdateStatus, isUpdateType, optionalString, parseSlug, requireString } from "@/lib/project-center/validators";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireProjectCenterOwner();
-  if ("error" in auth) return auth.error;
-
   try {
     const { id } = await params;
+    const auth = await requireCanManageProject(id);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const title = requireString(body.title, "title");
     const status = isUpdateStatus(body.status) ? body.status : "draft";

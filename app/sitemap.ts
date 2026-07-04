@@ -5,8 +5,8 @@ type ProjectUpdateSitemapRow = {
   slug: string;
   published_at: string | null;
   project_center_projects:
-    | { slug: string; visibility: string }
-    | Array<{ slug: string; visibility: string }>
+    | { slug: string; visibility: string; approval_status: string }
+    | Array<{ slug: string; visibility: string; approval_status: string }>
     | null;
 };
 
@@ -28,10 +28,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       supabase.from("posts").select("id, created_at").eq("status", "approved"),
       supabase.from("lore_items").select("id, created_at"),
       supabase.from("profiles").select("id, created_at"),
-      supabase.from("project_center_projects").select("slug, updated_at, visibility").in("visibility", ["published", "unlisted", "archived"]),
+      supabase.from("project_center_projects").select("slug, updated_at, visibility").in("visibility", ["published", "unlisted", "archived"]).eq("approval_status", "approved"),
       supabase
         .from("project_center_updates")
-        .select("slug, published_at, project_center_projects(slug, visibility)")
+        .select("slug, published_at, project_center_projects(slug, visibility, approval_status)")
         .eq("status", "published"),
     ]);
 
@@ -68,7 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const project = Array.isArray(update.project_center_projects)
           ? update.project_center_projects[0]
           : update.project_center_projects;
-        if (!project || !["published", "unlisted", "archived"].includes(project.visibility)) return null;
+        if (!project || project.approval_status !== "approved" || !["published", "unlisted", "archived"].includes(project.visibility)) return null;
         return {
           url: `${baseUrl}/projects/${project.slug}/updates/${update.slug}`,
           lastModified: new Date(update.published_at || new Date()),

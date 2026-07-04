@@ -85,14 +85,14 @@ export const GET = withApiAuth(async (request) => {
   if (projectUpdateMatch) {
     const { data } = await admin
       .from("project_center_updates")
-      .select("slug, title, summary, body_markdown, cover_image_url, project_center_projects(slug, title, short_description, cover_image_url, social_image_url, visibility)")
+      .select("slug, title, summary, body_markdown, cover_image_url, project_center_projects(slug, title, short_description, cover_image_url, social_image_url, visibility, approval_status)")
       .eq("slug", projectUpdateMatch[2])
       .eq("status", "published")
       .maybeSingle();
     const project = Array.isArray(data?.project_center_projects)
       ? data?.project_center_projects[0]
       : data?.project_center_projects;
-    if (data && project?.slug === projectUpdateMatch[1] && ["published", "unlisted", "archived"].includes(project.visibility)) {
+    if (data && project?.slug === projectUpdateMatch[1] && project.approval_status === "approved" && ["published", "unlisted", "archived"].includes(project.visibility)) {
       return apiJson(request, {
         og: {
           title: data.title,
@@ -109,9 +109,10 @@ export const GET = withApiAuth(async (request) => {
   if (projectMatch) {
     const { data } = await admin
       .from("project_center_projects")
-      .select("slug, title, short_description, cover_image_url, hero_image_url, social_image_url, visibility")
+      .select("slug, title, short_description, cover_image_url, hero_image_url, social_image_url, visibility, approval_status")
       .eq("slug", projectMatch[1])
       .in("visibility", ["published", "unlisted", "archived"])
+      .eq("approval_status", "approved")
       .maybeSingle();
     if (data) {
       return apiJson(request, {

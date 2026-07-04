@@ -43,6 +43,11 @@ export interface ProjectCenterProject {
   pinned_notice_title: string | null;
   pinned_notice_body: string | null;
   private_notes?: string | null;
+  approval_status: "pending" | "approved" | "rejected";
+  submitted_at: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

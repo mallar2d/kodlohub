@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireProjectCenterOwner } from "@/lib/project-center/auth";
+import { requireCanManageProject } from "@/lib/project-center/auth";
 import {
   isProjectPriority,
   isProjectStatus,
@@ -44,11 +44,11 @@ function updatePayload(body: Record<string, unknown>) {
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireProjectCenterOwner();
-  if ("error" in auth) return auth.error;
-
   try {
     const { id } = await params;
+    const auth = await requireCanManageProject(id);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const payload = updatePayload(body);
     const admin = createAdminClient();
@@ -71,10 +71,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireProjectCenterOwner();
+  const { id } = await params;
+  const auth = await requireCanManageProject(id);
   if ("error" in auth) return auth.error;
 
-  const { id } = await params;
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("project_center_projects")

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllProjectCenterAdminData } from "@/lib/project-center/queries";
 import { priorityLabels, statusLabels } from "@/lib/project-center/constants";
 import { formatDate } from "@/lib/project-center/format";
+import ProjectReviewButtons from "@/components/project-center/admin/ProjectReviewButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function AdminProjectsPage() {
 
   const drafts = projects.filter((project) => project.visibility === "draft").length;
   const published = projects.filter((project) => project.visibility === "published").length;
+  const pending = projects.filter((project) => project.approval_status === "pending").length;
   const latestByProject = new Map<string, string>();
   for (const update of updates) {
     if (!latestByProject.has(update.project_id)) latestByProject.set(update.project_id, update.title);
@@ -26,7 +28,7 @@ export default async function AdminProjectsPage() {
           <Link href="/admin/projects/new" className="btn-ghost text-on-primary">Створити проєкт</Link>
         </div>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           <div className="card-dark p-5">
             <p className="micro-cap text-ink-mute">Усього</p>
             <p className="heading-sub">{projects.length}</p>
@@ -38,6 +40,10 @@ export default async function AdminProjectsPage() {
           <div className="card-dark p-5">
             <p className="micro-cap text-ink-mute">Drafts</p>
             <p className="heading-sub">{drafts}</p>
+          </div>
+          <div className="card-dark p-5">
+            <p className="micro-cap text-ink-mute">Pending</p>
+            <p className="heading-sub">{pending}</p>
           </div>
         </div>
 
@@ -53,6 +59,15 @@ export default async function AdminProjectsPage() {
                   <span className="button-cap rounded-full border border-hairline-dark px-3 py-1 text-[10px] text-on-primary-mute">{statusLabels[project.status]}</span>
                   <span className="button-cap rounded-full border border-hairline-dark px-3 py-1 text-[10px] text-ink-mute">{priorityLabels[project.priority]}</span>
                   <span className="button-cap rounded-full border border-hairline-dark px-3 py-1 text-[10px] text-ink-mute">{project.visibility}</span>
+                  <span className={`button-cap rounded-full border px-3 py-1 text-[10px] ${
+                    project.approval_status === "approved"
+                      ? "border-green-500/50 text-green-300"
+                      : project.approval_status === "pending"
+                        ? "border-yellow-500/50 text-yellow-200"
+                        : "border-red-500/50 text-red-300"
+                  }`}>
+                    {project.approval_status}
+                  </span>
                 </div>
                 <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-on-primary">{project.title}</h2>
                 <p className="mt-2 text-sm text-on-primary-mute">{project.short_description}</p>
@@ -61,6 +76,11 @@ export default async function AdminProjectsPage() {
               <div className="text-left md:text-right">
                 <p className="button-cap text-on-primary">{project.progress_percent}%</p>
                 <p className="caption text-ink-mute">{formatDate(project.updated_at)}</p>
+                {project.approval_status !== "approved" && (
+                  <div className="mt-3">
+                    <ProjectReviewButtons projectId={project.id} />
+                  </div>
+                )}
               </div>
             </Link>
           ))}
