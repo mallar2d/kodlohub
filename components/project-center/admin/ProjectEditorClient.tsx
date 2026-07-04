@@ -54,10 +54,30 @@ const blankProject = {
   private_notes: "",
 };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="block">
-      <span className="micro-cap mb-2 block text-ink-mute">{label}</span>
+    <label className="block" title={hint}>
+      <span className="micro-cap mb-2 flex items-center gap-2 text-ink-mute">
+        {label}
+        {hint && (
+          <span className="group relative inline-flex">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-hairline-dark text-[10px] leading-none text-on-primary-mute">
+              ?
+            </span>
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-72 -translate-x-1/2 rounded border border-hairline-dark bg-canvas-night-soft px-3 py-2 text-left text-xs font-normal leading-5 text-on-primary-mute shadow-xl group-hover:block">
+              {hint}
+            </span>
+          </span>
+        )}
+      </span>
       {children}
     </label>
   );
@@ -301,25 +321,60 @@ export default function ProjectEditorClient({
 
         {tab === "overview" && (
           <section className="grid gap-5 lg:grid-cols-2">
-            <Field label="Назва"><input className={inputClass} value={projectForm.title} onChange={(e) => updateProjectField("title", e.target.value)} /></Field>
-            <Field label="Slug"><input className={inputClass} value={projectForm.slug} onChange={(e) => updateProjectField("slug", e.target.value)} placeholder="auto from title" /></Field>
-            <Field label="One-liner"><input className={inputClass} value={projectForm.one_liner} onChange={(e) => updateProjectField("one_liner", e.target.value)} /></Field>
-            <Field label="Короткий опис"><input className={inputClass} value={projectForm.short_description} onChange={(e) => updateProjectField("short_description", e.target.value)} /></Field>
-            <Field label="Status"><select className={inputClass} value={projectForm.status} onChange={(e) => updateProjectField("status", e.target.value as typeof projectForm.status)}>{PROJECT_STATUSES.map((item) => <option key={item} value={item}>{statusLabels[item]}</option>)}</select></Field>
-            <Field label="Priority"><select className={inputClass} value={projectForm.priority} onChange={(e) => updateProjectField("priority", e.target.value as typeof projectForm.priority)}>{PROJECT_PRIORITIES.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></Field>
-            <Field label="Visibility"><select className={inputClass} value={projectForm.visibility} onChange={(e) => updateProjectField("visibility", e.target.value as typeof projectForm.visibility)}>{PROJECT_VISIBILITIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
-            <Field label="Progress"><input type="number" min="0" max="100" className={inputClass} value={projectForm.progress_percent} onChange={(e) => updateProjectField("progress_percent", Number(e.target.value))} /></Field>
-            <Field label="Types CSV"><input className={inputClass} value={projectForm.types} onChange={(e) => updateProjectField("types", e.target.value)} /></Field>
-            <Field label="Tags CSV"><input className={inputClass} value={projectForm.tags} onChange={(e) => updateProjectField("tags", e.target.value)} /></Field>
-            <Field label="Accent color"><input className={inputClass} value={projectForm.accent_color} onChange={(e) => updateProjectField("accent_color", e.target.value)} /></Field>
-            <Field label="Cover URL"><input className={inputClass} value={projectForm.cover_image_url} onChange={(e) => updateProjectField("cover_image_url", e.target.value)} /></Field>
-            <Field label="Hero URL"><input className={inputClass} value={projectForm.hero_image_url} onChange={(e) => updateProjectField("hero_image_url", e.target.value)} /></Field>
-            <Field label="Logo URL"><input className={inputClass} value={projectForm.logo_url} onChange={(e) => updateProjectField("logo_url", e.target.value)} /></Field>
-            <Field label="Pinned title"><input className={inputClass} value={projectForm.pinned_notice_title} onChange={(e) => updateProjectField("pinned_notice_title", e.target.value)} /></Field>
-            <Field label="Pinned body"><input className={inputClass} value={projectForm.pinned_notice_body} onChange={(e) => updateProjectField("pinned_notice_body", e.target.value)} /></Field>
-            <label className="flex items-center gap-3 text-on-primary"><input type="checkbox" checked={projectForm.is_featured} onChange={(e) => updateProjectField("is_featured", e.target.checked)} /> Featured</label>
+            <Field label="Назва" hint="Публічна назва проєкту. Вона показується в каталозі, hero-блоці, sitemap і preview.">
+              <input className={inputClass} value={projectForm.title} onChange={(e) => updateProjectField("title", e.target.value)} />
+            </Field>
+            <Field label="Slug" hint="URL-частина після /projects/. Наприклад: brat-td або sonic-frontiers-ua. Якщо лишити пустим, створиться з назви.">
+              <input className={inputClass} value={projectForm.slug} onChange={(e) => updateProjectField("slug", e.target.value)} placeholder="auto from title" />
+            </Field>
+            <Field label="One-liner" hint="Короткий рекламний рядок для hero-блоку сторінки проєкту. 1 речення, яке швидко пояснює суть.">
+              <input className={inputClass} value={projectForm.one_liner} onChange={(e) => updateProjectField("one_liner", e.target.value)} />
+            </Field>
+            <Field label="Короткий опис" hint="Опис для картки в каталозі та meta description. Краще 1-2 речення без markdown.">
+              <input className={inputClass} value={projectForm.short_description} onChange={(e) => updateProjectField("short_description", e.target.value)} />
+            </Field>
+            <Field label="Status" hint="Поточний стан розробки: planned, prototype, active, paused, maintained, finished, archived тощо. Показується публічно.">
+              <select className={inputClass} value={projectForm.status} onChange={(e) => updateProjectField("status", e.target.value as typeof projectForm.status)}>{PROJECT_STATUSES.map((item) => <option key={item} value={item}>{statusLabels[item]}</option>)}</select>
+            </Field>
+            <Field label="Priority" hint="Наскільки проєкт зараз важливий. main_focus підсвічує його як головний фокус.">
+              <select className={inputClass} value={projectForm.priority} onChange={(e) => updateProjectField("priority", e.target.value as typeof projectForm.priority)}>{PROJECT_PRIORITIES.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select>
+            </Field>
+            <Field label="Visibility" hint="draft не видно публічно. published видно в каталозі. unlisted доступний за прямим URL. hidden тільки для owner. archived для збереження історії.">
+              <select className={inputClass} value={projectForm.visibility} onChange={(e) => updateProjectField("visibility", e.target.value as typeof projectForm.visibility)}>{PROJECT_VISIBILITIES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+            </Field>
+            <Field label="Progress" hint="Загальний відсоток 0-100. Якщо progress mode manual, це значення показується напряму; auto рахується від секторів.">
+              <input type="number" min="0" max="100" className={inputClass} value={projectForm.progress_percent} onChange={(e) => updateProjectField("progress_percent", Number(e.target.value))} />
+            </Field>
+            <Field label="Types CSV" hint="Типи через кому: game, website, platform, localization, mod, ai, utility. Вони потрібні для фільтрів і бейджів.">
+              <input className={inputClass} value={projectForm.types} onChange={(e) => updateProjectField("types", e.target.value)} />
+            </Field>
+            <Field label="Tags CSV" hint="Вільні теги через кому: Godot, Ukrainian, demo, Sonic, TTS. Показуються на картці/сторінці.">
+              <input className={inputClass} value={projectForm.tags} onChange={(e) => updateProjectField("tags", e.target.value)} />
+            </Field>
+            <Field label="Accent color" hint="HEX-колір проєкту для прогрес-барів, декоративних ліній і fallback-фону, коли немає зображення.">
+              <input className={inputClass} value={projectForm.accent_color} onChange={(e) => updateProjectField("accent_color", e.target.value)} />
+            </Field>
+            <Field label="Cover URL" hint="Обкладинка для картки в каталозі. Краще горизонтальне зображення 16:9 або 4:3, яке добре читається в маленькому прев’ю.">
+              <input className={inputClass} value={projectForm.cover_image_url} onChange={(e) => updateProjectField("cover_image_url", e.target.value)} />
+            </Field>
+            <Field label="Hero URL" hint="Великий банер для верхнього hero-блоку сторінки проєкту. Краще широкий арт/скрін 16:9 або 21:9 з важливими деталями не по краях. Якщо пусто, використається Cover URL.">
+              <input className={inputClass} value={projectForm.hero_image_url} onChange={(e) => updateProjectField("hero_image_url", e.target.value)} />
+            </Field>
+            <Field label="Logo URL" hint="Невеликий логотип/іконка проєкту в hero. Бажано квадратний PNG/WebP або прозорий логотип. Це не обкладинка.">
+              <input className={inputClass} value={projectForm.logo_url} onChange={(e) => updateProjectField("logo_url", e.target.value)} />
+            </Field>
+            <Field label="Social image URL" hint="Зображення для Discord/Telegram/OpenGraph preview. Краще 1200x630. Якщо пусто, preview бере Hero або Cover.">
+              <input className={inputClass} value={projectForm.social_image_url} onChange={(e) => updateProjectField("social_image_url", e.target.value)} />
+            </Field>
+            <Field label="Pinned title" hint="Заголовок важливого повідомлення над описом: пауза, реліз доступний, потрібні тестери, репозиторій приватний.">
+              <input className={inputClass} value={projectForm.pinned_notice_title} onChange={(e) => updateProjectField("pinned_notice_title", e.target.value)} />
+            </Field>
+            <Field label="Pinned body" hint="Текст закріпленого повідомлення. Його бачать публічно, якщо заповнений pinned title.">
+              <input className={inputClass} value={projectForm.pinned_notice_body} onChange={(e) => updateProjectField("pinned_notice_body", e.target.value)} />
+            </Field>
+            <label className="flex items-center gap-3 text-on-primary" title="Додає проєкт у секцію головних/фокусних проєктів каталогу."><input type="checkbox" checked={projectForm.is_featured} onChange={(e) => updateProjectField("is_featured", e.target.checked)} /> Featured</label>
             <div className="lg:col-span-2">
-              <Field label="Повний опис markdown">
+              <Field label="Повний опис markdown" hint="Основний текст сторінки проєкту: що це, поточний стан, що готово, що планується, для кого проєкт. Підтримується Markdown.">
                 <textarea className={`${inputClass} min-h-48`} value={projectForm.full_description_markdown} onChange={(e) => updateProjectField("full_description_markdown", e.target.value)} />
               </Field>
             </div>
@@ -334,13 +389,25 @@ export default function ProjectEditorClient({
             <div className="card-dark p-5">
               <h2 className="mb-4 text-xl font-bold uppercase tracking-[0.08em]">Новий сектор</h2>
               <div className="space-y-4">
-                <Field label="Title"><input className={inputClass} value={sectionForm.title} onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })} /></Field>
-                <Field label="Parent"><select className={inputClass} value={sectionForm.parent_id} onChange={(e) => setSectionForm({ ...sectionForm, parent_id: e.target.value })}><option value="">Top level</option>{sortedSections.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></Field>
-                <Field label="Progress"><input type="number" className={inputClass} value={sectionForm.progress_percent} onChange={(e) => setSectionForm({ ...sectionForm, progress_percent: Number(e.target.value) })} /></Field>
-                <Field label="Status"><select className={inputClass} value={sectionForm.status} onChange={(e) => setSectionForm({ ...sectionForm, status: e.target.value })}>{PROGRESS_STATUSES.map((item) => <option key={item} value={item}>{progressStatusLabels[item]}</option>)}</select></Field>
-                <Field label="Weight"><input type="number" className={inputClass} value={sectionForm.weight} onChange={(e) => setSectionForm({ ...sectionForm, weight: Number(e.target.value) })} /></Field>
-                <Field label="Description"><textarea className={inputClass} value={sectionForm.description} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} /></Field>
-                <label className="flex items-center gap-3"><input type="checkbox" checked={sectionForm.is_public} onChange={(e) => setSectionForm({ ...sectionForm, is_public: e.target.checked })} /> Public</label>
+                <Field label="Title" hint="Назва сектору прогресу: Код, UI, Арт, Тестування, Основний текст тощо.">
+                  <input className={inputClass} value={sectionForm.title} onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })} />
+                </Field>
+                <Field label="Parent" hint="Якщо вибрати parent, сектор стане вкладеним. Наприклад: Геймплей -> Вороги, Баланс, Боси.">
+                  <select className={inputClass} value={sectionForm.parent_id} onChange={(e) => setSectionForm({ ...sectionForm, parent_id: e.target.value })}><option value="">Top level</option>{sortedSections.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+                </Field>
+                <Field label="Progress" hint="Відсоток готовності сектору 0-100. Для manual-секторів саме це число видно публічно.">
+                  <input type="number" className={inputClass} value={sectionForm.progress_percent} onChange={(e) => setSectionForm({ ...sectionForm, progress_percent: Number(e.target.value) })} />
+                </Field>
+                <Field label="Status" hint="Стан сектору словами: не почато, в роботі, майже готово, заблоковано, проблема тощо. Це пояснює, що означає відсоток.">
+                  <select className={inputClass} value={sectionForm.status} onChange={(e) => setSectionForm({ ...sectionForm, status: e.target.value })}>{PROGRESS_STATUSES.map((item) => <option key={item} value={item}>{progressStatusLabels[item]}</option>)}</select>
+                </Field>
+                <Field label="Weight" hint="Вага сектору в загальному прогресі. Бойова система може важити 35, логотип 2. Чим більше число, тим сильніше впливає на auto progress.">
+                  <input type="number" className={inputClass} value={sectionForm.weight} onChange={(e) => setSectionForm({ ...sectionForm, weight: Number(e.target.value) })} />
+                </Field>
+                <Field label="Description" hint="Коротке пояснення, що входить у сектор і що саме означає його готовність.">
+                  <textarea className={inputClass} value={sectionForm.description} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} />
+                </Field>
+                <label className="flex items-center gap-3" title="Якщо вимкнути, сектор буде прихований від публіки, але owner бачитиме його в адмінці."><input type="checkbox" checked={sectionForm.is_public} onChange={(e) => setSectionForm({ ...sectionForm, is_public: e.target.checked })} /> Public</label>
                 <button onClick={createSection} disabled={!project} className="btn-ghost text-on-primary disabled:opacity-50">Додати сектор</button>
               </div>
             </div>
@@ -361,15 +428,27 @@ export default function ProjectEditorClient({
         {tab === "updates" && (
           <section className="grid gap-8 lg:grid-cols-[1fr_0.8fr]">
             <div className="space-y-4">
-              <Field label="Title"><input className={inputClass} value={updateForm.title} onChange={(e) => setUpdateForm({ ...updateForm, title: e.target.value })} /></Field>
-              <Field label="Slug"><input className={inputClass} value={updateForm.slug} onChange={(e) => setUpdateForm({ ...updateForm, slug: e.target.value })} /></Field>
-              <Field label="Summary"><input className={inputClass} value={updateForm.summary} onChange={(e) => setUpdateForm({ ...updateForm, summary: e.target.value })} /></Field>
+              <Field label="Title" hint="Заголовок апдейту/devlog. Показується в стрічці, на картці проєкту і на сторінці апдейту.">
+                <input className={inputClass} value={updateForm.title} onChange={(e) => setUpdateForm({ ...updateForm, title: e.target.value })} />
+              </Field>
+              <Field label="Slug" hint="URL-частина апдейту після /updates/. Наприклад: v09-preview або final-release. Якщо пусто, створиться з title.">
+                <input className={inputClass} value={updateForm.slug} onChange={(e) => setUpdateForm({ ...updateForm, slug: e.target.value })} />
+              </Field>
+              <Field label="Summary" hint="Короткий опис для картки/стрічки. 1-2 речення без markdown.">
+                <input className={inputClass} value={updateForm.summary} onChange={(e) => setUpdateForm({ ...updateForm, summary: e.target.value })} />
+              </Field>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Type"><select className={inputClass} value={updateForm.update_type} onChange={(e) => setUpdateForm({ ...updateForm, update_type: e.target.value })}>{UPDATE_TYPES.map((item) => <option key={item} value={item}>{updateTypeLabels[item]}</option>)}</select></Field>
-                <Field label="Status"><select className={inputClass} value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>{UPDATE_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
+                <Field label="Type" hint="Тип апдейту: devlog, patch note, release, localization update, hotfix тощо. Використовується для бейджів і фільтрів.">
+                  <select className={inputClass} value={updateForm.update_type} onChange={(e) => setUpdateForm({ ...updateForm, update_type: e.target.value })}>{UPDATE_TYPES.map((item) => <option key={item} value={item}>{updateTypeLabels[item]}</option>)}</select>
+                </Field>
+                <Field label="Status" hint="draft не видно публічно. published видно на сторінці проєкту й у глобальній стрічці. hidden/archived не показуються публічно.">
+                  <select className={inputClass} value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>{UPDATE_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+                </Field>
               </div>
-              <Field label="Cover URL"><input className={inputClass} value={updateForm.cover_image_url} onChange={(e) => setUpdateForm({ ...updateForm, cover_image_url: e.target.value })} /></Field>
-              <label className="flex items-center gap-3"><input type="checkbox" checked={updateForm.is_pinned} onChange={(e) => setUpdateForm({ ...updateForm, is_pinned: e.target.checked })} /> Pinned</label>
+              <Field label="Cover URL" hint="Обкладинка конкретного апдейту. Показується зверху сторінки апдейту і може використовуватись у preview. Це не головна обкладинка проєкту.">
+                <input className={inputClass} value={updateForm.cover_image_url} onChange={(e) => setUpdateForm({ ...updateForm, cover_image_url: e.target.value })} />
+              </Field>
+              <label className="flex items-center gap-3" title="Pinned апдейти піднімаються вище у списку оновлень проєкту."><input type="checkbox" checked={updateForm.is_pinned} onChange={(e) => setUpdateForm({ ...updateForm, is_pinned: e.target.checked })} /> Pinned</label>
               <MarkdownEditor value={updateForm.body_markdown} onChange={(value) => setUpdateForm({ ...updateForm, body_markdown: value })} rows={18} />
               <button onClick={saveUpdate} disabled={!project} className="btn-ghost text-on-primary disabled:opacity-50">{updateForm.id ? "Оновити апдейт" : "Створити апдейт"}</button>
             </div>
@@ -391,10 +470,18 @@ export default function ProjectEditorClient({
         {tab === "actions" && (
           <section className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-4">
-              <Field label="Label"><input className={inputClass} value={actionForm.label} onChange={(e) => setActionForm({ ...actionForm, label: e.target.value })} /></Field>
-              <Field label="URL"><input className={inputClass} value={actionForm.url} onChange={(e) => setActionForm({ ...actionForm, url: e.target.value })} /></Field>
-              <Field label="Type"><select className={inputClass} value={actionForm.action_type} onChange={(e) => setActionForm({ ...actionForm, action_type: e.target.value })}>{ACTION_TYPES.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
-              <Field label="Style"><select className={inputClass} value={actionForm.style} onChange={(e) => setActionForm({ ...actionForm, style: e.target.value })}>{ACTION_STYLES.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
+              <Field label="Label" hint="Текст кнопки на сторінці проєкту: Грати, Завантажити, GitHub, Інструкція встановлення.">
+                <input className={inputClass} value={actionForm.label} onChange={(e) => setActionForm({ ...actionForm, label: e.target.value })} />
+              </Field>
+              <Field label="URL" hint="Куди веде кнопка. Може бути внутрішній шлях /tools/brat-td або зовнішнє https-посилання.">
+                <input className={inputClass} value={actionForm.url} onChange={(e) => setActionForm({ ...actionForm, url: e.target.value })} />
+              </Field>
+              <Field label="Type" hint="Семантика кнопки: play, download, github, website, trailer, mod_page тощо. Потрібно для майбутніх іконок/фільтрів.">
+                <select className={inputClass} value={actionForm.action_type} onChange={(e) => setActionForm({ ...actionForm, action_type: e.target.value })}>{ACTION_TYPES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+              </Field>
+              <Field label="Style" hint="Візуальна важливість кнопки. primary для головної дії; secondary/ghost для додаткових; danger тільки для небезпечних дій.">
+                <select className={inputClass} value={actionForm.style} onChange={(e) => setActionForm({ ...actionForm, style: e.target.value })}>{ACTION_STYLES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+              </Field>
               <button onClick={createAction} disabled={!project} className="btn-ghost text-on-primary disabled:opacity-50">Додати кнопку</button>
             </div>
             <div className="space-y-3">
@@ -406,9 +493,54 @@ export default function ProjectEditorClient({
         {tab === "gallery" && (
           <section className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-4">
-              <Field label="URL"><input className={inputClass} value={galleryForm.url} onChange={(e) => setGalleryForm({ ...galleryForm, url: e.target.value })} /></Field>
-              <Field label="Title"><input className={inputClass} value={galleryForm.title} onChange={(e) => setGalleryForm({ ...galleryForm, title: e.target.value })} /></Field>
-              <Field label="Caption"><input className={inputClass} value={galleryForm.caption} onChange={(e) => setGalleryForm({ ...galleryForm, caption: e.target.value })} /></Field>
+              <Field label="URL" hint="Файл галереї: скріншот, концепт, обкладинка, відео або embed. Для зображень вставляй прямий public URL до PNG/JPG/WebP.">
+                <input className={inputClass} value={galleryForm.url} onChange={(e) => setGalleryForm({ ...galleryForm, url: e.target.value })} />
+              </Field>
+              <Field label="Thumbnail URL" hint="Маленьке preview для важких зображень або відео. Якщо пусто, галерея використовує основний URL. Для YouTube/embed краще вказати окрему картинку-прев’ю.">
+                <input className={inputClass} value={galleryForm.thumbnail_url} onChange={(e) => setGalleryForm({ ...galleryForm, thumbnail_url: e.target.value })} />
+              </Field>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Kind" hint="Тип медіа: image для зображень, video для прямого відеофайлу, embed для YouTube/іншого iframe-посилання.">
+                  <select className={inputClass} value={galleryForm.kind} onChange={(e) => setGalleryForm({ ...galleryForm, kind: e.target.value })}>
+                    <option value="image">image</option>
+                    <option value="video">video</option>
+                    <option value="embed">embed</option>
+                  </select>
+                </Field>
+                <Field label="Role" hint="Роль медіа: screenshot для звичайних скрінів, cover для обкладинок, logo для логотипів, concept для концептів, comparison для було/стало, trailer для відео.">
+                  <select className={inputClass} value={galleryForm.role} onChange={(e) => setGalleryForm({ ...galleryForm, role: e.target.value })}>
+                    <option value="screenshot">screenshot</option>
+                    <option value="cover">cover</option>
+                    <option value="logo">logo</option>
+                    <option value="concept">concept</option>
+                    <option value="old_screenshot">old_screenshot</option>
+                    <option value="comparison">comparison</option>
+                    <option value="trailer">trailer</option>
+                    <option value="social_preview">social_preview</option>
+                    <option value="other">other</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="Title" hint="Назва елемента галереї. Наприклад: Бойова сцена, Головне меню, Порівняння перекладу.">
+                <input className={inputClass} value={galleryForm.title} onChange={(e) => setGalleryForm({ ...galleryForm, title: e.target.value })} />
+              </Field>
+              <Field label="Caption" hint="Короткий підпис під медіа: що саме показано, версія, контекст або примітка.">
+                <input className={inputClass} value={galleryForm.caption} onChange={(e) => setGalleryForm({ ...galleryForm, caption: e.target.value })} />
+              </Field>
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="flex items-center gap-3 text-on-primary" title="Якщо вимкнути, медіа лишиться в базі, але не буде видно публічно.">
+                  <input type="checkbox" checked={galleryForm.is_public} onChange={(e) => setGalleryForm({ ...galleryForm, is_public: e.target.checked })} />
+                  Public
+                </label>
+                <label className="flex items-center gap-3 text-on-primary" title="Позначка для майбутнього вибору hero-зображення з галереї. Наразі hero URL задається в Overview.">
+                  <input type="checkbox" checked={galleryForm.is_hero} onChange={(e) => setGalleryForm({ ...galleryForm, is_hero: e.target.checked })} />
+                  Hero
+                </label>
+                <label className="flex items-center gap-3 text-on-primary" title="Позначка для майбутнього вибору OpenGraph/social preview з галереї. Наразі Social image URL задається в Overview.">
+                  <input type="checkbox" checked={galleryForm.is_social_preview} onChange={(e) => setGalleryForm({ ...galleryForm, is_social_preview: e.target.checked })} />
+                  Social
+                </label>
+              </div>
               <button onClick={createGalleryItem} disabled={!project} className="btn-ghost text-on-primary disabled:opacity-50">Додати медіа</button>
             </div>
             <div className="space-y-3">
