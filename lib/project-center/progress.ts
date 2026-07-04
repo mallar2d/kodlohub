@@ -52,7 +52,7 @@ export function calculateSectionProgress(section: ProjectProgressSection, public
 }
 
 export function calculateProjectProgress(sections: ProjectProgressSection[], fallbackPercent = 0): number {
-  const publicRoots = sections.filter((section) => section.is_public);
+  const publicRoots = sections.filter((section) => section.is_public && (section.section_scope || "project") === "project");
   if (publicRoots.length === 0) return clampPercent(fallbackPercent);
 
   let weightedTotal = 0;

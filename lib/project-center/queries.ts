@@ -23,6 +23,7 @@ function normalizeSection(section: ProjectProgressSection): ProjectProgressSecti
   return {
     ...section,
     weight: Number(section.weight || 1),
+    section_scope: section.section_scope || "project",
   };
 }
 

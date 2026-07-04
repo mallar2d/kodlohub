@@ -50,6 +50,8 @@ export const PROGRESS_STATUSES = [
   "deferred",
 ] as const;
 
+export const PROGRESS_SECTION_SCOPES = ["project", "update", "internal"] as const;
+
 export const UPDATE_TYPES = [
   "devlog",
   "patch_note",
@@ -136,6 +138,12 @@ export const progressStatusLabels: Record<(typeof PROGRESS_STATUSES)[number], st
   blocked: "Заблоковано",
   issue: "Проблема",
   deferred: "Відкладено",
+};
+
+export const progressScopeLabels: Record<(typeof PROGRESS_SECTION_SCOPES)[number], string> = {
+  project: "Готовність проєкту",
+  update: "Оновлення / версія",
+  internal: "Внутрішнє",
 };
 
 export const priorityRank: Record<(typeof PROJECT_PRIORITIES)[number], number> = {

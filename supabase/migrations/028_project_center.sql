@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS project_center_progress_sections (
   progress_mode TEXT DEFAULT 'manual' CHECK (progress_mode IN ('auto', 'manual')),
   status TEXT NOT NULL DEFAULT 'not_started' CHECK (status IN ('not_started', 'in_progress', 'partial', 'nearly_done', 'done', 'needs_rework', 'blocked', 'issue', 'deferred')),
   weight NUMERIC DEFAULT 1 CHECK (weight > 0),
+  section_scope TEXT NOT NULL DEFAULT 'project' CHECK (section_scope IN ('project', 'update', 'internal')),
   is_public BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),

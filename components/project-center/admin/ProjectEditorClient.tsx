@@ -7,6 +7,7 @@ import {
   ACTION_STYLES,
   ACTION_TYPES,
   PROGRESS_STATUSES,
+  PROGRESS_SECTION_SCOPES,
   PROJECT_PRIORITIES,
   PROJECT_STATUSES,
   PROJECT_VISIBILITIES,
@@ -14,6 +15,7 @@ import {
   UPDATE_TYPES,
   priorityLabels,
   progressStatusLabels,
+  progressScopeLabels,
   statusLabels,
   updateTypeLabels,
 } from "@/lib/project-center/constants";
@@ -104,6 +106,7 @@ export default function ProjectEditorClient({
   const [tab, setTab] = useState<Tab>("overview");
   const [saving, setSaving] = useState(false);
   const [sectionSaving, setSectionSaving] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [localSections, setLocalSections] = useState(sections);
   const [projectForm, setProjectForm] = useState(() => project ? {
@@ -139,6 +142,7 @@ export default function ProjectEditorClient({
     progress_mode: "manual",
     status: "not_started",
     weight: 1,
+    section_scope: "project",
     is_public: true,
     sort_order: 0,
   });
@@ -214,7 +218,7 @@ export default function ProjectEditorClient({
     }
   }
 
-  async function createSection() {
+  async function saveSection() {
     if (!project) {
       setMessage("Спочатку збережи Overview, потім можна додавати progress sectors.");
       return;
@@ -227,22 +231,78 @@ export default function ProjectEditorClient({
     setSectionSaving(true);
     setMessage("");
     try {
-      const res = await fetch(`/api/admin/projects/${project.id}/sections`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...sectionForm, slug: sectionForm.slug || slugifyProjectCenter(sectionForm.title) }),
-      });
+      const res = await fetch(
+        editingSectionId
+          ? `/api/admin/projects/${project.id}/sections/${editingSectionId}`
+          : `/api/admin/projects/${project.id}/sections`,
+        {
+          method: editingSectionId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...sectionForm, slug: sectionForm.slug || slugifyProjectCenter(sectionForm.title) }),
+        },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Не вдалося додати сектор");
-      setLocalSections((prev) => [...prev, data.section]);
-      setSectionForm({ ...sectionForm, title: "", slug: "", description: "", progress_percent: 0 });
-      setMessage("Сектор додано.");
+      if (!res.ok) throw new Error(data.error || "Не вдалося зберегти сектор");
+      setLocalSections((prev) => {
+        if (editingSectionId) return prev.map((item) => item.id === editingSectionId ? data.section : item);
+        return [...prev, data.section];
+      });
+      setSectionForm({
+        title: "",
+        slug: "",
+        parent_id: "",
+        description: "",
+        progress_percent: 0,
+        progress_mode: "manual",
+        status: "not_started",
+        weight: 1,
+        section_scope: "project",
+        is_public: true,
+        sort_order: 0,
+      });
+      setEditingSectionId(null);
+      setMessage(editingSectionId ? "Сектор оновлено." : "Сектор додано.");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Помилка додавання сектору");
+      setMessage(error instanceof Error ? error.message : "Помилка збереження сектору");
     } finally {
       setSectionSaving(false);
     }
+  }
+
+  function editSection(section: ProjectProgressSection) {
+    setEditingSectionId(section.id);
+    setSectionForm({
+      title: section.title,
+      slug: section.slug,
+      parent_id: section.parent_id || "",
+      description: section.description || "",
+      progress_percent: section.progress_percent,
+      progress_mode: section.progress_mode,
+      status: section.status,
+      weight: section.weight,
+      section_scope: section.section_scope || "project",
+      is_public: section.is_public,
+      sort_order: section.sort_order,
+    });
+    setMessage("Редагування сектору. Зміни поля і натисни “Оновити сектор”.");
+  }
+
+  function cancelSectionEdit() {
+    setEditingSectionId(null);
+    setSectionForm({
+      title: "",
+      slug: "",
+      parent_id: "",
+      description: "",
+      progress_percent: 0,
+      progress_mode: "manual",
+      status: "not_started",
+      weight: 1,
+      section_scope: "project",
+      is_public: true,
+      sort_order: 0,
+    });
   }
 
   async function deleteSection(sectionId: string) {
@@ -414,10 +474,17 @@ export default function ProjectEditorClient({
         {tab === "progress" && (
           <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="card-dark p-5">
-              <h2 className="mb-4 text-xl font-bold uppercase tracking-[0.08em]">Новий сектор</h2>
+              <h2 className="mb-4 text-xl font-bold uppercase tracking-[0.08em]">
+                {editingSectionId ? "Редагування сектору" : "Новий сектор"}
+              </h2>
               {!project && (
                 <p className="mb-4 rounded border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm leading-6 text-yellow-200">
                   Спочатку заповни Overview і натисни “Зберегти”. Сектори, оновлення, кнопки й галерея додаються тільки після створення проєкту.
+                </p>
+              )}
+              {editingSectionId && (
+                <p className="mb-4 rounded border border-on-primary/30 bg-on-primary/10 px-4 py-3 text-sm leading-6 text-on-primary-mute">
+                  Редагуєш існуючий сектор. Для майбутньої версії вибери Scope = “Оновлення / версія”; для parent-сектору з підсекторами вибери Mode = “auto”.
                 </p>
               )}
               <div className="space-y-4">
@@ -426,6 +493,17 @@ export default function ProjectEditorClient({
                 </Field>
                 <Field label="Parent" hint="Якщо вибрати parent, сектор стане вкладеним. Наприклад: Геймплей -> Вороги, Баланс, Боси.">
                   <select className={inputClass} value={sectionForm.parent_id} onChange={(e) => setSectionForm({ ...sectionForm, parent_id: e.target.value })}><option value="">Top level</option>{sortedSections.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+                </Field>
+                <Field label="Scope" hint="Project readiness впливає на загальну готовність проєкту. Update/version показує роботу над майбутнім оновленням і не знижує готовність самого проєкту. Internal краще тримати непублічним.">
+                  <select className={inputClass} value={sectionForm.section_scope} onChange={(e) => setSectionForm({ ...sectionForm, section_scope: e.target.value })}>
+                    {PROGRESS_SECTION_SCOPES.map((item) => <option key={item} value={item}>{progressScopeLabels[item]}</option>)}
+                  </select>
+                </Field>
+                <Field label="Mode" hint="Manual бере Progress з цього поля. Auto рахує progress від вкладених секторів з урахуванням їх weight. Для parent-секторів типу “Оновлення v0.9” зазвичай треба Auto.">
+                  <select className={inputClass} value={sectionForm.progress_mode} onChange={(e) => setSectionForm({ ...sectionForm, progress_mode: e.target.value })}>
+                    <option value="manual">manual</option>
+                    <option value="auto">auto</option>
+                  </select>
                 </Field>
                 <Field label="Progress" hint="Відсоток готовності сектору 0-100. Для manual-секторів саме це число видно публічно.">
                   <input type="number" className={inputClass} value={sectionForm.progress_percent} onChange={(e) => setSectionForm({ ...sectionForm, progress_percent: Number(e.target.value) })} />
@@ -440,9 +518,16 @@ export default function ProjectEditorClient({
                   <textarea className={inputClass} value={sectionForm.description} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} />
                 </Field>
                 <label className="flex items-center gap-3" title="Якщо вимкнути, сектор буде прихований від публіки, але owner бачитиме його в адмінці."><input type="checkbox" checked={sectionForm.is_public} onChange={(e) => setSectionForm({ ...sectionForm, is_public: e.target.checked })} /> Public</label>
-                <button onClick={createSection} disabled={sectionSaving || !sectionForm.title.trim()} className="btn-ghost text-on-primary disabled:cursor-not-allowed disabled:opacity-50">
-                  {sectionSaving ? "Додавання..." : "Додати сектор"}
+                <div className="flex flex-wrap gap-3">
+                <button onClick={saveSection} disabled={sectionSaving || !sectionForm.title.trim()} className="btn-ghost text-on-primary disabled:cursor-not-allowed disabled:opacity-50">
+                  {sectionSaving ? "Збереження..." : editingSectionId ? "Оновити сектор" : "Додати сектор"}
                 </button>
+                {editingSectionId && (
+                  <button onClick={cancelSectionEdit} className="btn-ghost text-on-primary-mute">
+                    Скасувати
+                  </button>
+                )}
+                </div>
               </div>
             </div>
             <div className="space-y-3">
@@ -450,9 +535,12 @@ export default function ProjectEditorClient({
                 <div key={item.id} className="card-dark flex items-start justify-between gap-4 p-4">
                   <div>
                     <p className="font-bold text-on-primary">{item.title}</p>
-                    <p className="caption text-ink-mute">{item.progress_percent}% / {item.status} / weight {item.weight}</p>
+                    <p className="caption text-ink-mute">{item.progress_percent}% / {item.progress_mode} / {progressScopeLabels[item.section_scope || "project"]} / {item.status} / weight {item.weight}</p>
                   </div>
-                  <button onClick={() => deleteSection(item.id)} className="button-cap text-red-400">Delete</button>
+                  <div className="flex shrink-0 gap-3">
+                    <button onClick={() => editSection(item)} className="button-cap text-on-primary">Edit</button>
+                    <button onClick={() => deleteSection(item.id)} className="button-cap text-red-400">Delete</button>
+                  </div>
                 </div>
               ))}
             </div>

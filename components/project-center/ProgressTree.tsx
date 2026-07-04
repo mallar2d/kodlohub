@@ -1,6 +1,6 @@
-import { calculateSectionProgress } from "@/lib/project-center/progress";
-import { progressStatusLabels } from "@/lib/project-center/constants";
-import type { ProjectProgressSection } from "@/lib/project-center/types";
+import { calculateProjectProgress, calculateSectionProgress } from "@/lib/project-center/progress";
+import { progressScopeLabels, progressStatusLabels } from "@/lib/project-center/constants";
+import type { ProgressSectionScope, ProjectProgressSection } from "@/lib/project-center/types";
 import ProgressBar from "./ProgressBar";
 
 function SectionNode({ section, color, depth = 0 }: { section: ProjectProgressSection; color?: string | null; depth?: number }) {
@@ -29,16 +29,76 @@ function SectionNode({ section, color, depth = 0 }: { section: ProjectProgressSe
   );
 }
 
+function sectionScope(section: ProjectProgressSection): ProgressSectionScope {
+  return section.section_scope || "project";
+}
+
+function ScopeGroup({
+  title,
+  description,
+  sections,
+  color,
+}: {
+  title: string;
+  description: string;
+  sections: ProjectProgressSection[];
+  color?: string | null;
+}) {
+  if (sections.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="mb-2 border-b border-hairline-dark pb-3">
+        <p className="micro-cap text-ink-mute">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-on-primary-mute">{description}</p>
+      </div>
+      {sections.map((section) => (
+        <SectionNode key={section.id} section={section} color={color} />
+      ))}
+    </div>
+  );
+}
+
 export default function ProgressTree({ sections, color }: { sections: ProjectProgressSection[]; color?: string | null }) {
   if (sections.length === 0) {
     return <p className="caption text-ink-mute">Публічних секторів прогресу ще немає.</p>;
   }
 
+  const projectSections = sections.filter((section) => sectionScope(section) === "project");
+  const updateSections = sections.filter((section) => sectionScope(section) === "update");
+  const internalSections = sections.filter((section) => sectionScope(section) === "internal");
+  const projectReady = projectSections.length > 0 && calculateProjectProgress(projectSections, 0) === 100;
+  const updateInProgress = updateSections.some((section) => calculateSectionProgress(section) < 100);
+
   return (
     <div>
-      {sections.map((section) => (
-        <SectionNode key={section.id} section={section} color={color} />
-      ))}
+      {projectReady && updateInProgress && (
+        <div className="mb-6 border border-hairline-dark bg-canvas-night-soft px-4 py-3">
+          <p className="button-cap mb-1 text-on-primary">Проєкт готовий, оновлення ще в роботі</p>
+          <p className="caption text-on-primary-mute">
+            Загальна готовність проєкту рахується окремо від майбутніх версій або контентних оновлень.
+          </p>
+        </div>
+      )}
+
+      <ScopeGroup
+        title={progressScopeLabels.project}
+        description="Ці сектори показують готовність самого проєкту і впливають на загальний progress."
+        sections={projectSections}
+        color={color}
+      />
+      <ScopeGroup
+        title={progressScopeLabels.update}
+        description="Це робота над наступними оновленнями, версіями або релізами. Вона не знижує готовність базового проєкту."
+        sections={updateSections}
+        color={color}
+      />
+      <ScopeGroup
+        title={progressScopeLabels.internal}
+        description="Внутрішні публічні сектори. Зазвичай такі речі краще приховувати, якщо вони не потрібні відвідувачам."
+        sections={internalSections}
+        color={color}
+      />
     </div>
   );
 }

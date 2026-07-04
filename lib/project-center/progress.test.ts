@@ -14,6 +14,7 @@ function section(overrides: Partial<ProjectProgressSection>): ProjectProgressSec
     progress_mode: "manual",
     status: "not_started",
     weight: 1,
+    section_scope: "project",
     is_public: true,
     sort_order: 0,
     created_at: "",
@@ -59,6 +60,13 @@ describe("project-center progress", () => {
 
   it("falls back when project has no sections", () => {
     expect(calculateProjectProgress([], 23)).toBe(23);
+  });
+
+  it("ignores update-scoped sections for project readiness", () => {
+    expect(calculateProjectProgress([
+      section({ progress_percent: 100, weight: 1, section_scope: "project" }),
+      section({ progress_percent: 0, weight: 100, section_scope: "update" }),
+    ], 0)).toBe(100);
   });
 
   it("nests sections by parent id and sorts them", () => {

@@ -2,6 +2,7 @@ import type {
   ACTION_STYLES,
   ACTION_TYPES,
   PROGRESS_STATUSES,
+  PROGRESS_SECTION_SCOPES,
   PROJECT_PRIORITIES,
   PROJECT_STATUSES,
   PROJECT_VISIBILITIES,
@@ -13,6 +14,7 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 export type ProjectPriority = (typeof PROJECT_PRIORITIES)[number];
 export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number];
 export type ProgressStatus = (typeof PROGRESS_STATUSES)[number];
+export type ProgressSectionScope = (typeof PROGRESS_SECTION_SCOPES)[number];
 export type UpdateType = (typeof UPDATE_TYPES)[number];
 export type UpdateStatus = (typeof UPDATE_STATUSES)[number];
 export type ProjectActionType = (typeof ACTION_TYPES)[number];
@@ -57,6 +59,7 @@ export interface ProjectProgressSection {
   progress_mode: "auto" | "manual";
   status: ProgressStatus;
   weight: number;
+  section_scope: ProgressSectionScope;
   is_public: boolean;
   sort_order: number;
   created_at: string;

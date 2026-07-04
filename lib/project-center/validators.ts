@@ -2,6 +2,7 @@ import {
   ACTION_STYLES,
   ACTION_TYPES,
   PROGRESS_STATUSES,
+  PROGRESS_SECTION_SCOPES,
   PROJECT_PRIORITIES,
   PROJECT_STATUSES,
   PROJECT_VISIBILITIES,
@@ -28,6 +29,10 @@ export function isProjectVisibility(value: unknown) {
 
 export function isProgressStatus(value: unknown) {
   return hasValue(PROGRESS_STATUSES, value);
+}
+
+export function isProgressSectionScope(value: unknown) {
+  return hasValue(PROGRESS_SECTION_SCOPES, value);
 }
 
 export function isUpdateType(value: unknown) {

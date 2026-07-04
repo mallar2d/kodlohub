@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireProjectCenterOwner } from "@/lib/project-center/auth";
-import { isProgressStatus, optionalString, parsePercent, parsePositiveWeight, parseSlug, requireString } from "@/lib/project-center/validators";
+import { isProgressSectionScope, isProgressStatus, optionalString, parsePercent, parsePositiveWeight, parseSlug, requireString } from "@/lib/project-center/validators";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string; sectionId: string }> }) {
   const auth = await requireProjectCenterOwner();
@@ -24,6 +24,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         progress_mode: body.progress_mode === "auto" ? "auto" : "manual",
         status: isProgressStatus(body.status) ? body.status : "not_started",
         weight: parsePositiveWeight(body.weight, 1),
+        section_scope: isProgressSectionScope(body.section_scope) ? body.section_scope : "project",
         is_public: body.is_public !== false,
         sort_order: Number(body.sort_order || 0),
       })
