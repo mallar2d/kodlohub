@@ -92,10 +92,13 @@ export const POST = withApiAuth(
       }
 
       const caption = typeof body.caption === "string" ? body.caption.trim() : "";
-      const fileType =
-        typeof body.file_type === "string" && body.file_type
-          ? body.file_type
-          : detectFileType(fileUrl);
+      // Clients may send file_type as a MIME string (e.g. "image/jpeg") because
+      // /media/presign takes it that way. Always normalize to a category so we
+      // never store a raw MIME that violates the media_file_type_check constraint.
+      const fileType = detectFileType(
+        fileUrl,
+        typeof body.file_type === "string" ? body.file_type : undefined
+      );
       const fileSize = typeof body.file_size === "number" ? body.file_size : 0;
 
       const result = await insertMedia(authorId, fileUrl, fileType, fileSize, caption);
