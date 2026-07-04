@@ -35,11 +35,19 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
         aria-label={`Відкрити проєкт ${project.title}`}
       >
         {previewImage && (
-          <img
-            src={previewImage}
-            alt=""
-            className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
-          />
+          <>
+            <img
+              src={previewImage}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-2xl"
+            />
+            <img
+              src={previewImage}
+              alt=""
+              className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          </>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
@@ -132,11 +140,19 @@ function CompactCard({ project }: { project: ProjectCardView }) {
         style={{ background: `linear-gradient(135deg, ${accent}33, #000 42%, #0a0a0a)` }}
       >
         {previewImage && (
-          <img
-            src={previewImage}
-            alt=""
-            className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
-          />
+          <>
+            <img
+              src={previewImage}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-2xl"
+            />
+            <img
+              src={previewImage}
+              alt=""
+              className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          </>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/80" />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
