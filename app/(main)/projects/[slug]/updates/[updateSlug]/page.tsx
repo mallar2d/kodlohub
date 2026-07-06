@@ -7,6 +7,7 @@ import ProjectBadge from "@/components/project-center/ProjectBadge";
 import { formatDate, plainSummary, publicUrl } from "@/lib/project-center/format";
 import { getPublicProjectUpdate } from "@/lib/project-center/queries";
 import { updateTypeLabels } from "@/lib/project-center/constants";
+import { buildPageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -21,23 +22,13 @@ export async function generateMetadata({
   const image = data.update.cover_image_url || data.project.social_image_url || data.project.cover_image_url || undefined;
 
   return {
-    title: `${data.update.title} / ${data.project.title}`,
-    description,
-    openGraph: {
-      title: data.update.title,
+    ...buildPageMetadata({
+      title: `${data.update.title} / ${data.project.title}`,
       description,
-      url: publicUrl(`/projects/${data.project.slug}/updates/${data.update.slug}`),
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: data.update.title,
-      description,
-      images: image ? [image] : undefined,
-    },
-    alternates: {
-      canonical: publicUrl(`/projects/${data.project.slug}/updates/${data.update.slug}`),
-    },
+      path: publicUrl(`/projects/${data.project.slug}/updates/${data.update.slug}`),
+      image,
+      type: "article",
+    }),
   };
 }
 

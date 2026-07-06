@@ -1,18 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import CastClient from "./CastClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "КодлоCAST",
   description: "Подкаст кодла. Голоси, історії та балачки без зайвого.",
-  openGraph: {
-    title: "КодлоCAST — KodloHUB",
-    description: "Подкаст кодла. Голоси, історії та балачки без зайвого.",
-    type: "website",
-    siteName: "KodloHUB",
-  },
-};
+  path: "/cast",
+});
 
 interface PodcastEpisode {
   id: string;

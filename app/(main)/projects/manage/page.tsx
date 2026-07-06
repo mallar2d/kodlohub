@@ -3,8 +3,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectCenterUserData } from "@/lib/project-center/queries";
 import { formatDate } from "@/lib/project-center/format";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = buildPageMetadata({
+  title: "Мої проєкти",
+  description: "Керування власними проєктами в KodloHub Project Center.",
+  path: "/projects/manage",
+  noIndex: true,
+});
 
 export default async function MyProjectsPage() {
   const supabase = await createClient();

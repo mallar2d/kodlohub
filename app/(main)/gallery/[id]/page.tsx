@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import GalleryItemClient from "./GalleryItemClient";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
 interface Media {
   id: string;
@@ -49,8 +50,13 @@ export async function generateMetadata({
   const typeName = item.file_type === "image" ? "Фото" : item.file_type === "video" ? "Відео" : "Медіа";
 
   return {
-    title: item.caption || `${typeName} в галереї`,
-    description: item.caption || `${typeName} з галереї KodloHUB`,
+    ...buildPageMetadata({
+      title: item.caption || `${typeName} в галереї`,
+      description: item.caption || `${typeName} з галереї KodloHUB`,
+      path: `/gallery/${item.id}`,
+      image: item.file_type === "image" ? item.file_url : undefined,
+      video: item.file_type === "video" ? item.file_url : undefined,
+    }),
   };
 }
 

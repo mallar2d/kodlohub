@@ -1,12 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import WikiClient from "./WikiClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Кодлопедія",
   description: "Вікі-енциклопедія кодла. Статті про учасників, події, артефакти та меми.",
-};
+  path: "/wiki",
+});
 
 interface WikiCategory {
   id: string;

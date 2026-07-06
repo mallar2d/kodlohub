@@ -2,11 +2,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import GalleryClient from "./GalleryClient";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Галерея",
-  description: "Фото та відео кодла в одному місці.",
+const filterMetadata: Record<string, { title: string; description: string }> = {
+  all: { title: "Галерея", description: "Фото та відео кодла в одному місці." },
+  image: { title: "Фото — Галерея", description: "Фото кодла в галереї KodloHUB." },
+  video: { title: "Відео — Галерея", description: "Відео кодла в галереї KodloHUB." },
 };
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}): Promise<Metadata> {
+  const { filter = "all" } = await searchParams;
+  const current = filterMetadata[filter] || filterMetadata.all;
+
+  return buildPageMetadata({
+    ...current,
+    path: filter === "all" ? "/gallery" : `/gallery?filter=${filter}`,
+  });
+}
 
 interface Media {
   id: string;

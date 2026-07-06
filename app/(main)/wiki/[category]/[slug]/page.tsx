@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import WikiArticleClient from "./WikiArticleClient";
 import type { Metadata } from "next";
+import { buildPageMetadata, plainText } from "@/lib/seo";
 
 interface WikiArticle {
   id: string;
@@ -76,8 +77,12 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${article.title} — Кодлопедія`,
-    description: article.content.slice(0, 150),
+    ...buildPageMetadata({
+      title: `${article.title} — Кодлопедія`,
+      description: plainText(article.content),
+      path: `/wiki/${article.wiki_categories?.slug || "general"}/${article.slug}`,
+      type: "article",
+    }),
   };
 }
 

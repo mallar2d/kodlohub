@@ -1,11 +1,12 @@
 import SpinTrickClient from "./SpinTrickClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "SPINTRICK",
   description:
     "Оберти телефон — отримай 😎. Комбо за обертання в одному напрямку.",
-};
+  path: "/tools/spintrick",
+});
 
 export default function SpinTrickPage() {
   return (

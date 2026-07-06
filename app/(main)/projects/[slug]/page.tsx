@@ -11,6 +11,7 @@ import OwnerProjectLink from "@/components/project-center/OwnerProjectLink";
 import { formatDate, plainSummary, publicUrl } from "@/lib/project-center/format";
 import { getPublicProjectDetail } from "@/lib/project-center/queries";
 import { priorityLabels, statusLabels } from "@/lib/project-center/constants";
+import { buildPageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -25,23 +26,12 @@ export async function generateMetadata({
   const description = project.short_description || plainSummary(project.full_description_markdown || "", 160);
 
   return {
-    title: project.title,
-    description,
-    openGraph: {
+    ...buildPageMetadata({
       title: project.title,
       description,
-      url: publicUrl(`/projects/${project.slug}`),
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: project.title,
-      description,
-      images: image ? [image] : undefined,
-    },
-    alternates: {
-      canonical: publicUrl(`/projects/${project.slug}`),
-    },
+      path: publicUrl(`/projects/${project.slug}`),
+      image,
+    }),
   };
 }
 

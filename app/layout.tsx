@@ -8,6 +8,7 @@ import SoundCloudPlayer from "@/components/ui/SoundCloudPlayer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/Toast";
 import AuthProvider from "@/components/providers/AuthProvider";
+import { buildPageMetadata } from "@/lib/seo";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -17,29 +18,17 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://kodlo.host"),
-  title: {
-    default: "KodloHUB — Хостинг для кодла",
-    template: "%s | KodloHUB",
-  },
-  description:
-    "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
+  ...buildPageMetadata({
+    title: {
+      default: "KodloHUB — Хостинг для кодла",
+      template: "%s | KodloHUB",
+    },
+    description:
+      "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
+    path: "/",
+  }),
   icons: {
     icon: "/kodlohub-icon.png",
-  },
-  openGraph: {
-    title: "KodloHUB — Хостинг для кодла",
-    description:
-      "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
-    url: "https://kodlo.host",
-    siteName: "KodloHUB",
-    locale: "uk-UA",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "KodloHUB — Хостинг для кодла",
-    description:
-      "Галерея, блог та артефакт-бібліотека для кодла. Зберігай фотки, відео та тексти про подро та інші приколи.",
   },
 };
 

@@ -1,12 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import BlogClient from "./BlogClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Блог",
   description: "Статті, новини та історії від кодла.",
-};
+  path: "/blog",
+});
 
 interface Post {
   id: string;

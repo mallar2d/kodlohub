@@ -1,35 +1,15 @@
 import BratTdSuggestionForm from "@/components/brat-td/SuggestionForm";
 import BratTDClient from "./BratTDClient";
 import ErrorBoundary from "./ErrorBoundary";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "DEMO",
   description:
     "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
-  openGraph: {
-    title: "DEMO",
-    description:
-      "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
-    url: "https://kodlohub.vercel.app/tools/brat-td",
-    images: [
-      {
-        url: "/og-brattd.png",
-        width: 1731,
-        height: 909,
-        alt: "DEMO",
-      },
-    ],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "DEMO",
-    description:
-      "Beta-установщик Brat TD: Total PDR Edition для Windows уже доступний. Android і Linux плануються пізніше.",
-    images: ["/og-brattd.png"],
-  },
-};
+  path: "/tools/brat-td",
+  images: [{ url: "/og-brattd.png", width: 1731, height: 909, alt: "DEMO" }],
+});
 
 export default function BratTDPage() {
   return (

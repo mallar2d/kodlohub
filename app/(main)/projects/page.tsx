@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import ProjectsClient from "./ProjectsClient";
+import { buildPageMetadata } from "@/lib/seo";
 import { getPublicProjectCards, getRecentProjectUpdates } from "@/lib/project-center/queries";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Проєкти",
   description: "KodloHub Project Center: ігри, локалізації, AI-проєкти, інструменти і devlog.",
-};
+  path: "/projects",
+});
 
 export default async function ProjectsPage() {
   const [projects, recentUpdates] = await Promise.all([

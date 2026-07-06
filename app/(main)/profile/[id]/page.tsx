@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import ProfileClient from "./ProfileClient";
 import type { Metadata } from "next";
 import EmptyState from "@/components/ui/EmptyState";
+import { buildPageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -17,8 +18,13 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${profile.display_name} (@${profile.username})`,
-    description: profile.bio || `Профіль користувача ${profile.display_name} на KodloHUB.`,
+    ...buildPageMetadata({
+      title: `${profile.display_name} (@${profile.username})`,
+      description: profile.bio || `Профіль користувача ${profile.display_name} на KodloHUB.`,
+      path: `/profile/${profile.id}`,
+      image: profile.avatar_url,
+      type: "profile",
+    }),
   };
 }
 

@@ -2,11 +2,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import LoreClient from "./LoreClient";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Артефакти",
-  description: "Архів артефактів та мемів кодла.",
+const categoryMetadata: Record<string, { title: string; description: string }> = {
+  all: { title: "Артефакти", description: "Архів артефактів та мемів кодла." },
+  person: { title: "Люди — Артефакти", description: "Люди кодла в архіві KodloHUB." },
+  event: { title: "Події — Артефакти", description: "Події та історії кодла в архіві KodloHUB." },
+  artifact: { title: "Артефакти — Архів", description: "Предмети, знахідки та артефакти кодла." },
+  meme: { title: "Меми — Артефакти", description: "Меми кодла в архіві KodloHUB." },
+  quote: { title: "Цитати — Артефакти", description: "Цитати та фрази кодла в архіві KodloHUB." },
 };
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}): Promise<Metadata> {
+  const { category = "all" } = await searchParams;
+  const current = categoryMetadata[category] || categoryMetadata.all;
+
+  return buildPageMetadata({
+    ...current,
+    path: category === "all" ? "/lore" : `/lore?category=${category}`,
+  });
+}
 
 interface LoreItem {
   id: string;

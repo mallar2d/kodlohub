@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import LoreItemClient from "./LoreItemClient";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
 interface LoreItem {
   id: string;
@@ -47,8 +48,13 @@ export async function generateMetadata({
   }
 
   return {
-    title: item.title,
-    description: item.description || "Артефакт кодла",
+    ...buildPageMetadata({
+      title: item.title,
+      description: item.description || "Артефакт кодла",
+      path: `/lore/${item.id}`,
+      image: item.media?.file_type === "image" ? item.media.file_url : undefined,
+      video: item.media?.file_type === "video" ? item.media.file_url : undefined,
+    }),
   };
 }
 

@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { getRecentProjectUpdates } from "@/lib/project-center/queries";
 import UpdatesClient from "./UpdatesClient";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Оновлення проєктів",
   description: "Глобальна стрічка devlog, patch notes, релізів і статусних оновлень усіх проєктів.",
-};
+  path: "/projects/updates",
+});
 
 export default async function ProjectUpdatesPage() {
   const updates = await getRecentProjectUpdates(100);

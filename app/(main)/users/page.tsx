@@ -1,12 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import UsersClient from "./UsersClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Спільнота",
   description: "Список учасників та авторів спільноти KodloHUB.",
-};
+  path: "/users",
+});
 
 interface Profile {
   id: string;

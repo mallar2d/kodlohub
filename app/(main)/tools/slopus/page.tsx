@@ -1,10 +1,11 @@
 import SlopusClient from "./SlopusClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Clad Slopus AI",
   description: "ШІ-агент Clad Slopus — твій гід та помічник по всесвіту KodloHUB та грі Брат ТД.",
-};
+  path: "/tools/slopus",
+});
 
 export default function SlopusPage() {
   return (

@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import BlogPostClient from "./BlogPostClient";
 import type { Metadata } from "next";
 import EmptyState from "@/components/ui/EmptyState";
+import { buildPageMetadata, plainText } from "@/lib/seo";
 
 interface Post {
   id: string;
@@ -68,11 +69,12 @@ export async function generateMetadata({
   }
 
   return {
-    title: post.title,
-    description:
-      post.content.length > 150
-        ? post.content.slice(0, 150) + "..."
-        : post.content,
+    ...buildPageMetadata({
+      title: post.title,
+      description: plainText(post.content),
+      path: `/blog/${post.id}`,
+      type: "article",
+    }),
   };
 }
 

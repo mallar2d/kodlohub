@@ -1,11 +1,12 @@
 import HammerClient from "./HammerClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "МОЛОТОК",
   description:
     "Раз на годину — БАБАХ! Глобальний лідерборд йобнутих ударів.",
-};
+  path: "/tools/hammer",
+});
 
 export default function HammerPage() {
   return (

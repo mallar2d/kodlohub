@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import PodroClickerClient from "./PodroClickerClient";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "ПОДРО-КЛІКЕР",
   description:
     "Клікер про Подро. Вари НЕСКАФЕ ГОЛД, найми помічників, відкривай апгрейди, ловИ бонус 22:00 та шеметуйся за перманентну повагу.",
-};
+  path: "/tools/podro-clicker",
+});
 
 export default function PodroClickerPage() {
   return (

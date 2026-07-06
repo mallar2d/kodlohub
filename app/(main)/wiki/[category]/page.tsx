@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import WikiCategoryClient from "./WikiCategoryClient";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
 interface WikiCategory {
   id: string;
@@ -60,8 +61,11 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${cat.name} — Кодлопедія`,
-    description: cat.description,
+    ...buildPageMetadata({
+      title: `${cat.name} — Кодлопедія`,
+      description: cat.description,
+      path: `/wiki/${cat.slug}`,
+    }),
   };
 }
 

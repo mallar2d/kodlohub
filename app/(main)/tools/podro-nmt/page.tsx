@@ -1,10 +1,11 @@
 import NmtClient from "./NmtClient";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "ПОДРО-НМТ",
   description: "Національний мультипредметний тест про Подро. 40 питань, одна офіційна спроба.",
-};
+  path: "/tools/podro-nmt",
+});
 
 export default function NmtPage() {
   return (

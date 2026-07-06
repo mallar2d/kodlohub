@@ -2,8 +2,15 @@ import { notFound, redirect } from "next/navigation";
 import ProjectEditorClient from "@/components/project-center/admin/ProjectEditorClient";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectCenterUserData } from "@/lib/project-center/queries";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = buildPageMetadata({
+  title: "Редагувати проєкт",
+  description: "Редагування проєкту в KodloHub Project Center.",
+  path: "/projects/manage/edit",
+  noIndex: true,
+});
 
 export default async function EditUserProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

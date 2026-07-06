@@ -1,11 +1,12 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Тулзи",
   description:
     "Інструменти для кодла — молоток, спінтрік, аудіо-комбайнер та магічна куля.",
-};
+  path: "/tools",
+});
 
 const tools = [
   {

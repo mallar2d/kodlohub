@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import CastEpisodeClient from "./CastEpisodeClient";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildPageMetadata } from "@/lib/seo";
 
 interface PodcastEpisode {
   id: string;
@@ -63,20 +64,13 @@ export async function generateMetadata({
   const description = episode.description || `Випуск #${episode.episode_number} подкасту КодлоCAST. Слухай на KodloHUB.`;
 
   return {
-    title: `${title} — КодлоCAST`,
-    description,
-    openGraph: {
+    ...buildPageMetadata({
       title: `${title} — КодлоCAST`,
       description,
+      path: `/cast/${episode.id}`,
       type: "music.song",
       audio: episode.audio_url,
-      siteName: "KodloHUB",
-    },
-    twitter: {
-      card: "player",
-      title: `${title} — КодлоCAST`,
-      description,
-    },
+    }),
   };
 }
 

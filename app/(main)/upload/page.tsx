@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import UploadClient from "./UploadClient";
 import { createClient } from "@/lib/supabase/server";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "Завантажити",
+  description: "Додай фото, відео або артефакт у KodloHUB.",
+  path: "/upload",
+});
 
 export default async function UploadPage() {
   const supabase = await createClient();
