@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildPageMetadata } from "@/lib/seo";
+import { getArenaVersionInfo } from "@/lib/arena/version";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = buildPageMetadata({
@@ -11,6 +12,7 @@ export const metadata = buildPageMetadata({
 export const revalidate = 30;
 
 export default async function KodloArenaToolPage() {
+  const version = getArenaVersionInfo();
   const admin = createAdminClient();
   const { data: rows } = await admin
     .from("kodlo_arena_stats")
@@ -27,6 +29,12 @@ export default async function KodloArenaToolPage() {
       .in("id", ids);
     for (const p of data ?? []) profiles.set(p.id, p);
   }
+
+  const downloadEntries: { label: string; href: string }[] = [
+    { label: "Linux", href: version.downloads.linux },
+    { label: "Windows", href: version.downloads.windows },
+    { label: "Web", href: version.downloads.web },
+  ].filter((d) => d.href.length > 0);
 
   return (
     <main className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -52,6 +60,37 @@ export default async function KodloArenaToolPage() {
             API DOCS
           </Link>
         </div>
+
+        <section className="card-dark p-6 mb-8">
+          <h2 className="button-cap text-on-primary mb-2">ЗАВАНТАЖИТИ</h2>
+          <p className="text-on-primary-mute text-sm mb-4 font-mono">
+            v{version.client_version}
+            {version.min_client_version !== version.client_version
+              ? ` · онлайн від v${version.min_client_version}`
+              : ""}
+            {" · "}protocol {version.protocol_version}
+          </p>
+          {version.notes ? (
+            <p className="text-on-primary-mute text-sm mb-4">{version.notes}</p>
+          ) : null}
+          {downloadEntries.length === 0 ? (
+            <p className="text-ink-mute text-sm">
+              Білди ще не викладені. Коли зʼявляться — лінки зʼявляться тут автоматично.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {downloadEntries.map((d) => (
+                <a
+                  key={d.label}
+                  href={d.href}
+                  className="button-cap px-5 py-3 rounded-full border border-on-primary text-on-primary hover:bg-on-primary/10 transition-colors"
+                >
+                  {d.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="card-dark p-6">
           <h2 className="button-cap text-on-primary mb-4">ЛІДЕРБОРД (FRAGS)</h2>
