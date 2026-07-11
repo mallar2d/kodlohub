@@ -34,7 +34,10 @@ export async function POST() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://kodlo.host";
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://kodlohub.vercel.app").replace(
+    /\/+$/,
+    "",
+  );
   return NextResponse.json({
     code,
     poll_token: pollToken,
