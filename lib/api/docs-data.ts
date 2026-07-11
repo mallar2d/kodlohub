@@ -511,6 +511,17 @@ export const API_GROUPS: DocGroup[] = [
     endpoints: [
       {
         method: "GET",
+        path: "/games/kodlo-arena",
+        title: "Kodlo Arena / HALF BRAT",
+        scope: "read",
+        notes: [
+          "Без query — профіль + stats поточного ka_live_ / service user.",
+          "?view=leaderboard&sort=frags|wins — публічний топ.",
+          "POST — сабміт матчу (лише ka_live_). PATCH — оновити game_nick.",
+        ],
+      },
+      {
+        method: "GET",
         path: "/games/hammer",
         title: "Молоток",
         scope: "read",

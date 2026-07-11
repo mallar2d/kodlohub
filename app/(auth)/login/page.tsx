@@ -11,6 +11,7 @@ function LoginContent() {
   const supabase = createClient();
 
   const authError = searchParams.get("error");
+  const nextPath = searchParams.get("next") || "/";
   const displayError =
     authError === "auth_failed" ? "Не вдалося увійти. Спробуй ще раз." : error;
 
@@ -18,10 +19,11 @@ function LoginContent() {
     setLoading(true);
     setError(null);
 
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
       },
     });
 

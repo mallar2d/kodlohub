@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { apiError } from "@/lib/api/response";
 import type { ApiAuthContext, ApiScope } from "@/lib/api/types";
+import { ARENA_KEY_PREFIX, resolveArenaToken } from "@/lib/arena/auth";
 
 interface RateInfo {
   limit: number;
@@ -57,11 +58,61 @@ export async function authenticateApiRequest(
 ): Promise<{ ctx: ApiAuthContext; rate: RateInfo } | { error: Response; rate?: RateInfo }> {
   const rawKey = extractBearerToken(request);
 
-  if (!rawKey || !rawKey.startsWith(KEY_PREFIX)) {
+  if (!rawKey) {
     return {
       error: apiError(
         request,
-        "Missing or invalid API key. Use Authorization: Bearer kh_live_... or X-API-Key header.",
+        "Missing or invalid API key. Use Authorization: Bearer kh_live_... / ka_live_... or X-API-Key header.",
+        401,
+        "invalid_api_key"
+      ),
+    };
+  }
+
+  if (rawKey.startsWith(ARENA_KEY_PREFIX)) {
+    const arena = await resolveArenaToken(rawKey);
+    if (!arena) {
+      return { error: apiError(request, "Invalid arena game token", 401, "invalid_api_key") };
+    }
+    const arenaScopes: ApiScope[] = ["read", "write"];
+    const missingScope = requiredScopes.find((s) => !arenaScopes.includes(s));
+    if (missingScope) {
+      return {
+        error: apiError(
+          request,
+          `Insufficient scope. Required: ${requiredScopes.join(", ")}`,
+          403,
+          "insufficient_scope"
+        ),
+      };
+    }
+    const rate = checkRateLimit(arena.tokenId, 60);
+    const rateInfo: RateInfo = { limit: 60, remaining: rate.remaining, resetAt: rate.resetAt };
+    if (!rate.allowed) {
+      return {
+        error: apiError(request, "Rate limit exceeded", 429, "rate_limit_exceeded"),
+        rate: rateInfo,
+      };
+    }
+    return {
+      ctx: {
+        keyId: arena.tokenId,
+        keyName: "HALF BRAT",
+        scopes: arenaScopes,
+        rateLimitPerMinute: 60,
+        serviceUserId: arena.userId,
+        userId: arena.userId,
+        authKind: "arena_token",
+      },
+      rate: rateInfo,
+    };
+  }
+
+  if (!rawKey.startsWith(KEY_PREFIX)) {
+    return {
+      error: apiError(
+        request,
+        "Missing or invalid API key. Use Authorization: Bearer kh_live_... / ka_live_... or X-API-Key header.",
         401,
         "invalid_api_key"
       ),
@@ -122,7 +173,6 @@ export async function authenticateApiRequest(
     };
   }
 
-  // Supabase query builders execute lazily — .then() is what fires the request.
   admin
     .from("api_keys")
     .update({ last_used_at: new Date().toISOString() })
@@ -136,6 +186,8 @@ export async function authenticateApiRequest(
       scopes,
       rateLimitPerMinute: key.rate_limit_per_minute,
       serviceUserId: key.service_user_id ?? null,
+      userId: key.service_user_id ?? null,
+      authKind: "api_key",
     },
     rate: rateInfo,
   };
@@ -145,7 +197,8 @@ export function requireServiceUser(
   request: Request,
   ctx: ApiAuthContext
 ): { userId: string } | { error: Response } {
-  if (!ctx.serviceUserId) {
+  const userId = ctx.userId || ctx.serviceUserId;
+  if (!userId) {
     return {
       error: apiError(
         request,
@@ -155,7 +208,7 @@ export function requireServiceUser(
       ),
     };
   }
-  return { userId: ctx.serviceUserId };
+  return { userId };
 }
 
 export type ApiHandler = (

@@ -1,0 +1,44 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  PAIR_CODE_TTL_MS,
+  generatePairCode,
+  generatePollToken,
+} from "@/lib/arena/auth";
+
+export const revalidate = 0;
+
+/** POST /api/arena/pair/start — game asks for a pairing code. */
+export async function POST() {
+  const admin = createAdminClient();
+  let code = generatePairCode();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: existing } = await admin
+      .from("arena_pair_codes")
+      .select("code")
+      .eq("code", code)
+      .maybeSingle();
+    if (!existing) break;
+    code = generatePairCode();
+  }
+
+  const pollToken = generatePollToken();
+  const expiresAt = new Date(Date.now() + PAIR_CODE_TTL_MS).toISOString();
+  const { error } = await admin.from("arena_pair_codes").insert({
+    code,
+    poll_token: pollToken,
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://kodlo.host";
+  return NextResponse.json({
+    code,
+    poll_token: pollToken,
+    expires_at: expiresAt,
+    link_url: `${site}/arena/link?code=${code}`,
+  });
+}

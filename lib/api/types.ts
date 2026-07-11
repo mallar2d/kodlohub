@@ -19,6 +19,9 @@ export interface ApiAuthContext {
   scopes: ApiScope[];
   rateLimitPerMinute: number;
   serviceUserId: string | null;
+  /** Set for ka_live_ arena game tokens (and optionally kh service keys). */
+  userId: string | null;
+  authKind: "api_key" | "arena_token";
 }
 
 export type WebhookEvent =

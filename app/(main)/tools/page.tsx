@@ -47,6 +47,12 @@ const tools = [
     description: "Пародійний Tower Defense про Подро, молотки, Nescafe Gold та накати Братви.",
   },
   {
+    href: "/tools/kodlo-arena",
+    name: "HALF BRAT",
+    description:
+      "Deathmatch Kodlo Arena. Логін через KodloHUB, ігровий нік, статистика й лідерборд.",
+  },
+  {
     href: "/tools/slopus",
     name: "СЛОПУС AI",
     description: "ШІ-агент Слопус. Знає все про сайт, гру Брат ТД, документи та лор. Твій гід та помічник.",

@@ -13,6 +13,7 @@ export default function ProfileEditPage() {
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
+  const [gameNick, setGameNick] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -105,6 +106,7 @@ export default function ProfileEditPage() {
       if (profile) {
         setDisplayName(profile.display_name || "");
         setUsername(profile.username || "");
+        setGameNick(profile.game_nick || "");
         setBio(profile.bio || "");
         setAvatarUrl(profile.avatar_url || "");
       }
@@ -135,6 +137,7 @@ export default function ProfileEditPage() {
       .update({
         display_name: displayName,
         username,
+        game_nick: gameNick.trim() || null,
         bio,
         avatar_url: avatarUrl || null,
       })
@@ -251,6 +254,23 @@ export default function ProfileEditPage() {
             </div>
             <p className="caption text-ink-mute mt-1">
               Тільки літери, цифри та підкреслення
+            </p>
+          </div>
+
+          <div>
+            <label className="micro-cap text-on-primary-mute block mb-2">
+              ІГРОВИЙ НІК (ARENA)
+            </label>
+            <input
+              type="text"
+              value={gameNick}
+              onChange={(e) => setGameNick(e.target.value.slice(0, 24))}
+              placeholder="За замовчуванням — ім'я відображення"
+              maxLength={24}
+              className="w-full px-4 py-3 bg-canvas-night-soft border border-hairline-dark rounded-lg text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute"
+            />
+            <p className="caption text-ink-mute mt-1">
+              Окремий нік для HALF BRAT / Kodlo Arena. Порожньо = display name.
             </p>
           </div>
 
