@@ -1,3 +1,5 @@
+# KodloHUB
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -34,3 +36,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Hammer Launcher: self-update manifest
+
+`GET /api/launcher/version` is the public manifest used by the desktop Hammer Launcher. It is intentionally configured through deployment environment variables, so release URLs and SHA-256 hashes are never baked into source code.
+
+| Variable | Meaning |
+| --- | --- |
+| `HAMMER_LAUNCHER_VERSION` | Published launcher version, for example `0.3.1`. |
+| `HAMMER_LAUNCHER_RELEASE_NOTES` | Short release notes shown in the launcher. |
+| `HAMMER_LAUNCHER_DOWNLOAD_WINDOWS` | HTTPS URL to the Windows ZIP release. |
+| `HAMMER_LAUNCHER_SHA256_WINDOWS` | SHA-256 of that Windows ZIP. |
+| `HAMMER_LAUNCHER_DOWNLOAD_LINUX` | HTTPS URL to the Linux ZIP release. |
+| `HAMMER_LAUNCHER_SHA256_LINUX` | SHA-256 of that Linux ZIP. |
+
+The ZIP must contain the launcher build at its root (for example `Hammer Launcher.exe` for Windows), not inside an extra directory. Do not raise `HAMMER_LAUNCHER_VERSION` until the matching package URLs and hashes are deployed: the client refuses packages without a 64-character SHA-256.
