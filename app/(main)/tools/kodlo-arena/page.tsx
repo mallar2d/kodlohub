@@ -2,6 +2,7 @@ import Link from "next/link";
 import { buildPageMetadata } from "@/lib/seo";
 import { getArenaVersionInfo } from "@/lib/arena/version";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ActiveRooms } from "@/components/arena/ActiveRooms";
 
 export const metadata = buildPageMetadata({
   title: "Kodlo Arena / HALF BRAT",
@@ -60,6 +61,8 @@ export default async function KodloArenaToolPage() {
             API DOCS
           </Link>
         </div>
+
+        <ActiveRooms />
 
         <section className="card-dark p-6 mb-8">
           <h2 className="button-cap text-on-primary mb-2">ЗАВАНТАЖИТИ</h2>
