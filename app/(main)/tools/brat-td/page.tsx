@@ -34,12 +34,6 @@ export default function BratTDPage() {
               </a>
               .
             </p>
-            <p>
-              Desktop: Linux zip уже на сайті для Hammer Launcher. Windows
-              setup 1.0 треба зібрати на Windows (див.{" "}
-              <code className="text-on-primary">brat-td-desktop/scripts/build-windows-for-launcher.sh</code>
-              ).
-            </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href="#play" className="btn-ghost text-on-primary">
