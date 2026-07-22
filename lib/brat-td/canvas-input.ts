@@ -129,6 +129,49 @@ export function useCanvasInput(config: UseCanvasInputConfig) {
     }
   };
 
+  // Global listeners for custom touch-drag events dispatched by ShopPanel buttons
+  useEffect(() => {
+    const handleTouchDragMove = (e: Event) => {
+      const customEv = e as CustomEvent<{ clientX: number; clientY: number }>;
+      if (customEv.detail) {
+        updateCanvasPointer(customEv.detail.clientX, customEv.detail.clientY);
+      }
+    };
+
+    const handleTouchDragEnd = (e: Event) => {
+      const customEv = e as CustomEvent<{ clientX: number; clientY: number; type: string }>;
+      if (!customEv.detail) return;
+      const c = configRef.current;
+      if (c.gameStatus !== "playing") return;
+      const point = updateCanvasPointer(customEv.detail.clientX, customEv.detail.clientY);
+      if (point) {
+        const canvas = c.canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          if (
+            customEv.detail.clientX >= rect.left &&
+            customEv.detail.clientX <= rect.right &&
+            customEv.detail.clientY >= rect.top &&
+            customEv.detail.clientY <= rect.bottom
+          ) {
+            if (c.tryPlaceTower(customEv.detail.type, point.x, point.y)) {
+              c.setSelectedShopTower(null);
+            }
+          }
+        }
+      }
+      c.draggedTowerTypeRef.current = null;
+      c.draggedTowerPosRef.current = null;
+    };
+
+    window.addEventListener("brat-td-touch-drag-move", handleTouchDragMove);
+    window.addEventListener("brat-td-touch-drag-end", handleTouchDragEnd);
+    return () => {
+      window.removeEventListener("brat-td-touch-drag-move", handleTouchDragMove);
+      window.removeEventListener("brat-td-touch-drag-end", handleTouchDragEnd);
+    };
+  }, []);
+
   // Keyboard shortcuts. Only re-subscribes on the three deps that affect
   // the bound values (game status, currently selected shop tower, current
   // placed tower id).

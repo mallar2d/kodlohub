@@ -5,7 +5,7 @@
  * Extracted from BratTDClient.tsx (Task 12).
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { ENEMY_CONFIGS, getScaledWave, getEnemyStatsForWave } from "@/app/(main)/tools/brat-td/gameConfig";
 import { getMapById, getRouteById, getWaveRouteIds } from "@/lib/brat-td/maps";
 import type { MapConfig } from "@/lib/brat-td/types";
@@ -16,6 +16,7 @@ export interface WavePreviewProps {
 }
 
 export function WavePreview({ wave, selectedMapId }: WavePreviewProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   if (wave > 56) return null;
   const activeMap: MapConfig = getMapById(selectedMapId);
   const routeIds = getWaveRouteIds(activeMap, wave);
@@ -36,13 +37,37 @@ export function WavePreview({ wave, selectedMapId }: WavePreviewProps) {
   const hasArmor = segmentStats.some((stats) => stats.isArmored || stats.isSuperArmored);
   const hasRegen = segmentStats.some((stats) => stats.isRegen);
   const hasHealer = segmentStats.some((stats) => stats.isHealer);
+
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        className="card-dark px-2.5 py-1 text-xs flex items-center gap-1.5 border-hairline-dark hover:border-cyan-500 transition-all shadow-lg"
+        title="Розгорнути інформацію про хвилю"
+      >
+        <span className="font-bold text-cyan-400">W{wave}</span>
+        <span className="text-on-primary text-[11px] font-mono">{totalEnemies} вор. ({Math.round(totalHp / 1000)}k)</span>
+        <span className="text-ink-mute text-[10px]">▲</span>
+      </button>
+    );
+  }
+
   return (
-    <div className="card-dark p-3 border-hairline-dark text-sm">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="micro-cap text-ink-mute">Наступна хвиля {wave}:</span>
-        <span className="text-ink-mute text-xs">
-          {totalEnemies} ворогів • {Math.round(totalHp / 1000)}к HP
-        </span>
+    <div className="card-dark p-3 border-hairline-dark text-sm relative shadow-xl">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="micro-cap text-ink-mute">Хвиля {wave}:</span>
+          <span className="text-ink-mute text-xs">
+            {totalEnemies} вор. • {Math.round(totalHp / 1000)}к HP
+          </span>
+        </div>
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-black/50 text-ink-mute hover:text-on-primary border border-hairline-dark/60"
+          title="Згорнути"
+        >
+          ▼
+        </button>
       </div>
       <div className="mb-2 flex flex-wrap gap-1.5">
         {routeIds.map((routeId) => (

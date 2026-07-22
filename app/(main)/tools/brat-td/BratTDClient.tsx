@@ -845,6 +845,20 @@ export default function BratTDClient() {
         )}
 
         <div className="relative border border-hairline-dark rounded overflow-hidden aspect-[8/5] w-full bg-black shadow-xl shadow-cyan-950/25">
+          {gameStatus === "playing" && selectedShopTower && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-black/90 border-2 border-yellow-500 px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs max-w-[90%] pointer-events-auto">
+              <span className="font-bold text-white flex items-center gap-1.5 truncate">
+                <span className="h-2 w-2 rounded-full bg-yellow-500 animate-ping shrink-0" />
+                Натисніть на карту щоб побудувати {TOWER_CONFIGS[selectedShopTower]?.name || "вежу"}
+              </span>
+              <button
+                onClick={() => setSelectedShopTower(null)}
+                className="px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-800 text-[10px] font-bold hover:bg-red-900 shrink-0"
+              >
+                Скасувати ✕
+              </button>
+            </div>
+          )}
           <canvas
             ref={canvasRef}
             width={GAME_WIDTH}

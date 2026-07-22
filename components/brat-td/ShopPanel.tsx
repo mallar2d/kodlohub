@@ -71,6 +71,28 @@ export function ShopPanel(props: ShopPanelProps) {
                     setSelectedTower(null);
                   }}
                   onDragEnd={onDragEnd}
+                  onTouchStart={(e) => {
+                    if (gameStatus !== "playing" || !canAfford || !towerUnlocked) return;
+                    const touch = e.touches[0];
+                    if (!touch) return;
+                    onDragStart(type);
+                    setSelectedPlacedTowerId(null);
+                    setSelectedTower(null);
+                    window.dispatchEvent(new CustomEvent("brat-td-touch-drag-move", { detail: { clientX: touch.clientX, clientY: touch.clientY } }));
+                  }}
+                  onTouchMove={(e) => {
+                    if (gameStatus !== "playing" || !canAfford || !towerUnlocked) return;
+                    const touch = e.touches[0];
+                    if (!touch) return;
+                    window.dispatchEvent(new CustomEvent("brat-td-touch-drag-move", { detail: { clientX: touch.clientX, clientY: touch.clientY } }));
+                  }}
+                  onTouchEnd={(e) => {
+                    const touch = e.changedTouches[0];
+                    if (touch) {
+                      window.dispatchEvent(new CustomEvent("brat-td-touch-drag-end", { detail: { clientX: touch.clientX, clientY: touch.clientY, type } }));
+                    }
+                    onDragEnd();
+                  }}
                   onMouseEnter={() => onMouseEnter(type)}
                   onMouseLeave={onMouseLeave}
                   onClick={() => {
