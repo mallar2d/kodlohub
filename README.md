@@ -36,6 +36,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Brat TD web embed
+
+The playable browser build is a static Vite SPA from `brat-td-desktop`, published into `public/brat-td/`.
+
+```bash
+# from brat-td-desktop/
+npm run publish:web
+```
+
+Then open `/tools/brat-td` (iframe) or `/brat-td/` (fullscreen). Re-run `publish:web` after game updates — do not fork game logic inside kodlohost.
+
 ## Hammer Launcher: self-update manifest
 
 `GET /api/launcher/version` is the public manifest used by the desktop Hammer Launcher. It is intentionally configured through deployment environment variables, so release URLs and SHA-256 hashes are never baked into source code.

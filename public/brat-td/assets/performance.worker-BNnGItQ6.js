@@ -1,0 +1,1 @@
+(function(){"use strict";self.onmessage=o=>{const s=o.data;if(s.kind!=="render_load")return;const e=s.counts,n=e.enemies+e.projectiles+e.mineProjectiles+e.particles+e.floatingTexts+e.projectileTrail+e.explosionRings*8,r={kind:"render_load_result",id:s.id,renderLoad:n,performanceMode:n>s.heavyThreshold};self.postMessage(r)}})();
