@@ -34,18 +34,30 @@ export default function BratTDPage() {
               </a>
               .
             </p>
-            <p>Версії для Android і Linux плануються пізніше.</p>
+            <p>
+              Desktop: Linux zip уже на сайті для Hammer Launcher. Windows
+              setup 1.0 треба зібрати на Windows (див.{" "}
+              <code className="text-on-primary">brat-td-desktop/scripts/build-windows-for-launcher.sh</code>
+              ).
+            </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href="#play" className="btn-ghost text-on-primary">
               Грати в браузері
             </a>
             <a
+              href="/Brat_TD_1.0.0_linux_x86_64.zip"
+              download
+              className="btn-ghost text-on-primary"
+            >
+              Завантажити Linux (zip)
+            </a>
+            <a
               href="/Brat%20TD_0.8.0_x64-setup.exe"
               download
               className="btn-ghost text-on-primary"
             >
-              Завантажити для Windows
+              Windows setup (поки 0.8)
             </a>
           </div>
         </section>
