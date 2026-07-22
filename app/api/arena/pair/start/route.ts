@@ -5,11 +5,12 @@ import {
   generatePairCode,
   generatePollToken,
 } from "@/lib/arena/auth";
+import { corsHeaders, handleCorsPreflight } from "@/lib/api/cors";
 
 export const revalidate = 0;
 
 /** POST /api/arena/pair/start — game asks for a pairing code. */
-export async function POST() {
+export async function POST(request: Request) {
   const admin = createAdminClient();
   let code = generatePairCode();
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -31,17 +32,24 @@ export async function POST() {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders(request) });
   }
 
   const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://kodlohub.vercel.app").replace(
     /\/+$/,
     "",
   );
-  return NextResponse.json({
-    code,
-    poll_token: pollToken,
-    expires_at: expiresAt,
-    link_url: `${site}/arena/link?code=${code}`,
-  });
+  return NextResponse.json(
+    {
+      code,
+      poll_token: pollToken,
+      expires_at: expiresAt,
+      link_url: `${site}/arena/link?code=${code}`,
+    },
+    { headers: corsHeaders(request) }
+  );
+}
+
+export function OPTIONS(request: Request) {
+  return handleCorsPreflight(request) ?? new Response(null, { status: 204, headers: corsHeaders(request) });
 }

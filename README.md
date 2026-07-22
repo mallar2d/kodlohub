@@ -47,6 +47,12 @@ npm run publish:web
 
 Then open `/tools/brat-td` (iframe) or `/brat-td/` (fullscreen). Re-run `publish:web` after game updates — do not fork game logic inside kodlohost.
 
+### Hub auth + progress
+
+- Pairing: same `ka_live_` tokens as HALF BRAT (`/api/arena/pair/*`, confirm UI at `/brat-td/link`).
+- Progress API: `GET/PATCH/POST /api/v1/games/brat-td` (Bearer `ka_live_…`).
+- Version for Hammer Launcher: `GET /api/brat-td/version` (env `BRAT_TD_CLIENT_VERSION`, `BRAT_TD_DOWNLOAD_*`).
+
 ## Hammer Launcher: self-update manifest
 
 `GET /api/launcher/version` is the public manifest used by the desktop Hammer Launcher. It is intentionally configured through deployment environment variables, so release URLs and SHA-256 hashes are never baked into source code.

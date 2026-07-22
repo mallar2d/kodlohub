@@ -22,8 +22,17 @@ export default function BratTDPage() {
           <h2 className="heading-sub mb-3">Brat TD: Total PDR Edition</h2>
           <div className="max-w-3xl space-y-4 text-ink-mute leading-relaxed">
             <p>
-              Повна веб-версія гри зібрана з desktop-клієнта. Можна грати
-              прямо тут у браузері або завантажити Windows-установщик.
+              Повна веб-версія гри зібрана з desktop-клієнта. Для збереження
+              прогресу потрібен логін KodloHUB (той самий акаунт, що й для HALF
+              BRAT / Hammer Launcher). Локальні дані синхронізуються в хмару після
+              входу.
+            </p>
+            <p>
+              Pairing: у грі натисни «Увійти через KodloHUB», підтверди код на{" "}
+              <a href="/brat-td/link" className="text-on-primary underline">
+                /brat-td/link
+              </a>
+              .
             </p>
             <p>Версії для Android і Linux плануються пізніше.</p>
           </div>
