@@ -47,6 +47,12 @@ npm run publish:web
 
 Then open `/tools/brat-td` (iframe) or `/brat-td/` (fullscreen). Re-run `publish:web` after game updates — do not fork game logic inside kodlohost.
 
+### Versus «Наїзд» (online 1v1)
+
+Additive migration: `supabase/migrations/033_brat_td_versus.sql` (mirrored in `brat-td-desktop/supabase/migrations/20260725140000_brat_td_versus.sql`).
+
+Apply on the hub Supabase project, then publish a fresh web build. Matchmaking uses `brat_td_versus_enqueue` / Broadcast channel `versus:{matchId}`; local-vs-bot still works without cloud.
+
 ### Hub auth + progress
 
 - Pairing: same `ka_live_` tokens as HALF BRAT (`/api/arena/pair/*`, confirm UI at `/brat-td/link`).
