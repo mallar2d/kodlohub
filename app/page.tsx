@@ -98,6 +98,35 @@ export default async function HomePage() {
           <p className="text-on-primary-mute text-xl max-w-2xl">
             Все, що створило кодло, в одному місці.
           </p>
+
+          <Link
+            href="/support-ending"
+            className="group mt-10 block max-w-4xl border border-hairline-dark bg-canvas-night-soft p-5 transition-colors hover:border-on-primary-mute sm:p-6"
+          >
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="micro-cap text-ink-mute">ОФІЦІЙНЕ ОГОЛОШЕННЯ · ВІД 01.08.2026</p>
+                <p className="mt-1 text-lg font-bold uppercase tracking-wide text-on-primary sm:text-2xl">
+                  Завершення підтримки KodloHUB та інших проєктів
+                </p>
+              </div>
+              <span className="button-cap flex shrink-0 items-center gap-2 text-on-primary-mute transition-colors group-hover:text-on-primary">
+                ПРОЧИТАТИ
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
 
