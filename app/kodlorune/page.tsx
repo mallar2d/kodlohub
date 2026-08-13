@@ -3,7 +3,7 @@ import KodloruneClient from "./KodloruneClient";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "kodlorune",
+    absolute: "unforgettable",
   },
   robots: {
     index: false,
