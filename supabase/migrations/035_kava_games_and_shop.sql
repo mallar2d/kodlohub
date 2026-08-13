@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS kava_shop_purchases (
   id SERIAL PRIMARY KEY,
   item_id INTEGER NOT NULL REFERENCES kava_shop_items(id) ON DELETE CASCADE,
   telegram_id TEXT NOT NULL,
-  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  user_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
   username TEXT,
   first_name TEXT,
   item_title TEXT NOT NULL,
