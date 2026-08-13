@@ -81,9 +81,10 @@ export default function WikiArticleClient({ article }: { article: WikiArticle })
           <span className="text-ink-mute">/</span>
           <Link
             href={`/wiki/${categorySlug}`}
-            className="micro-cap text-ink-mute hover:text-on-primary transition-colors"
+            className="micro-cap text-ink-mute hover:text-on-primary transition-colors inline-flex items-center gap-1"
           >
-            {article.wiki_categories?.icon} {article.wiki_categories?.name}
+            <span className="inline-flex">{wikiCategoryIcons[categorySlug] || wikiCategoryIcons.general}</span>
+            <span>{article.wiki_categories?.name}</span>
           </Link>
           <span className="text-ink-mute">/</span>
           <span className="micro-cap text-on-primary truncate">{article.title}</span>

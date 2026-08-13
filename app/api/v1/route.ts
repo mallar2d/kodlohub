@@ -61,7 +61,6 @@ export const GET = withApiAuth(async (request) => {
       webhooks: `GET|POST ${base}/api/v1/webhooks`,
       webhookDelete: `DELETE ${base}/api/v1/webhooks/:id`,
       webhookTest: `POST ${base}/api/v1/webhooks/:id/test`,
-      slopus: `POST ${base}/api/v1/ai/slopus`,
       adminPendingPosts: `GET ${base}/api/v1/admin/pending-posts`,
       adminModeratePost: `PATCH ${base}/api/v1/admin/posts/:id`,
       adminJoinRequests: `GET ${base}/api/v1/admin/join-requests`,

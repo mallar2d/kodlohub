@@ -7,13 +7,32 @@ export async function GET(request: Request) {
     const q = searchParams.get("q");
 
     if (!q || q.trim().length < 2) {
-      return NextResponse.json({ results: { posts: [], media: [], lore: [] } });
+      return NextResponse.json({
+        results: {
+          projects: [],
+          posts: [],
+          media: [],
+          lore: [],
+          wiki: [],
+          podcast: [],
+          profiles: [],
+        },
+      });
     }
 
     const query = q.trim();
     const supabase = await createClient();
 
-    const [postsRes, mediaRes, loreRes, wikiRes] = await Promise.all([
+    const [projectsRes, postsRes, mediaRes, loreRes, wikiRes, podcastRes, profilesRes] = await Promise.all([
+      supabase
+        .from("projects")
+        .select("id, slug, title, short_description, one_liner, status, types, logo_url, cover_image_url")
+        .eq("approval_status", "approved")
+        .eq("visibility", "public")
+        .or(`title.ilike.%${query}%,short_description.ilike.%${query}%,one_liner.ilike.%${query}%`)
+        .order("is_featured", { ascending: false })
+        .limit(5),
+
       supabase
         .from("posts")
         .select("id, title, content, created_at")
@@ -44,6 +63,20 @@ export async function GET(request: Request) {
         .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
         .order("view_count", { ascending: false })
         .limit(5),
+
+      supabase
+        .from("podcast_episodes")
+        .select("id, title, description, episode_number, duration, created_at")
+        .eq("is_published", true)
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .order("episode_number", { ascending: false })
+        .limit(5),
+
+      supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, role")
+        .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+        .limit(5),
     ]);
 
     const wikiArticles = (wikiRes.data || []).map((a: any) => ({
@@ -53,10 +86,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       results: {
+        projects: projectsRes.data || [],
         posts: postsRes.data || [],
         media: mediaRes.data || [],
         lore: loreRes.data || [],
         wiki: wikiArticles,
+        podcast: podcastRes.data || [],
+        profiles: profilesRes.data || [],
       },
     });
   } catch (err) {

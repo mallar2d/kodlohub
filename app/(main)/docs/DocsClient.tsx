@@ -350,7 +350,7 @@ export default function DocsClient() {
                   <li>
                     <InlineCode>read</InlineCode>{" "}
                     <span className="ml-1">
-                      — читання контенту, пошук, статистика, лідерборди, Slopus AI.
+                      — читання контенту, пошук, статистика, лідерборди, Кодлопедія.
                     </span>
                   </li>
                   <li>

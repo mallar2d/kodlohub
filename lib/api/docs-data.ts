@@ -565,28 +565,6 @@ export const API_GROUPS: DocGroup[] = [
     ],
   },
   {
-    id: "ai",
-    title: "Slopus AI",
-    desc: "Чат зі Слопусом — AI-агентом кодла.",
-    endpoints: [
-      {
-        method: "POST",
-        path: "/ai/slopus",
-        title: "Чат зі Слопусом",
-        scope: "read",
-        body: [
-          {
-            name: "messages",
-            type: "object[]",
-            required: true,
-            desc: 'Історія повідомлень: [{ "role": "user", "content": "…" }]',
-          },
-        ],
-        notes: ["Відповідь стрімиться як text/plain, а не JSON.", "Слопус знає контекст сайту: статті, профілі, пости, медіа."],
-      },
-    ],
-  },
-  {
     id: "notifications",
     title: "Сповіщення",
     desc: "Надсилання сповіщень користувачам сайту.",

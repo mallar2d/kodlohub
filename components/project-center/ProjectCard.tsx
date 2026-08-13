@@ -27,11 +27,11 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
   const previewImage = project.cover_image_url || project.hero_image_url;
 
   return (
-    <article className="card-dark group grid overflow-hidden transition-colors hover:border-on-primary-mute md:grid-cols-[minmax(240px,0.85fr)_1fr]">
+    <article className="card-dark group grid w-full overflow-hidden rounded-2xl transition-colors hover:border-on-primary-mute md:grid-cols-[minmax(280px,0.8fr)_1fr] lg:grid-cols-[420px_1fr]">
       <Link
         href={`/projects/${project.slug}`}
-        className="relative block min-h-[200px] overflow-hidden border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
-        style={{ background: `linear-gradient(135deg, ${accent}33, #000 42%, #0a0a0a)` }}
+        className="relative block min-h-[240px] md:min-h-full overflow-hidden border-b border-hairline-dark bg-canvas-night-soft md:border-b-0 md:border-r"
+        style={{ background: `linear-gradient(135deg, ${accent}22, #000 42%, #0a0a0a)` }}
         aria-label={`Відкрити проєкт ${project.title}`}
       >
         {previewImage && (
@@ -45,7 +45,7 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
             <img
               src={previewImage}
               alt=""
-              className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+              className="absolute inset-0 h-full w-full object-contain p-4 md:p-6 transition-transform duration-500 group-hover:scale-[1.03]"
             />
           </>
         )}
@@ -61,18 +61,18 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
         </div>
       </Link>
 
-      <div className="flex flex-col p-6">
+      <div className="flex flex-col p-6 sm:p-8">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <ProjectBadge tone={project.status === "active" ? "accent" : "default"}>{statusLabels[project.status]}</ProjectBadge>
           <ProjectBadge tone="muted">{priorityLabels[project.priority]}</ProjectBadge>
         </div>
 
-        <h3 className="heading-sub mb-3 text-[32px] leading-tight text-on-primary transition-colors group-hover:text-on-primary-mute">
+        <h3 className="heading-sub mb-3 text-[28px] sm:text-[34px] leading-tight text-on-primary transition-colors group-hover:text-on-primary-mute">
           {project.title}
         </h3>
-        <p className="mb-5 line-clamp-3 text-sm leading-6 text-on-primary-mute">{project.short_description}</p>
+        <p className="mb-5 line-clamp-3 text-sm sm:text-base leading-relaxed text-on-primary-mute max-w-2xl">{project.short_description}</p>
 
-        <div className="mb-5">
+        <div className="mb-5 max-w-lg">
           <ProgressBar value={project.progress_percent} color={accent} compact />
         </div>
 
@@ -101,13 +101,15 @@ function FeatureCard({ project }: { project: ProjectCardView }) {
           </div>
         )}
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          {tags.slice(0, 6).map((tag) => (
-            <span key={tag} className="caption rounded border border-hairline-dark px-2 py-1 text-ink-mute">
-              #{tag}
-            </span>
-          ))}
-        </div>
+        {tags.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {tags.slice(0, 6).map((tag) => (
+              <span key={tag} className="caption rounded border border-hairline-dark px-2 py-1 text-ink-mute">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="mt-auto">
           <Link href={`/projects/${project.slug}`} className="btn-ghost inline-flex text-on-primary">

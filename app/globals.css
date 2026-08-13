@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-canvas-night: #000000;
-  --color-canvas-night-soft: #0a0a0a;
+  --color-canvas-night: #0a0a0a;
+  --color-canvas-night-soft: #121316;
+  --color-canvas-card: #16181c;
   --color-canvas-light: #ffffff;
-  --color-canvas-cool: #f0f0fa;
+  --color-canvas-cool: #dadbdf;
   --color-on-primary: #ffffff;
-  --color-on-primary-mute: #f0f0fa;
-  --color-ink: #000000;
-  --color-ink-mute: #5a5a5f;
-  --color-hairline-dark: #3a3a3f;
+  --color-on-primary-mute: #dadbdf;
+  --color-ink: #0a0a0a;
+  --color-ink-mute: #7d8187;
+  --color-hairline-dark: #212327;
   --color-hairline-light: #e0e0e8;
 
-  --font-display: "Inter", "Arial Narrow", Arial, Verdana, sans-serif;
-  --font-body: "Inter", Arial, Verdana, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 :root {
-  --background: #000000;
+  --background: #0a0a0a;
   --foreground: #ffffff;
 }
 
@@ -25,6 +26,18 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide spin buttons on number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 @keyframes slide-up {
@@ -45,74 +58,156 @@ body {
   animation: shimmer 1.5s infinite linear;
 }
 
-/* Uppercase display headings */
+/* xAI Typography: Display Headings */
 .heading-hero {
   font-family: var(--font-display);
-  font-size: 80px;
+  font-size: clamp(40px, 7vw, 84px);
   font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: 1.6px;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
 }
 
 .heading-section {
   font-family: var(--font-display);
-  font-size: 60px;
+  font-size: clamp(32px, 5vw, 56px);
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 1.2px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
 }
 
 .heading-sub {
   font-family: var(--font-display);
-  font-size: 48px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.96px;
+  font-size: clamp(24px, 3.5vw, 40px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   text-transform: uppercase;
 }
 
-/* Ghost pill button */
+/* xAI Buttons: Rounded Pill Geometry */
 .btn-ghost {
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
-  line-height: 0.94;
-  letter-spacing: 1.17px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 18px 24px;
+  padding: 12px 22px;
   border-radius: 9999px;
-  border: 1px solid currentColor;
+  border: 1px solid var(--color-hairline-dark);
   background: transparent;
+  color: var(--color-on-primary);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-ghost:hover {
-  opacity: 0.8;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
 }
 
-/* Card styles */
+.btn-ghost:active {
+  transform: translateY(0);
+}
+
+.btn-solid {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-solid:hover {
+  background: #eaeaea;
+  border-color: #eaeaea;
+  transform: translateY(-1px);
+}
+
+.btn-solid:active {
+  transform: translateY(0);
+}
+
+/* xAI Card styles */
 .card-dark {
-  background: var(--color-canvas-night);
+  background: rgba(18, 19, 22, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-hairline-dark);
-  border-radius: 4px;
+  border-radius: 12px;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.card-dark:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.card-dark-hover:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
 }
 
 .card-light {
   background: var(--color-canvas-light);
   border: 1px solid var(--color-hairline-light);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
-/* Micro cap text */
+/* Status Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--color-hairline-dark);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: live-pulse 2s infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Micro cap text (xAI Monospace Metadata) */
 .micro-cap {
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 2.0;
-  letter-spacing: 0.96px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -120,9 +215,9 @@ body {
 .button-cap {
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
-  line-height: 0.94;
-  letter-spacing: 1.17px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -132,6 +227,22 @@ body {
   font-size: 13px;
   font-weight: 400;
   line-height: 1.5;
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2f;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
 /* Responsive heading sizes */

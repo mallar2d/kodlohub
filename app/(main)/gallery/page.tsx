@@ -1,13 +1,12 @@
-import { createAdminClient } from "@/lib/supabase/admin";
-import { unstable_cache } from "next/cache";
-import GalleryClient from "./GalleryClient";
+import UnifiedArchiveClient from "@/components/archive/UnifiedArchiveClient";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import { getUnifiedArchiveData } from "@/lib/archive";
 
 const filterMetadata: Record<string, { title: string; description: string }> = {
-  all: { title: "Галерея", description: "Фото та відео кодла в одному місці." },
-  image: { title: "Фото — Галерея", description: "Фото кодла в галереї KodloHUB." },
-  video: { title: "Відео — Галерея", description: "Відео кодла в галереї KodloHUB." },
+  all: { title: "Медіатека та Галерея", description: "Повний каталог фото, відео та матеріалів кодла в одному місці." },
+  image: { title: "Фото — Медіатека", description: "Фотоархів кодла в медіатеці KodloHUB." },
+  video: { title: "Відео — Медіатека", description: "Відеоархів кодла в медіатеці KodloHUB." },
 };
 
 export async function generateMetadata({
@@ -24,42 +23,6 @@ export async function generateMetadata({
   });
 }
 
-interface Media {
-  id: string;
-  file_url: string;
-  file_type: string;
-  caption: string | null;
-  created_at: string;
-  author_id: string;
-  profiles?: { display_name: string; username: string; avatar_url: string | null } | null;
-}
-
-const getMedia = unstable_cache(
-  async (filter: string): Promise<Media[]> => {
-    const supabase = createAdminClient();
-    let query = supabase
-      .from("media")
-      .select("id, file_url, file_type, caption, created_at, author_id, profiles(display_name, username, avatar_url)")
-      .in("file_type", ["image", "video"])
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    if (filter === "image") {
-      query = query.eq("file_type", "image");
-    } else if (filter === "video") {
-      query = query.eq("file_type", "video");
-    }
-
-    const { data } = await query;
-    return (data || []).map((item: any) => ({
-      ...item,
-      profiles: item.profiles?.[0] || null,
-    })) as Media[];
-  },
-  ["gallery-media"],
-  { revalidate: 30 }
-);
-
 export default async function GalleryPage({
   searchParams,
 }: {
@@ -67,7 +30,17 @@ export default async function GalleryPage({
 }) {
   const params = await searchParams;
   const filter = params.filter || "all";
-  const media = await getMedia(filter);
+  const { media, posts, lore, podcasts } = await getUnifiedArchiveData();
 
-  return <GalleryClient initialMedia={media} initialFilter={filter} />;
+  return (
+    <UnifiedArchiveClient
+      initialMedia={media}
+      initialPosts={posts}
+      initialLore={lore}
+      initialPodcasts={podcasts}
+      defaultTab="media"
+      initialFilter={filter}
+    />
+  );
 }
+

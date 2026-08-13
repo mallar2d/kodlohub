@@ -13,7 +13,7 @@ type ProjectUpdateSitemapRow = {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kodlo.host";
 
-  const staticPages = ["", "/projects", "/projects/updates", "/blog", "/gallery", "/lore", "/tools", "/users", "/developers", "/docs"].map((route) => ({
+  const staticPages = ["", "/projects", "/projects/updates", "/blog", "/gallery", "/lore", "/tools", "/developers", "/docs"].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,

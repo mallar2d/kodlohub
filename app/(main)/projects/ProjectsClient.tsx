@@ -120,7 +120,7 @@ export default function ProjectsClient({
             <div
               className={
                 isFeatured
-                  ? "grid gap-6 xl:grid-cols-2"
+                  ? (items.length === 1 ? "w-full" : "grid gap-6 xl:grid-cols-2")
                   : "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
               }
             >

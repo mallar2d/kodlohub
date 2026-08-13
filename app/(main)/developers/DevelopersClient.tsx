@@ -44,7 +44,7 @@ export default function DevelopersClient() {
         <h1 className="heading-section mb-4">KODLOHUB API</h1>
         <p className="text-on-primary-mute mb-8 max-w-2xl">
           REST API для ботів, скриптів і сторонніх сервісів: пости, коментарі, пошук, лідерборди,
-          Slopus AI та webhooks. Базовий URL:{" "}
+          Кодлопедія та webhooks. Базовий URL:{" "}
           <code className="text-on-primary text-sm">{base}/api/v1</code>
         </p>
 
@@ -148,8 +148,8 @@ export default function DevelopersClient() {
 
         <p className="caption text-ink-mute text-center">
           Питання?{" "}
-          <Link href="/users" className="text-on-primary-mute hover:text-on-primary">
-            Знайди owner у списку учасників
+          <Link href="/docs" className="text-on-primary-mute hover:text-on-primary">
+            Переглянь документацію API
           </Link>
         </p>
       </div>

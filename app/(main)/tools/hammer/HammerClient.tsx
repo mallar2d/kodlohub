@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
@@ -48,9 +48,36 @@ const SPECIAL_MESSAGES = [
   "КРОВАВА НІЧ!",
   "22:00 — ЧАС КРОВІ!",
   "МНОЖНИК 22x!",
-  "ПОЛУНOК КРОВІ!",
+  "ПОЛУНОК КРОВІ!",
   "САТАНИНСЬКИЙ УДАР!",
 ];
+
+function playHitSound(isSpecial: boolean) {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    
+    // Impact oscillator
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = isSpecial ? "sawtooth" : "triangle";
+    osc.frequency.setValueAtTime(isSpecial ? 75 : 130, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(25, ctx.currentTime + 0.4);
+    
+    gain.gain.setValueAtTime(0.6, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {
+    // Ignore audio context errors
+  }
+}
 
 function formatCooldown(ms: number) {
   if (ms <= 0) return "00:00:00";
@@ -63,13 +90,17 @@ function formatCooldown(ms: number) {
     .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-function timeAgo(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 60_000) return "щойно";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} хв тому`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} год тому`;
-  return `${Math.floor(diff / 86_400_000)} д тому`;
+function getTimeUntil2200(): string {
+  const now = new Date();
+  const target = new Date();
+  target.setHours(22, 0, 0, 0);
+  if (now.getTime() > target.getTime()) {
+    target.setDate(target.getDate() + 1);
+  }
+  const diff = target.getTime() - now.getTime();
+  const hours = Math.floor(diff / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  return `${hours} год ${minutes} хв`;
 }
 
 export default function HammerClient() {
@@ -78,10 +109,8 @@ export default function HammerClient() {
   const [loading, setLoading] = useState(true);
   const [hitting, setHitting] = useState(false);
   const [cooldownLeft, setCooldownLeft] = useState(0);
-  const [floaters, setFloaters] = useState<
-    { id: number; x: number; label: string }[]
-  >([]);
-  const [shakeKey, setShakeKey] = useState(0);
+  const [floaters, setFloaters] = useState<{ id: number; x: number; label: string }[]>([]);
+  const [shockwaves, setShockwaves] = useState<number[]>([]);
   const [animHit, setAnimHit] = useState(false);
   const [specialHit, setSpecialHit] = useState(false);
   const [lastMultiplier, setLastMultiplier] = useState(1);
@@ -99,7 +128,7 @@ export default function HammerClient() {
       if (data.me?.lastHitAt) {
         lastHammerHitAtRef.current = data.me.lastHitAt;
         const elapsed = Date.now() - new Date(data.me.lastHitAt).getTime();
-        const remaining = (data.me.cooldownMs ?? 0) - elapsed;
+        const remaining = (data.me.cooldownMs ?? 3600000) - elapsed;
         setCooldownLeft(remaining > 0 ? remaining : 0);
       } else {
         setCooldownLeft(0);
@@ -133,21 +162,25 @@ export default function HammerClient() {
     hittingRef.current = true;
     setHitting(true);
     setAnimHit(true);
-    setShakeKey((k) => k + 1);
 
     const isSpecialTime = new Date().getHours() === 22 && new Date().getMinutes() === 0;
+    playHitSound(isSpecialTime);
+
+    // Trigger shockwave
+    const swId = Date.now();
+    setShockwaves((prev) => [...prev, swId]);
+    setTimeout(() => {
+      setShockwaves((prev) => prev.filter((id) => id !== swId));
+    }, 900);
+
     const msgPool = isSpecialTime ? SPECIAL_MESSAGES : HIT_MESSAGES;
-    const label =
-      msgPool[Math.floor(Math.random() * msgPool.length)] ?? "БАБАХ!";
+    const label = msgPool[Math.floor(Math.random() * msgPool.length)] ?? "БАБАХ!";
     const id = ++floaterIdRef.current;
-    setFloaters((arr) => [
-      ...arr,
-      { id, x: 30 + Math.random() * 40, label },
-    ]);
+    setFloaters((arr) => [...arr, { id, x: 25 + Math.random() * 50, label }]);
     setTimeout(() => {
       setFloaters((arr) => arr.filter((f) => f.id !== id));
-    }, 1400);
-    setTimeout(() => setAnimHit(false), 600);
+    }, 1300);
+    setTimeout(() => setAnimHit(false), 500);
 
     try {
       const res = await fetch("/api/hammer", { method: "POST" });
@@ -168,12 +201,11 @@ export default function HammerClient() {
         setTimeout(() => setSpecialHit(false), 3000);
         toast(`КРОВАВА НІЧ! x${mult} МНОЖНИК!`, "success");
       } else {
-        toast("ЗАРЯДЖАЄМО... раз на годину!", "success");
+        toast("БАБАХ! Удар зараховано.", "success");
       }
 
       lastHammerHitAtRef.current = data.hitAt;
-      const remaining =
-        state?.me?.cooldownMs ?? 60 * 60 * 1000;
+      const remaining = state?.me?.cooldownMs ?? 60 * 60 * 1000;
       setCooldownLeft(remaining);
       await fetchState();
     } catch {
@@ -188,36 +220,63 @@ export default function HammerClient() {
   const isAuthed = !!user;
   const canHit = isAuthed && cooldownLeft <= 0 && !hitting;
 
+  const timeUntil22 = useMemo(() => getTimeUntil2200(), []);
+
   return (
-    <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 relative">
+    <div className={`grid lg:grid-cols-[1.15fr_1fr] gap-8 relative ${animHit ? "animate-[impactShake_0.35s_ease-out]" : ""}`}>
       {/* Кровавий оверлей при 22:00 ударі */}
       {specialHit && (
         <div
           className="fixed inset-0 z-50 pointer-events-none"
           style={{ animation: "bloodFlash 3s ease-out forwards" }}
         >
-          <div className="absolute inset-0 bg-red-600/30" />
-          <div className="absolute inset-0" style={{
-            background: "radial-gradient(circle at 50% 50%, transparent 20%, rgba(139,0,0,0.4) 60%, rgba(80,0,0,0.7) 100%)",
-          }} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-[var(--font-display)] text-6xl sm:text-8xl font-black text-red-500 tracking-widest uppercase drop-shadow-[0_0_30px_rgba(220,38,38,0.9)]"
+          <div className="absolute inset-0 bg-red-600/30 backdrop-blur-xs" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 50%, transparent 20%, rgba(139,0,0,0.5) 60%, rgba(80,0,0,0.85) 100%)",
+            }}
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className="font-[var(--font-display)] text-7xl sm:text-9xl font-black text-red-500 tracking-widest uppercase drop-shadow-[0_0_40px_rgba(220,38,38,1)]"
               style={{ animation: "specialPulse 0.6s ease-in-out infinite alternate" }}
             >
               x{lastMultiplier}
             </span>
+            <span className="font-mono text-xs sm:text-sm text-red-300 uppercase tracking-widest mt-2">
+              КРОВАВА НІЧ 22:00
+            </span>
           </div>
         </div>
       )}
-      {/* Ліва колонка: молоток */}
-      <div className="card-dark p-6 sm:p-10 flex flex-col items-center text-center relative overflow-hidden">
-        <p className="micro-cap text-ink-mute mb-6">ГОЛОВНИЙ МОЛОТОК</p>
 
-        <div className="relative w-full flex-1 flex items-center justify-center min-h-[280px] sm:min-h-[340px]">
+      {/* Ліва колонка: Інтерактивне Ковадло / Молоток */}
+      <div className="card-dark p-6 sm:p-10 rounded-2xl flex flex-col items-center justify-between text-center relative overflow-hidden">
+        <div className="w-full flex items-center justify-between gap-2 mb-6">
+          <p className="micro-cap text-ink-mute text-[10px]">КОВАДЛО-РЕАКТОР</p>
+          <span className="button-cap px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night text-[10px] text-ink-mute font-mono">
+            {canHit ? "ГОТОВО ДО УДАРУ" : "ОХОЛОДЖЕННЯ"}
+          </span>
+        </div>
+
+        {/* Central Hammer Button Area */}
+        <div className="relative w-full flex-1 flex items-center justify-center py-8 sm:py-12">
+          {/* Shockwaves */}
+          {shockwaves.map((swId) => (
+            <div
+              key={swId}
+              className="absolute pointer-events-none rounded-full border-2 border-white/60 animate-[shockwaveExpand_0.8s_ease-out_forwards]"
+              style={{ width: "260px", height: "260px" }}
+            />
+          ))}
+
+          {/* Floating Impact Words */}
           {floaters.map((f) => (
             <span
               key={f.id}
-              className="pointer-events-none absolute bottom-1/2 left-0 font-[var(--font-display)] text-2xl sm:text-3xl font-black text-on-primary tracking-widest uppercase drop-shadow-[0_0_18px_rgba(255,255,255,0.6)]"
+              className="pointer-events-none absolute bottom-1/2 left-0 font-[var(--font-display)] text-3xl sm:text-4xl font-black text-on-primary tracking-widest uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] z-30"
               style={{
                 left: `${f.x}%`,
                 animation: "floatUp 1.3s ease-out forwards",
@@ -227,226 +286,193 @@ export default function HammerClient() {
             </span>
           ))}
 
+          {/* Clean Concentric Hammer Button */}
           <button
             type="button"
             onClick={onHit}
             disabled={!canHit}
-            className={`group relative w-56 h-56 sm:w-72 sm:h-72 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-transform ${
-              canHit ? "cursor-pointer hover:scale-105" : "cursor-not-allowed"
-            } ${animHit ? "scale-90" : "scale-100"}`}
+            className={`group relative w-60 h-60 sm:w-72 sm:h-72 rounded-full flex flex-col items-center justify-center border border-hairline-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-300 select-none ${
+              canHit
+                ? "cursor-pointer bg-[#141518] hover:bg-[#181a1f] hover:border-white/40 hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.08)]"
+                : "cursor-not-allowed bg-[#0e0f11] opacity-80"
+            }`}
             aria-label="Вдарити молотком"
           >
+            {/* Hammer Graphic */}
             <span
-              key={shakeKey}
-              className="absolute inset-0 rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0 8%, transparent 32%), " +
-                  "radial-gradient(circle at 60% 60%, rgba(220,38,38,0.18), transparent 40%), " +
-                  "radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 60%, #000 100%)",
-                boxShadow: canHit
-                  ? "0 0 60px rgba(255,255,255,0.18), inset 0 0 40px rgba(0,0,0,0.9)"
-                  : "0 0 25px rgba(255,255,255,0.05), inset 0 0 40px rgba(0,0,0,0.9)",
-                animation: animHit ? "hammerImpact 0.55s ease-out" : undefined,
-              }}
-            />
-
-            <span
-              className={`absolute inset-0 rounded-full border-2 transition-colors ${
+              className={`select-none transition-all duration-300 ${
                 canHit
-                  ? "border-on-primary/40 group-hover:border-on-primary"
-                  : "border-hairline-dark"
-              }`}
-            />
-
-            <span
-              className={`select-none transition-transform duration-300 ${
-                canHit ? "group-hover:-rotate-12" : ""
-              } ${animHit ? "rotate-[25deg] scale-90" : "rotate-0"}`}
+                  ? "group-hover:-rotate-12 group-hover:scale-110 text-on-primary"
+                  : "text-ink-mute opacity-50"
+              } ${animHit ? "rotate-[32deg] scale-90" : "rotate-0"}`}
             >
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16 sm:w-20 sm:h-20">
+              <svg
+                width="76"
+                height="76"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-18 h-18 sm:w-20 sm:h-20"
+              >
                 <path d="m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" />
                 <path d="m18 15 4-4" />
                 <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
               </svg>
             </span>
 
+            {/* Cooldown Timer */}
             {!canHit && cooldownLeft > 0 && (
-              <span className="absolute inset-x-0 bottom-6 text-center text-2xl sm:text-3xl font-[var(--font-display)] font-black tracking-widest text-on-primary">
+              <span className="mt-3 font-mono font-bold text-lg sm:text-xl tracking-wider text-on-primary">
                 {formatCooldown(cooldownLeft)}
               </span>
             )}
           </button>
         </div>
 
-        <div className="mt-6 w-full">
+        {/* Bottom CTA / Status Info */}
+        <div className="w-full pt-4 border-t border-hairline-dark">
           {!isAuthed ? (
-            <div>
-              <p className="text-on-primary-mute text-sm mb-3">
-                Увійди, щоб йобнути молотком
+            <div className="space-y-3">
+              <p className="text-on-primary-mute text-xs">
+                Потрібно увійти в систему, щоб здійснити удар молотком
               </p>
-              <Link href="/login" className="btn-ghost text-on-primary inline-block">
-                УВІЙТИ
+              <Link href="/login" className="btn-solid !py-2 !px-6 !text-xs">
+                УВІЙТИ В АКАУНТ
               </Link>
             </div>
           ) : cooldownLeft > 0 ? (
-            <p className="micro-cap text-ink-mute">
-              Наступний удар через{" "}
-              <span className="text-on-primary font-bold">
+            <p className="micro-cap text-ink-mute text-[11px]">
+              НАСТУПНИЙ УДАР ДОСТУПНИЙ ЧЕРЕЗ{" "}
+              <span className="text-on-primary font-mono font-bold text-xs">
                 {formatCooldown(cooldownLeft)}
               </span>
             </p>
           ) : (
-            <p className="micro-cap text-ink-mute">
-              Ти можеш вдарити. Не зловживай.
+            <p className="micro-cap text-on-primary text-[11px] font-mono font-bold">
+              ⚡ МОЛОТОК ЗАРЯДЖЕНИЙ · НАТИСНИ ДЛЯ УДАРУ
             </p>
           )}
-          <p className="text-red-500/50 text-[10px] mt-2 text-center flex items-center justify-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-            Удар рівно о 22:00 = x22 множник + кровавий ефект
-          </p>
+
+          {/* 22:00 Blood Night Mode Widget */}
+          <div className="mt-4 p-2.5 rounded-xl bg-canvas-night border border-hairline-dark/60 flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5 text-ink-mute font-mono text-[11px]">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              ПРОТОКОЛ 22:00 (x22 МНОЖНИК)
+            </span>
+            <span className="text-on-primary font-mono text-[11px] font-semibold">
+              ЧЕРЕЗ {timeUntil22}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Права колонка: статистика + лідерборд */}
-      <div className="flex flex-col gap-6">
-        <div className="card-dark p-6">
-          <p className="micro-cap text-ink-mute mb-3">ЗАГАЛОМ</p>
-          <p className="heading-sub text-on-primary leading-none">
-            {(state?.totalHits ?? 0).toLocaleString("uk-UA")}
-          </p>
-          <p className="text-on-primary-mute text-sm mt-1">
-            ударів від{" "}
-            <span className="text-on-primary font-bold">
-              {(state?.totalHitters ?? 0).toLocaleString("uk-UA")}
-            </span>{" "}
-            учасників
-          </p>
+      <div className="space-y-6">
+        {/* Global & Personal Stats Cards */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="card-dark p-5 rounded-xl">
+            <p className="micro-cap text-ink-mute text-[10px] mb-1">ЗАГАЛОМ УДАРІВ</p>
+            <p className="heading-sub !text-2xl text-on-primary font-mono leading-none">
+              {(state?.totalHits ?? 0).toLocaleString("uk-UA")}
+            </p>
+            <p className="text-xs text-ink-mute mt-2">
+              від <span className="text-on-primary font-bold">{state?.totalHitters ?? 0}</span> бійців
+            </p>
+          </div>
+
+          <div className="card-dark p-5 rounded-xl">
+            <p className="micro-cap text-ink-mute text-[10px] mb-1">ТВОЯ АКТИВНІСТЬ</p>
+            <p className="heading-sub !text-2xl text-on-primary font-mono leading-none">
+              {isAuthed && me ? me.count.toLocaleString("uk-UA") : "—"}
+            </p>
+            <p className="text-xs text-ink-mute mt-2">
+              {isAuthed && me?.rank ? `Місце у топі: #${me.rank}` : "Увійдіть для участі"}
+            </p>
+          </div>
         </div>
 
-        {isAuthed && me && (
-          <div className="card-dark p-6">
-            <p className="micro-cap text-ink-mute mb-3">ТИ</p>
-            <div className="flex items-baseline gap-3">
-              <p className="heading-sub text-on-primary leading-none">
-                {me.count.toLocaleString("uk-UA")}
-              </p>
-              <p className="text-on-primary-mute text-sm">разів йобнув</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-              <div>
-                <p className="text-ink-mute micro-cap">МІСЦЕ В ТОПІ</p>
-                <p className="text-on-primary font-bold text-lg mt-1">
-                  {me.rank ? `#${me.rank}` : "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-ink-mute micro-cap">ОСТАННІЙ УДАР</p>
-                <p className="text-on-primary font-bold text-sm mt-1">
-                  {timeAgo(me.lastHitAt)}
-                </p>
-              </div>
-            </div>
+        {/* Global Top Leaderboard */}
+        <div className="card-dark p-6 rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <p className="micro-cap text-ink-mute text-[11px]">ТОП КОВАЛІВ ХАБУ</p>
+            <span className="micro-cap text-ink-mute text-[10px] font-mono">LIVE СИНХРОНІЗАЦІЯ</span>
           </div>
-        )}
 
-        <div className="card-dark p-6">
-          <p className="micro-cap text-ink-mute mb-4">ТОП ЛІДЕРІВ</p>
           {loading ? (
-            <div className="flex items-center gap-2 text-ink-mute text-sm py-4 justify-center">
-              <span className="animate-spin w-3 h-3 border border-on-primary border-t-transparent rounded-full" />
-              завантаження...
+            <div className="flex items-center gap-2 text-ink-mute text-xs py-8 justify-center">
+              <span className="animate-spin w-4 h-4 border border-on-primary border-t-transparent rounded-full" />
+              Оновлення таблиці лідерів...
             </div>
           ) : !state || state.leaderboard.length === 0 ? (
-            <p className="text-on-primary-mute text-sm py-4 text-center">
-              Ще ніхто не йобнув. Будь першим.
+            <p className="text-on-primary-mute text-xs py-8 text-center">
+              Ще ніхто не здійснив удару. Будь першим.
             </p>
           ) : (
-            <ol className="flex flex-col gap-1.5">
+            <div className="divide-y divide-hairline-dark/60">
               {state.leaderboard.map((row, idx) => {
                 const isMe = me?.userId === row.user_id;
                 const rank = idx + 1;
-                const medal =
-                  rank === 1
-                    ? "1"
-                    : rank === 2
-                      ? "2"
-                      : rank === 3
-                        ? "3"
-                        : `${rank}`;
-                const name =
-                  row.display_name || row.username || "анонімний кодло";
+                const name = row.display_name || row.username || "Кодло-коваль";
                 return (
-                  <li
+                  <div
                     key={row.user_id}
-                    className={`flex items-center gap-3 px-3 py-2 rounded ${
-                      isMe ? "bg-canvas-night-soft" : ""
+                    className={`flex items-center justify-between py-3 px-2 rounded-xl transition-colors ${
+                      isMe ? "bg-white/[0.04]" : "hover:bg-canvas-night/60"
                     }`}
                   >
-                    <span
-                      className={`w-7 text-center font-[var(--font-display)] font-black text-sm ${
-                        rank === 1
-                          ? "text-yellow-300"
-                          : rank === 2
-                            ? "text-gray-300"
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Clean Minimalist Monochrome Rank */}
+                      <span
+                        className={`w-5 text-center font-mono font-bold text-sm shrink-0 ${
+                          rank === 1
+                            ? "text-on-primary"
+                            : rank === 2
+                            ? "text-zinc-300"
                             : rank === 3
-                              ? "text-amber-600"
-                              : "text-ink-mute"
-                      }`}
-                    >
-                      {medal}
-                    </span>
-                    <Avatar src={row.avatar_url} displayName={row.display_name || row.username} size={28} />
-                    <Link
-                      href={`/profile/${row.user_id}`}
-                      className={`flex-1 truncate text-sm hover:underline ${
-                        isMe ? "text-on-primary font-bold" : "text-on-primary-mute"
-                      }`}
-                    >
-                      {name}
-                      {isMe && (
-                        <span className="ml-2 micro-cap text-ink-mute">
-                          (ти)
-                        </span>
-                      )}
-                    </Link>
-                    <span className="font-[var(--font-display)] font-black text-on-primary text-base tabular-nums">
-                      {row.count}
-                    </span>
-                    <span className="micro-cap text-ink-mute hidden sm:inline">
-                      ударів
-                    </span>
-                  </li>
+                            ? "text-zinc-400"
+                            : "text-ink-mute text-xs font-normal"
+                        }`}
+                      >
+                        {rank}
+                      </span>
+
+                      <Avatar src={row.avatar_url} displayName={name} size={28} />
+
+                      <div className="min-w-0">
+                        <Link
+                          href={`/profile/${row.user_id}`}
+                          className="text-xs font-semibold hover:underline truncate block text-on-primary"
+                        >
+                          {name}
+                        </Link>
+                        {isMe && <span className="text-[10px] text-ink-mute font-mono">Це ви</span>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <span className="font-mono text-sm font-bold text-on-primary">
+                        {row.count}
+                      </span>
+                      <span className="micro-cap text-ink-mute text-[10px]">уд.</span>
+                    </div>
+                  </div>
                 );
               })}
-            </ol>
+            </div>
           )}
         </div>
 
-        <p className="text-on-primary-mute/40 text-[10px] text-center">
-          Глобальний рахунок спільний для всіх учасників KodloHUB.
-          Удари зберігаються в історії назавжди.
+        <p className="text-ink-mute text-[11px] text-center font-mono">
+          Глобальний протокол ударів зберігається в базі даних назавжди.
         </p>
       </div>
 
       <style jsx global>{`
-        @keyframes hammerImpact {
-          0% {
-            transform: scale(1) rotate(0deg);
-          }
-          18% {
-            transform: scale(0.82) rotate(-3deg);
-          }
-          38% {
-            transform: scale(1.12) rotate(2deg);
-          }
-          60% {
-            transform: scale(0.96) rotate(-1deg);
-          }
-          100% {
-            transform: scale(1) rotate(0deg);
-          }
-        }
         @keyframes floatUp {
           0% {
             opacity: 0;
@@ -454,12 +480,30 @@ export default function HammerClient() {
           }
           20% {
             opacity: 1;
-            transform: translateY(-30px) scale(1.15);
+            transform: translateY(-25px) scale(1.15);
           }
           100% {
             opacity: 0;
-            transform: translateY(-160px) scale(0.9);
+            transform: translateY(-130px) scale(0.85);
           }
+        }
+        @keyframes shockwaveExpand {
+          0% {
+            transform: scale(0.8);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(1.6);
+            opacity: 0;
+          }
+        }
+        @keyframes impactShake {
+          0% { transform: translate(0, 0); }
+          20% { transform: translate(-3px, 2px); }
+          40% { transform: translate(3px, -2px); }
+          60% { transform: translate(-2px, 1px); }
+          80% { transform: translate(2px, -1px); }
+          100% { transform: translate(0, 0); }
         }
         @keyframes bloodFlash {
           0% { opacity: 1; }

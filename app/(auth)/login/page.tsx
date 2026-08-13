@@ -43,7 +43,7 @@ function LoginContent() {
           </p>
         </div>
 
-        <div className="card-dark p-8">
+        <div className="card-dark p-8 space-y-4">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-on-primary border-t-transparent rounded-full mx-auto mb-4" />
@@ -76,7 +76,7 @@ function LoginContent() {
                 Google
               </button>
 
-              <p className="caption text-ink-mute text-center mt-6">
+              <p className="caption text-ink-mute text-center pt-2">
                 Натисни — Google запитає підтвердження
               </p>
             </>

@@ -36,6 +36,9 @@ interface Profile {
   bio: string | null;
   role: string;
   created_at: string;
+  telegram_id?: string | null;
+  telegram_username?: string | null;
+  kava_balance_cache?: number;
 }
 
 interface Post {
@@ -54,8 +57,44 @@ interface Media {
   lore_items?: { id: string }[] | null;
 }
 
+interface UserProject {
+  id: string;
+  slug: string;
+  title: string;
+  short_description: string;
+  status: string;
+  progress_percent: number;
+  types: string[] | null;
+  created_at: string;
+}
+
+interface UserWiki {
+  id: string;
+  slug: string;
+  title: string;
+  view_count: number;
+  created_at: string;
+  wiki_categories?: { name: string; slug: string; icon: string } | null;
+}
+
+interface UserLore {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  created_at: string;
+}
+
 const getProfileData = unstable_cache(
-  async (id: string): Promise<{ profile: Profile | null; posts: Post[]; media: Media[]; commentCount: number }> => {
+  async (id: string): Promise<{
+    profile: Profile | null;
+    posts: Post[];
+    media: Media[];
+    projects: UserProject[];
+    wikiArticles: UserWiki[];
+    loreItems: UserLore[];
+    commentCount: number;
+  }> => {
     const supabase = createAdminClient();
 
     const { data: profile } = await supabase
@@ -65,10 +104,18 @@ const getProfileData = unstable_cache(
       .single();
 
     if (!profile) {
-      return { profile: null, posts: [], media: [], commentCount: 0 };
+      return {
+        profile: null,
+        posts: [],
+        media: [],
+        projects: [],
+        wikiArticles: [],
+        loreItems: [],
+        commentCount: 0,
+      };
     }
 
-    const [postsRes, mediaRes, postCommentsRes, mediaCommentsRes] = await Promise.all([
+    const [postsRes, mediaRes, projectsRes, wikiRes, loreRes, postCommentsRes, mediaCommentsRes] = await Promise.all([
       supabase
         .from("posts")
         .select("id, title, content, created_at")
@@ -77,6 +124,22 @@ const getProfileData = unstable_cache(
       supabase
         .from("media")
         .select("id, file_url, file_type, caption, created_at")
+        .eq("author_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("projects")
+        .select("id, slug, title, short_description, status, progress_percent, types, created_at")
+        .eq("created_by", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("wiki_articles")
+        .select("id, slug, title, view_count, created_at, wiki_categories(name, slug, icon)")
+        .eq("author_id", id)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("lore_items")
+        .select("id, title, description, category, created_at")
         .eq("author_id", id)
         .order("created_at", { ascending: false }),
       supabase
@@ -89,14 +152,22 @@ const getProfileData = unstable_cache(
         .eq("author_id", id),
     ]);
 
+    const wikiArticles = (wikiRes.data || []).map((a: any) => ({
+      ...a,
+      wiki_categories: Array.isArray(a.wiki_categories) ? a.wiki_categories[0] : a.wiki_categories || null,
+    }));
+
     return {
       profile: profile as Profile,
       posts: (postsRes.data || []) as Post[],
       media: (mediaRes.data || []) as Media[],
+      projects: (projectsRes.data || []) as UserProject[],
+      wikiArticles: wikiArticles as UserWiki[],
+      loreItems: (loreRes.data || []) as UserLore[],
       commentCount: (postCommentsRes.count || 0) + (mediaCommentsRes.count || 0),
     };
   },
-  ["profile-data"],
+  ["profile-data-v2"],
   { revalidate: 60 }
 );
 
@@ -106,7 +177,7 @@ export default async function ProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { profile, posts, media, commentCount } = await getProfileData(id);
+  const { profile, posts, media, projects, wikiArticles, loreItems, commentCount } = await getProfileData(id);
 
   if (!profile) {
     return (
@@ -116,5 +187,16 @@ export default async function ProfilePage({
     );
   }
 
-  return <ProfileClient profile={profile} initialPosts={posts} initialMedia={media} commentCount={commentCount} />;
+  return (
+    <ProfileClient
+      profile={profile}
+      initialPosts={posts}
+      initialMedia={media}
+      initialProjects={projects}
+      initialWikiArticles={wikiArticles}
+      initialLoreItems={loreItems}
+      commentCount={commentCount}
+    />
+  );
 }
+
