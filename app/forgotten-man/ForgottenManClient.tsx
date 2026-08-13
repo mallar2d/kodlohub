@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 const AUDIO_URL = "https://deltarune.wiki/images/Man_2_music.ogg?cb=cajews&h=thumb.php&f=Man_2_music.ogg";
-const IMAGE_URL = "https://i.ytimg.com/vi/Tzba0JRr0qA/maxresdefault.jpg";
+const IMAGE_URL = "/tree.gif";
 
 export default function ForgottenManClient() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -46,9 +46,12 @@ export default function ForgottenManClient() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={IMAGE_URL}
-          alt="Forgotten Man"
+          alt="Tree"
           draggable={false}
-          className="max-w-full max-h-[60vh] w-auto h-auto object-contain pointer-events-none select-none"
+          className="max-w-full max-h-[60vh] w-auto h-auto object-contain pointer-events-none select-none [image-rendering:pixelated]"
+          style={{
+            imageRendering: "pixelated",
+          }}
         />
       </div>
 
