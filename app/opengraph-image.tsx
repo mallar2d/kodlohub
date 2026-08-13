@@ -18,25 +18,14 @@ export default function Image() {
           flexDirection: "column",
           justifyContent: "space-between",
           backgroundColor: "#000000",
-          backgroundImage: "radial-gradient(circle at 50% 0%, #151515 0%, #000000 75%)",
+          backgroundImage: "radial-gradient(circle at 50% 0%, #171717 0%, #050505 80%)",
           color: "#ffffff",
           fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           padding: "54px 60px",
-          position: "relative",
+          border: "1px solid #23252a",
           boxSizing: "border-box",
         }}
       >
-        {/* Subtle Outer Frame */}
-        <div
-          style={{
-            position: "absolute",
-            inset: "24px",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            borderRadius: "24px",
-            pointerEvents: "none",
-          }}
-        />
-
         {/* Top Header Row */}
         <div
           style={{
@@ -44,7 +33,6 @@ export default function Image() {
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            zIndex: 2,
           }}
         >
           {/* Eyebrow Pill */}
@@ -55,7 +43,7 @@ export default function Image() {
               gap: "10px",
               padding: "8px 18px",
               borderRadius: "9999px",
-              background: "rgba(255, 255, 255, 0.04)",
+              background: "rgba(255, 255, 255, 0.05)",
               border: "1px solid rgba(255, 255, 255, 0.12)",
             }}
           >
@@ -90,7 +78,7 @@ export default function Image() {
               padding: "6px 14px",
               borderRadius: "8px",
               background: "rgba(255, 255, 255, 0.03)",
-              border: "1px solid rgba(255, 255, 255, 0.07)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
               color: "#a1a1aa",
               fontSize: "12px",
               fontFamily: "monospace",
@@ -109,12 +97,11 @@ export default function Image() {
             flexDirection: "column",
             marginTop: "16px",
             marginBottom: "16px",
-            zIndex: 2,
           }}
         >
           <div
             style={{
-              fontSize: "92px",
+              fontSize: "96px",
               fontWeight: 900,
               letterSpacing: "-0.04em",
               lineHeight: 0.95,
@@ -145,7 +132,6 @@ export default function Image() {
             display: "flex",
             gap: "14px",
             width: "100%",
-            zIndex: 2,
           }}
         >
           {[

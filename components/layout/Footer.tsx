@@ -151,8 +151,21 @@ export default function Footer() {
               POWERED BY PODROID
             </span>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <span className="font-mono text-[11px]">© {new Date().getFullYear()} 22:00 КОДЛО · KODLOHUB 2.0</span>
+            <Link
+              href="/forgotten-man"
+              className="opacity-30 hover:opacity-100 transition-opacity duration-300 inline-flex items-center justify-center p-0.5 group"
+              title="???"
+              aria-label="Egg"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/egg.png"
+                alt="egg"
+                className="w-3.5 h-3.5 object-contain select-none group-hover:scale-125 transition-transform [image-rendering:pixelated]"
+              />
+            </Link>
           </div>
         </div>
       </div>
