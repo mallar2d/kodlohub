@@ -25,7 +25,7 @@ const TOOLS_DATA: ToolItem[] = [
     category: "utilities",
     categoryLabel: "ЕКОНОМІКА / БОТ",
     badge: "Telegram Sync & Balance",
-    description: "Підключи свій Telegram від @podroid_bot. Клейми каву о 22:00, отримуй бонуси, роби депи, переказуй ☕ друзям та дивись лідерборд.",
+    description: "Підключи свій Telegram від @podroid_bot. Йобай каву о 22:00 за Коростишевом, отримуй бонуси, бийся в дуелях, купуй лут та дивись лідерборд.",
     href: "/tools/kava",
     ctaText: "ВІДКРИТИ KAVA HUB",
     icon: (

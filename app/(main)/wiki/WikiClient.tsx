@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { wikiCategoryIcons } from "@/lib/wiki-icons";
 
 export function stripWikiMarkup(text: string): string {
@@ -74,6 +75,32 @@ export default function WikiClient({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cachedRole = localStorage.getItem("userRole");
+    if (cachedRole) {
+      setUserRole(cachedRole);
+      return;
+    }
+
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+        if (profile?.role) {
+          setUserRole(profile.role);
+          localStorage.setItem("userRole", profile.role);
+        }
+      }
+    });
+  }, []);
+
+  const canCreate = userRole === "owner" || userRole === "podrofikovany";
 
   const getCategoryCount = (slug: string) => {
     return articles.filter((a) => a.wiki_categories?.slug === slug).length;
@@ -108,62 +135,35 @@ export default function WikiClient({
   };
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6">
-      <div className="max-w-[1200px] mx-auto space-y-10">
-        {/* Top Hero Header */}
-        <div className="card-dark p-6 sm:p-10 rounded-2xl relative overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="badge-status">
-                <span className="pulse-dot" />
-                <span className="text-on-primary font-mono text-[11px]">KODLOPEDIA</span>
-              </div>
-              <span className="micro-cap text-ink-mute text-[11px]">ВІДКРИТА ЕНЦИКЛОПЕДІЯ</span>
-            </div>
+    <div className="min-h-screen pt-24 pb-20 px-4 sm:px-6">
+      <div className="max-w-[1200px] mx-auto space-y-6">
+        {/* Clean Top Action Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline-dark pb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="micro-cap text-ink-mute">КОДЛОПЕДІЯ</span>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRandomArticle}
-                className="button-cap px-3.5 py-1.5 rounded-full border border-hairline-dark text-xs text-on-primary hover:border-white/40 hover:bg-white/[0.05] transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="16 3 21 3 21 8" />
-                  <line x1="4" y1="20" x2="21" y2="3" />
-                  <polyline points="21 16 21 21 16 21" />
-                  <line x1="15" y1="15" x2="21" y2="21" />
-                </svg>
-                ВИПАДКОВА СТАТТЯ
-              </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRandomArticle}
+              className="button-cap px-3.5 py-1.5 rounded-lg border border-hairline-dark text-xs text-on-primary hover:border-white/40 hover:bg-white/[0.05] transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="16 3 21 3 21 8" />
+                <line x1="4" y1="20" x2="21" y2="3" />
+                <polyline points="21 16 21 21 16 21" />
+                <line x1="15" y1="15" x2="21" y2="21" />
+              </svg>
+              ВИПАДКОВА СТАТТЯ
+            </button>
+            {canCreate && (
               <Link
-                href="/upload"
-                className="btn-solid !py-1.5 !px-3.5 !text-xs"
+                href="/wiki/general/new/edit"
+                className="btn-ghost text-on-primary !py-1.5 !px-3.5 !text-xs font-bold"
               >
                 + СТВОРИТИ
               </Link>
-            </div>
-          </div>
-
-          <h1 className="heading-hero !text-3xl sm:!text-5xl mb-3">
-            КОДЛО<span className="text-on-primary-mute">ПЕДІЯ</span>
-          </h1>
-
-          <p className="text-on-primary-mute text-sm sm:text-base max-w-2xl leading-relaxed mb-6">
-            Централізована база знань: біографії, хроніки подій, артефакти, терміни та внутрішній культурний код спільноти.
-          </p>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-hairline-dark">
-            {[
-              { label: "СТАТЕЙ У БАЗІ", value: articles.length },
-              { label: "АКТИВНИХ РОЗДІЛІВ", value: activeCategories.length },
-              { label: "ПЕРЕГЛЯДІВ", value: totalViews },
-              { label: "СТАТУС БАЗИ", value: "АВТОНОМНА" },
-            ].map((stat) => (
-              <div key={stat.label} className="p-3 rounded-xl bg-canvas-night border border-hairline-dark/60">
-                <p className="heading-sub !text-lg text-on-primary font-mono">{stat.value}</p>
-                <p className="micro-cap text-ink-mute mt-0.5 text-[10px]">{stat.label}</p>
-              </div>
-            ))}
+            )}
           </div>
         </div>
 
