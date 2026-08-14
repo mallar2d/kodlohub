@@ -336,6 +336,9 @@ export interface Maggot {
   deathTime?: number;
   invulnerableUntil?: number;
   activeBuffs: ActiveBuff[];
+  // Dead reckoning target
+  targetX?: number;
+  targetY?: number;
 }
 
 export interface Particle {
@@ -409,8 +412,27 @@ export interface RemotePlayerSync {
   score: number;
   coffeeEaten: number;
   kills: number;
-  segments: Array<{ x: number; y: number; radius: number }>;
   activeBuffs: BuffType[];
   alive: boolean;
   t: number;
+}
+
+export interface RemoteDeathPayload {
+  victimId: string;
+  victimName: string;
+  killerId?: string;
+  killerName?: string;
+  killerSkin: SkinId;
+  x: number;
+  y: number;
+  score: number;
+  droppedFoods: Array<{
+    x: number;
+    y: number;
+    type: FoodType;
+    value: number;
+    vx: number;
+    vy: number;
+  }>;
+  spawnPowerUp?: boolean;
 }

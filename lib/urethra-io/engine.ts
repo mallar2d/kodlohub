@@ -11,6 +11,7 @@ import {
   type KillFeedItem,
   type LeaderboardEntry,
   type SkinId,
+  type RemoteDeathPayload,
   SKINS,
 } from "./types";
 import { SpatialGrid } from "./spatial-grid";
@@ -37,6 +38,7 @@ export class UrethraEngine {
   public player: Maggot | null = null;
   public isRunning = false;
   public gameOver = false;
+  public isHost = true;
 
   private nextFoodId = 1;
   private nextPowerUpId = 1;
@@ -55,6 +57,7 @@ export class UrethraEngine {
     finalRank: number;
   }) => void;
   public onKill?: (killer: string, victim: string) => void;
+  public onPlayerDeathBroadcast?: (payload: RemoteDeathPayload) => void;
   public onLeaderboardUpdate?: (entries: LeaderboardEntry[]) => void;
 
   constructor() {
@@ -180,7 +183,7 @@ export class UrethraEngine {
     return { x: bestX, y: bestY, angle: Math.random() * Math.PI * 2 };
   }
 
-  private createMaggot(
+  public createMaggot(
     id: string,
     name: string,
     skin: SkinId,
@@ -226,6 +229,8 @@ export class UrethraEngine {
       y,
       angle,
       targetAngle: angle,
+      targetX: x,
+      targetY: y,
       speed: 3.8,
       baseSpeed: 3.8,
       boostSpeed: 7.2,
@@ -382,11 +387,11 @@ export class UrethraEngine {
     this.foods.push(food);
   }
 
-  private calculateRadius(score: number): number {
+  public calculateRadius(score: number): number {
     return Math.min(36, 13 + Math.pow(score, 0.35) * 1.5);
   }
 
-  private calculateSegmentCount(score: number): number {
+  public calculateSegmentCount(score: number): number {
     return Math.min(180, Math.floor(12 + Math.pow(score, 0.46) * 3.8));
   }
 
@@ -397,7 +402,7 @@ export class UrethraEngine {
     const dt = Math.min(0.05, (now - this.lastTime) / 1000);
     this.lastTime = now;
 
-    // 1. Maintain Bot Count
+    // 1. Maintain Bot Count (host handles bots)
     let activeBots = 0;
     for (let i = 0; i < this.maggots.length; i++) {
       if (this.maggots[i].isBot && this.maggots[i].alive) activeBots++;
@@ -479,20 +484,18 @@ export class UrethraEngine {
       }
     }
 
-    // 8. Update Local Player and Bots Movement & Segments (skip remote players which sync via network)
+    // 8. Update Movements & Segments at 60 FPS
     for (let i = 0; i < this.maggots.length; i++) {
       const maggot = this.maggots[i];
-      if (!maggot.alive) continue;
-      if (maggot.isPlayer || maggot.isBot) {
-        this.updateMaggotMovement(maggot, dt, now);
-      }
+      if (!maggot.alive || this.deadMaggotIds.has(maggot.id)) continue;
+      this.updateMaggotMovement(maggot, dt, now);
     }
 
     // 9. Food & PowerUp Collisions
     this.checkFoodCollisions();
     this.checkPowerUpCollisions(now);
 
-    // 10. Maggot vs Maggot Body Collisions (with distance culling)
+    // 10. Authoritative Head Collisions (Zero-duplication)
     this.checkMaggotCollisions(now);
 
     // 11. Update Shockwaves & Particles
@@ -507,13 +510,6 @@ export class UrethraEngine {
   }
 
   private updateMaggotMovement(maggot: Maggot, dt: number, now: number) {
-    let diff = maggot.targetAngle - maggot.angle;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-
-    const turnFactor = Math.max(0.04, 0.14 - Math.pow(maggot.score, 0.28) * 0.015);
-    maggot.angle += diff * turnFactor;
-
     const hasTurboBuff = this.hasBuff(maggot, "turbo");
     const isBoosting = maggot.isBoosting && (maggot.score > 25 || hasTurboBuff);
     const speedMultiplier = hasTurboBuff ? 1.35 : 1.0;
@@ -521,9 +517,37 @@ export class UrethraEngine {
     const currentRadius = this.calculateRadius(maggot.score);
     const targetSegmentCount = this.calculateSegmentCount(maggot.score);
 
+    // 1. Local Player & Bots Rotation & Movement
+    if (maggot.isPlayer || maggot.isBot) {
+      let diff = maggot.targetAngle - maggot.angle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+
+      const turnFactor = Math.max(0.04, 0.14 - Math.pow(maggot.score, 0.28) * 0.015);
+      maggot.angle += diff * turnFactor;
+
+      const moveDist = currentSpeed * 60 * dt;
+      maggot.x += Math.cos(maggot.angle) * moveDist;
+      maggot.y += Math.sin(maggot.angle) * moveDist;
+    } else {
+      // 2. Remote Players 60 FPS Dead Reckoning Interpolation
+      let diff = maggot.targetAngle - maggot.angle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      maggot.angle += diff * 0.22;
+
+      if (maggot.targetX !== undefined && maggot.targetY !== undefined) {
+        maggot.x += (maggot.targetX - maggot.x) * 0.25;
+        maggot.y += (maggot.targetY - maggot.y) * 0.25;
+      }
+      const moveDist = currentSpeed * 60 * dt;
+      maggot.x += Math.cos(maggot.angle) * moveDist;
+      maggot.y += Math.sin(maggot.angle) * moveDist;
+    }
+
     // Turbo mass consumption & trails
     if (isBoosting) {
-      if (!hasTurboBuff) {
+      if (!hasTurboBuff && (maggot.isPlayer || maggot.isBot)) {
         const burnRate = 2.4 * dt;
         maggot.score = Math.max(25, maggot.score - burnRate);
       }
@@ -551,10 +575,6 @@ export class UrethraEngine {
       }
     }
 
-    const moveDist = currentSpeed * 60 * dt;
-    maggot.x += Math.cos(maggot.angle) * moveDist;
-    maggot.y += Math.sin(maggot.angle) * moveDist;
-
     // Arena boundary clamp
     const distFromCenter = Math.hypot(maggot.x, maggot.y);
     if (distFromCenter > ARENA_RADIUS - currentRadius) {
@@ -564,7 +584,7 @@ export class UrethraEngine {
       maggot.targetAngle = boundaryAngle + Math.PI + (Math.random() - 0.5) * 0.6;
     }
 
-    // Segments follow
+    // Segments follow with smooth inverse kinematics locally for ALL maggots
     if (maggot.segments.length === 0) {
       maggot.segments.push({ x: maggot.x, y: maggot.y, radius: currentRadius });
     } else {
@@ -606,7 +626,7 @@ export class UrethraEngine {
 
     for (let i = 0; i < this.maggots.length; i++) {
       const maggot = this.maggots[i];
-      if (!maggot.alive) continue;
+      if (!maggot.alive || this.deadMaggotIds.has(maggot.id)) continue;
 
       const head = maggot.segments[0] || maggot;
       const eatRadius = head.radius + 18;
@@ -644,7 +664,7 @@ export class UrethraEngine {
 
       for (let m = 0; m < this.maggots.length; m++) {
         const maggot = this.maggots[m];
-        if (!maggot.alive) continue;
+        if (!maggot.alive || this.deadMaggotIds.has(maggot.id)) continue;
 
         const head = maggot.segments[0] || maggot;
         const dx = head.x - pu.x;
@@ -704,7 +724,7 @@ export class UrethraEngine {
 
     for (let i = 0; i < this.maggots.length; i++) {
       const m = this.maggots[i];
-      if (!m.alive) continue;
+      if (!m.alive || this.deadMaggotIds.has(m.id)) continue;
       const dx = m.x - x;
       const dy = m.y - y;
       const dist = Math.hypot(dx, dy);
@@ -716,9 +736,27 @@ export class UrethraEngine {
     }
   }
 
+  /**
+   * Self-authoritative collision checks:
+   * Local client only checks if local player's OWN head hits another body.
+   * If local player is Host, also checks local bots' heads.
+   */
   private checkMaggotCollisions(now: number) {
-    for (let i = 0; i < this.maggots.length; i++) {
-      const maggotA = this.maggots[i];
+    const attackers: Maggot[] = [];
+    if (this.player && this.player.alive && !this.deadMaggotIds.has(this.player.id)) {
+      attackers.push(this.player);
+    }
+    if (this.isHost) {
+      for (let i = 0; i < this.maggots.length; i++) {
+        const m = this.maggots[i];
+        if (m.isBot && m.alive && !this.deadMaggotIds.has(m.id)) {
+          attackers.push(m);
+        }
+      }
+    }
+
+    for (let a = 0; a < attackers.length; a++) {
+      const maggotA = attackers[a];
       if (!maggotA.alive || this.deadMaggotIds.has(maggotA.id)) continue;
 
       if ((maggotA.invulnerableUntil && now < maggotA.invulnerableUntil) || this.hasBuff(maggotA, "ghost")) {
@@ -728,15 +766,14 @@ export class UrethraEngine {
       const headA = maggotA.segments[0] || maggotA;
 
       for (let j = 0; j < this.maggots.length; j++) {
-        if (i === j) continue;
         const maggotB = this.maggots[j];
-        if (!maggotB.alive || this.deadMaggotIds.has(maggotB.id)) continue;
+        if (maggotA.id === maggotB.id || !maggotB.alive || this.deadMaggotIds.has(maggotB.id)) continue;
 
         if (maggotB.invulnerableUntil && now < maggotB.invulnerableUntil) {
           continue;
         }
 
-        // Fast bounding circle culling: skip maggotB if far away
+        // Fast bounding circle culling
         const bHead = maggotB.segments[0] || maggotB;
         const approxReach = maggotB.segments.length * (bHead.radius * 0.75) + 60;
         const distToBHeadSq = (headA.x - bHead.x) * (headA.x - bHead.x) + (headA.y - bHead.y) * (headA.y - bHead.y);
@@ -753,7 +790,7 @@ export class UrethraEngine {
           const hitDist = headA.radius + segB.radius - 3;
 
           if (distSq < hitDist * hitDist) {
-            this.killMaggot(maggotA, maggotB);
+            this.handleAuthoritativeKill(maggotA, maggotB);
             break;
           }
         }
@@ -761,6 +798,118 @@ export class UrethraEngine {
         if (!maggotA.alive) break;
       }
     }
+  }
+
+  private handleAuthoritativeKill(victim: Maggot, killer: Maggot) {
+    if (!victim.alive || this.deadMaggotIds.has(victim.id)) return;
+
+    // 1. Prepare deterministic drop payload
+    const totalDropMass = Math.max(40, Math.floor(victim.score * 0.8));
+    const segCount = victim.segments.length;
+    let distributedMass = 0;
+    const droppedFoods: RemoteDeathPayload["droppedFoods"] = [];
+
+    for (let s = 0; s < segCount; s++) {
+      if (distributedMass >= totalDropMass) break;
+      const seg = victim.segments[s];
+
+      const burstAngle = Math.random() * Math.PI * 2;
+      const burstSpeed = 3 + Math.random() * 8;
+      const vx = Math.cos(burstAngle) * burstSpeed;
+      const vy = Math.sin(burstAngle) * burstSpeed;
+
+      let foodType: FoodType = "granule";
+      let foodVal = 5;
+
+      const roll = Math.random();
+      if (victim.score > 400 && roll < 0.2) {
+        foodType = "sadoczyk";
+        foodVal = 40;
+      } else if (victim.score > 200 && roll < 0.35) {
+        foodType = "carrot";
+        foodVal = 25;
+      } else if (roll < 0.6) {
+        foodType = "drop";
+        foodVal = 12;
+      } else {
+        foodType = "bean";
+        foodVal = 6;
+      }
+
+      droppedFoods.push({
+        x: seg.x,
+        y: seg.y,
+        type: foodType,
+        value: foodVal,
+        vx,
+        vy,
+      });
+      distributedMass += foodVal;
+    }
+
+    const payload: RemoteDeathPayload = {
+      victimId: victim.id,
+      victimName: victim.name,
+      killerId: killer.id,
+      killerName: killer.name,
+      killerSkin: killer.skin,
+      x: victim.x,
+      y: victim.y,
+      score: victim.score,
+      droppedFoods,
+      spawnPowerUp: victim.score >= 180,
+    };
+
+    // Execute death locally
+    this.killMaggot(victim, killer);
+
+    // Broadcast if player died
+    if (victim.isPlayer) {
+      this.onPlayerDeathBroadcast?.(payload);
+    }
+  }
+
+  public applyRemoteDeath(payload: RemoteDeathPayload) {
+    if (this.deadMaggotIds.has(payload.victimId)) return;
+    this.deadMaggotIds.add(payload.victimId);
+
+    const victim = this.maggots.find((m) => m.id === payload.victimId);
+    if (victim) {
+      victim.alive = false;
+      victim.deathTime = performance.now();
+    }
+
+    // If local player is the killer, claim massive reward
+    if (this.player && payload.killerId === this.player.id) {
+      const bounty = Math.max(30, Math.floor(payload.score * 0.4));
+      this.player.kills += 1;
+      this.player.score += bounty;
+      audio.playKill();
+      this.addFloatingText(payload.x, payload.y, `+${bounty}g ДЖЕКПОТ!`, "#ffd700");
+    }
+
+    // Shockwave
+    this.shockwaves.push({
+      x: payload.x,
+      y: payload.y,
+      radius: 10,
+      maxRadius: Math.min(350, 90 + payload.score * 0.45),
+      life: 0.7,
+      maxLife: 0.7,
+      color: "rgba(212, 175, 55, 0.9)",
+    });
+
+    // Spawn exact dropped food items
+    for (let i = 0; i < payload.droppedFoods.length; i++) {
+      const df = payload.droppedFoods[i];
+      this.spawnSingleFood(df.x, df.y, df.type, df.value, df.vx, df.vy);
+    }
+
+    if (payload.spawnPowerUp) {
+      this.spawnSinglePowerUp(payload.x, payload.y);
+    }
+
+    this.addKillFeed(payload.killerName || "Опариш", payload.victimName, payload.killerSkin);
   }
 
   public killMaggot(victim: Maggot, killer?: Maggot) {
@@ -774,7 +923,7 @@ export class UrethraEngine {
       audio.playDeath();
     }
 
-    // 1. Direct Kill Bounty: 40% mass absorbed directly by killer
+    // 1. Direct Kill Bounty
     if (killer && killer.alive && !this.deadMaggotIds.has(killer.id)) {
       killer.kills += 1;
       const killBounty = Math.max(30, Math.floor(victim.score * 0.4));
@@ -787,7 +936,7 @@ export class UrethraEngine {
       this.onKill?.(killer.name, victim.name);
     }
 
-    // 2. Epic radial shockwave burst
+    // 2. Shockwave burst
     this.shockwaves.push({
       x: victim.x,
       y: victim.y,
@@ -798,12 +947,11 @@ export class UrethraEngine {
       color: "rgba(212, 175, 55, 0.9)",
     });
 
-    // 3. Guaranteed Power-Up Orb drop if victim was large
     if (victim.score >= 180) {
       this.spawnSinglePowerUp(victim.x, victim.y);
     }
 
-    // 4. Massive Concentrated Loot Spills (80% of victim's remaining mass)
+    // 3. Loot drops
     const totalDropMass = Math.max(40, Math.floor(victim.score * 0.8));
     const segCount = victim.segments.length;
     let distributedMass = 0;
@@ -817,7 +965,6 @@ export class UrethraEngine {
       const vx = Math.cos(burstAngle) * burstSpeed;
       const vy = Math.sin(burstAngle) * burstSpeed;
 
-      // High-tier loot drops
       let foodType: FoodType = "granule";
       let foodVal = 5;
 
@@ -839,7 +986,6 @@ export class UrethraEngine {
       this.spawnSingleFood(seg.x, seg.y, foodType, foodVal, vx, vy);
       distributedMass += foodVal;
 
-      // Lightweight splatter particles (capped)
       if (this.particles.length < 120 && s % 2 === 0) {
         this.particles.push({
           x: seg.x,

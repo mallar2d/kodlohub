@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { RemotePlayerSync, SkinId } from "./types";
+import type { RemotePlayerSync, RemoteDeathPayload, SkinId } from "./types";
 import type { UrethraEngine } from "./engine";
 
 export class UrethraMultiplayer {
@@ -8,7 +8,8 @@ export class UrethraMultiplayer {
   private broadcastInterval: number | null = null;
   private cleanupInterval: number | null = null;
   private remotePlayers: Map<string, { sync: RemotePlayerSync; lastSeen: number }> = new Map();
-  private localPlayerId: string = "";
+  public localPlayerId: string = "";
+  public isHost = false;
   public onlineUsersCount = 1;
 
   public onOnlineCountChange?: (count: number) => void;
@@ -31,12 +32,14 @@ export class UrethraMultiplayer {
           this.handleRemoteSync(payload as RemotePlayerSync);
         })
         .on("broadcast", { event: "player_death" }, ({ payload }) => {
-          this.handleRemoteDeath(payload as { id: string; killerId?: string });
+          this.handleRemoteDeath(payload as RemoteDeathPayload);
         })
         .on("presence", { event: "sync" }, () => {
           const presenceState = channel.presenceState();
-          const count = Object.keys(presenceState).length;
-          this.onlineUsersCount = Math.max(1, count);
+          const userKeys = Object.keys(presenceState).sort();
+          this.onlineUsersCount = Math.max(1, userKeys.length);
+          this.isHost = userKeys[0] === localPlayerId;
+          this.engine.isHost = this.isHost;
           this.onOnlineCountChange?.(this.onlineUsersCount);
         })
         .subscribe(async (status) => {
@@ -54,15 +57,12 @@ export class UrethraMultiplayer {
 
       this.channel = channel;
     } catch {
-      // Fallback to local simulation mode silently
+      // Offline fallback
     }
   }
 
   public disconnect() {
-    if (this.broadcastInterval) {
-      window.clearInterval(this.broadcastInterval);
-      this.broadcastInterval = null;
-    }
+    this.stopBroadcasting();
 
     if (this.cleanupInterval) {
       window.clearInterval(this.cleanupInterval);
@@ -80,31 +80,23 @@ export class UrethraMultiplayer {
     this.remotePlayers.clear();
   }
 
-  private startBroadcasting(playerName: string, playerSkin: SkinId) {
+  public stopBroadcasting() {
     if (this.broadcastInterval) {
       window.clearInterval(this.broadcastInterval);
+      this.broadcastInterval = null;
     }
+  }
 
-    // 85ms broadcast rate (11.7 updates/sec) - optimal balance of precision and zero network latency
+  private startBroadcasting(playerName: string, playerSkin: SkinId) {
+    this.stopBroadcasting();
+
+    // 60ms broadcast tick (16.6 updates/sec) - crisp sync with minimal payload
     this.broadcastInterval = window.setInterval(() => {
       if (!this.engine.player || !this.engine.player.alive || !this.channel || this.engine.gameOver) {
         return;
       }
 
       const p = this.engine.player;
-
-      // Downsample segments payload if very long to prevent JSON serialize overhead
-      const segs = p.segments;
-      const step = segs.length > 80 ? 2 : 1;
-      const compactSegments: Array<{ x: number; y: number; radius: number }> = [];
-
-      for (let i = 0; i < segs.length; i += step) {
-        compactSegments.push({
-          x: Math.round(segs[i].x * 10) / 10,
-          y: Math.round(segs[i].y * 10) / 10,
-          radius: Math.round(segs[i].radius * 10) / 10,
-        });
-      }
 
       const payload: RemotePlayerSync = {
         id: this.localPlayerId,
@@ -117,7 +109,6 @@ export class UrethraMultiplayer {
         score: Math.floor(p.score),
         coffeeEaten: p.coffeeEaten,
         kills: p.kills,
-        segments: compactSegments,
         activeBuffs: p.activeBuffs.map((b) => b.type),
         alive: p.alive,
         t: Date.now(),
@@ -128,7 +119,7 @@ export class UrethraMultiplayer {
         event: "player_sync",
         payload,
       });
-    }, 85);
+    }, 60);
   }
 
   private startCleanupTimer() {
@@ -136,11 +127,11 @@ export class UrethraMultiplayer {
       window.clearInterval(this.cleanupInterval);
     }
 
-    // Remove inactive remote players if no heartbeat for 3s
+    // Clean inactive remote players if no message received for 3.5s
     this.cleanupInterval = window.setInterval(() => {
       const now = Date.now();
       for (const [id, data] of this.remotePlayers.entries()) {
-        if (now - data.lastSeen > 3000) {
+        if (now - data.lastSeen > 3500) {
           this.remotePlayers.delete(id);
           this.engine.maggots = this.engine.maggots.filter((m) => m.id !== id);
         }
@@ -150,8 +141,6 @@ export class UrethraMultiplayer {
 
   private handleRemoteSync(payload: RemotePlayerSync) {
     if (payload.id === this.localPlayerId) return;
-
-    // If this remote player is already dead, never resurrect or sync
     if (this.engine.isMaggotDead(payload.id)) return;
 
     if (!payload.alive) {
@@ -170,6 +159,17 @@ export class UrethraMultiplayer {
     let remoteMaggot = this.engine.maggots.find((m) => m.id === payload.id);
 
     if (!remoteMaggot && payload.alive) {
+      const initialRadius = this.engine.calculateRadius(payload.score);
+      const initialCount = this.engine.calculateSegmentCount(payload.score);
+      const segments = [];
+      for (let i = 0; i < initialCount; i++) {
+        segments.push({
+          x: payload.x - Math.cos(payload.angle) * (i * (initialRadius * 0.65)),
+          y: payload.y - Math.sin(payload.angle) * (i * (initialRadius * 0.65)),
+          radius: initialRadius,
+        });
+      }
+
       remoteMaggot = {
         id: payload.id,
         name: payload.name,
@@ -180,6 +180,8 @@ export class UrethraMultiplayer {
         y: payload.y,
         angle: payload.angle,
         targetAngle: payload.angle,
+        targetX: payload.x,
+        targetY: payload.y,
         speed: payload.isBoosting ? 7.2 : 3.8,
         baseSpeed: 3.8,
         boostSpeed: 7.2,
@@ -187,11 +189,11 @@ export class UrethraMultiplayer {
         score: payload.score,
         coffeeEaten: payload.coffeeEaten,
         kills: payload.kills,
-        segments: payload.segments,
-        segmentSpacing: payload.segments[0]?.radius ? payload.segments[0].radius * 0.65 : 12,
+        segments,
+        segmentSpacing: initialRadius * 0.65,
         alive: true,
         lastBoostDropTime: 0,
-        turnRate: 0.12,
+        turnRate: 0.14,
         activeBuffs: (payload.activeBuffs || []).map((t) => ({
           type: t,
           expiresAt: performance.now() + 1000,
@@ -200,18 +202,21 @@ export class UrethraMultiplayer {
       };
       this.engine.maggots.push(remoteMaggot);
     } else if (remoteMaggot && remoteMaggot.alive) {
-      // Smooth interpolation for remote maggot coordinates
-      remoteMaggot.x += (payload.x - remoteMaggot.x) * 0.6;
-      remoteMaggot.y += (payload.y - remoteMaggot.y) * 0.6;
-      remoteMaggot.angle = payload.angle;
+      // Update targets for dead reckoning
+      remoteMaggot.targetX = payload.x;
+      remoteMaggot.targetY = payload.y;
       remoteMaggot.targetAngle = payload.angle;
       remoteMaggot.isBoosting = payload.isBoosting;
       remoteMaggot.score = payload.score;
       remoteMaggot.coffeeEaten = payload.coffeeEaten;
       remoteMaggot.kills = payload.kills;
 
-      if (payload.segments && payload.segments.length > 0) {
-        remoteMaggot.segments = payload.segments;
+      // Teleport if too far out of sync (lag spike), otherwise let dead reckoning smoothly interpolate
+      const driftDistSq = (payload.x - remoteMaggot.x) * (payload.x - remoteMaggot.x) + (payload.y - remoteMaggot.y) * (payload.y - remoteMaggot.y);
+      if (driftDistSq > 280 * 280) {
+        remoteMaggot.x = payload.x;
+        remoteMaggot.y = payload.y;
+        remoteMaggot.angle = payload.angle;
       }
 
       remoteMaggot.activeBuffs = (payload.activeBuffs || []).map((t) => ({
@@ -222,25 +227,17 @@ export class UrethraMultiplayer {
     }
   }
 
-  private handleRemoteDeath(payload: { id: string; killerId?: string }) {
-    if (this.engine.isMaggotDead(payload.id)) return;
-    const maggot = this.engine.maggots.find((m) => m.id === payload.id);
-    if (maggot && maggot.alive) {
-      const killer = this.engine.maggots.find((m) => m.id === payload.killerId);
-      this.engine.killMaggot(maggot, killer);
-    }
+  private handleRemoteDeath(payload: RemoteDeathPayload) {
+    this.engine.applyRemoteDeath(payload);
   }
 
-  public notifyDeath(killerId?: string) {
-    if (this.broadcastInterval) {
-      window.clearInterval(this.broadcastInterval);
-      this.broadcastInterval = null;
-    }
+  public broadcastDeath(payload: RemoteDeathPayload) {
+    this.stopBroadcasting();
     if (!this.channel) return;
     this.channel.send({
       type: "broadcast",
       event: "player_death",
-      payload: { id: this.localPlayerId, killerId },
+      payload,
     });
   }
 }

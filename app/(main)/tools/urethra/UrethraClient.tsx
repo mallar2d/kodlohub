@@ -319,8 +319,12 @@ export default function UrethraClient() {
       setOnlineCount(count);
     };
 
+    engine.onPlayerDeathBroadcast = (payload) => {
+      mp.broadcastDeath(payload);
+    };
+
     engine.onGameOver = (stats) => {
-      mp.notifyDeath();
+      mp.stopBroadcasting();
       setLastGameStats({
         score: stats.score,
         coffeeEaten: stats.coffeeEaten,
@@ -340,8 +344,12 @@ export default function UrethraClient() {
       });
     };
 
+    const localPlayerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     engine.start(finalName, activeSkin);
-    mp.connect(`player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`, finalName, activeSkin);
+    if (engine.player) {
+      engine.player.id = localPlayerId;
+    }
+    mp.connect(localPlayerId, finalName, activeSkin);
   }, [playerName, selectedSkin, randomSkinOnRestart, submitScore]);
 
   useEffect(() => {
