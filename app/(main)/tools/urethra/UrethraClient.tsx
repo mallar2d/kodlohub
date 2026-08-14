@@ -332,6 +332,22 @@ export default function UrethraClient() {
 
     engine.onGameOver = (stats) => {
       multiplayerRef.current?.stopBroadcasting();
+
+      submitScore({
+        score: stats.score,
+        coffeeEaten: stats.coffeeEaten,
+        kills: stats.kills,
+        timeAlive: stats.timeAlive,
+        peakRank: stats.finalRank,
+        finalRank: stats.finalRank,
+      });
+
+      // Easter egg: If score is 10,000+, immediately transport player to /forgotten-man
+      if (stats.score >= 10000) {
+        window.location.href = "/forgotten-man";
+        return;
+      }
+
       setLastGameStats({
         score: stats.score,
         coffeeEaten: stats.coffeeEaten,
@@ -341,14 +357,6 @@ export default function UrethraClient() {
         finalRank: stats.finalRank,
       });
       setGameState("gameover");
-      submitScore({
-        score: stats.score,
-        coffeeEaten: stats.coffeeEaten,
-        kills: stats.kills,
-        timeAlive: stats.timeAlive,
-        peakRank: stats.finalRank,
-        finalRank: stats.finalRank,
-      });
     };
 
     const localPlayerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
