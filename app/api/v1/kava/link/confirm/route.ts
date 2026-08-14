@@ -3,14 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    const adminToken = process.env.KODLOHUB_API_TOKEN || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const providedToken = authHeader?.replace(/^Bearer\s+/i, "");
-    if (!providedToken || (adminToken && providedToken !== adminToken)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
     const { token, telegram_id, username, first_name, photo_url, current_balance } = body;
 

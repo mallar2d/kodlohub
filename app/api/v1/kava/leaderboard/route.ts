@@ -6,18 +6,37 @@ export async function GET() {
     const admin = createAdminClient();
 
     // Query leaderboard
-    const { data: rows, error } = await admin
+    let { data: rows, error } = await admin
       .from("kava_cached_leaderboard")
       .select("telegram_id, amount, first_name, username, photo_url, user_id, updated_at")
       .order("amount", { ascending: false })
       .limit(100);
 
     if (error) {
-      console.error("Leaderboard query error:", error);
-      return NextResponse.json(
-        { error: "Помилка завантаження лідерборду" },
-        { status: 500 }
-      );
+      console.warn("Leaderboard query warning (table might be empty or missing):", error);
+      rows = [];
+    }
+
+    // Fallback: If cache table is empty, load linked profiles
+    if (!rows || rows.length === 0) {
+      const { data: linkedProfiles } = await admin
+        .from("profiles")
+        .select("id, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache, avatar_url, full_name, role")
+        .not("telegram_id", "is", null)
+        .order("kava_balance_cache", { ascending: false })
+        .limit(100);
+
+      if (linkedProfiles && linkedProfiles.length > 0) {
+        rows = linkedProfiles.map((p) => ({
+          telegram_id: p.telegram_id,
+          amount: p.kava_balance_cache || 0,
+          first_name: p.telegram_first_name || p.full_name,
+          username: p.telegram_username,
+          photo_url: p.telegram_photo_url || p.avatar_url,
+          user_id: p.id,
+          updated_at: new Date().toISOString(),
+        }));
+      }
     }
 
     // Also fetch linked KodloHUB users for avatars/display names if present
