@@ -339,30 +339,47 @@ export default function KavaClient() {
 
   // Polling for Telegram link confirmation while modal is open
   useEffect(() => {
-    if (!linkPolling || isLinked) return;
+    if (!linkPolling || isLinked || !linkToken) return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/api/v1/kava/me", { cache: "no-store" });
+        const res = await fetch(`/api/v1/kava/link/status?token=${encodeURIComponent(linkToken)}`, {
+          cache: "no-store",
+        });
         if (res.ok) {
           const data = await res.json();
-          if (data.isLinked) {
+          if (data.linked) {
             setIsLinked(true);
             setTelegram(data.telegram);
             setBalance(data.balance);
             setCanClaim(data.canClaim);
             setSecondsUntilNextClaim(data.timeUntilNextClaim);
+            setTotalClaims(data.totalClaims || 0);
             setLinking(false);
             setLinkPolling(false);
-            toast("Telegram акаунт успішно підключено", "success");
+            toast("Telegram акаунт успішно підключено!", "success");
+            fetchKavaState();
+            fetchLeaderboard();
           }
         }
       } catch {
         // ignore
       }
-    }, 2500);
+    }, 1500);
 
     return () => clearInterval(interval);
-  }, [linkPolling, isLinked, toast]);
+  }, [linkPolling, isLinked, linkToken, toast, fetchKavaState, fetchLeaderboard]);
+
+  // Window focus re-sync
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchKavaState();
+        fetchLeaderboard();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [user, fetchKavaState, fetchLeaderboard]);
 
   // Start Telegram Link Flow
   const handleStartLink = async () => {
@@ -678,6 +695,7 @@ export default function KavaClient() {
             onClick={() => {
               setTab("hub");
               setGameMode("list");
+              fetchKavaState();
             }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "hub"
@@ -688,7 +706,11 @@ export default function KavaClient() {
             ДАШБОРД & ЙОБНУТИ
           </button>
           <button
-            onClick={() => setTab("games")}
+            onClick={() => {
+              setTab("games");
+              fetchDiceRooms();
+              fetchHammerRooms();
+            }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "games"
                 ? "bg-white text-black border-white font-bold"
@@ -698,7 +720,10 @@ export default function KavaClient() {
             ІГРИ
           </button>
           <button
-            onClick={() => setTab("shop")}
+            onClick={() => {
+              setTab("shop");
+              fetchShopItems();
+            }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "shop"
                 ? "bg-white text-black border-white font-bold"
@@ -708,7 +733,10 @@ export default function KavaClient() {
             МАГАЗИН
           </button>
           <button
-            onClick={() => setTab("leaderboard")}
+            onClick={() => {
+              setTab("leaderboard");
+              fetchLeaderboard();
+            }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "leaderboard"
                 ? "bg-white text-black border-white font-bold"
