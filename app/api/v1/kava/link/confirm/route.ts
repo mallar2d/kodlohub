@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Update the user profile
     const now = new Date().toISOString();
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, string | number | null> = {
       telegram_id: String(telegram_id),
       telegram_username: username || null,
       telegram_first_name: first_name || null,
@@ -105,16 +106,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    revalidatePath(`/profile/${linkRecord.user_id}`);
+
     return NextResponse.json({
       success: true,
       message: "Telegram успішно прив'язано до KodloHUB",
       user_id: linkRecord.user_id,
       telegram_id: String(telegram_id),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Link confirm error:", error);
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { error: error?.message || "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }

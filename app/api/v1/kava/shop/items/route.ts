@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRetiredKavaShopItem } from "@/lib/kava-shop";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,12 @@ export async function GET() {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, items: items || [] });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      items: (items || []).filter((item) => !isRetiredKavaShopItem(item.title)),
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Помилка магазину";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

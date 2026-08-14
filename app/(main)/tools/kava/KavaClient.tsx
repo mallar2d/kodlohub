@@ -105,6 +105,7 @@ export default function KavaClient() {
   const [secondsUntilNextClaim, setSecondsUntilNextClaim] = useState<number | null>(null);
   const [totalClaims, setTotalClaims] = useState(0);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [syncStatus, setSyncStatus] = useState<"live" | "cached" | "not_linked">("not_linked");
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -168,6 +169,7 @@ export default function KavaClient() {
         setCanClaim(data.canClaim);
         setSecondsUntilNextClaim(data.timeUntilNextClaim);
         setTotalClaims(data.totalClaims);
+        setSyncStatus(data.syncStatus || (data.isLinked ? "cached" : "not_linked"));
         setTransactions(data.transactions || []);
       }
     } catch (err) {
@@ -862,7 +864,11 @@ export default function KavaClient() {
                   </span>
                 </div>
                 <p className="text-xs text-ink-mute mt-2 font-mono">
-                  {isLinked ? `Синхронізовано з Telegram @${telegram?.username || telegram?.id}` : "Не прив'язано до Telegram"}
+                  {isLinked
+                    ? syncStatus === "live"
+                      ? `Синхронізовано з Telegram @${telegram?.username || telegram?.id}`
+                      : `Показано кеш — Telegram-бот зараз недоступний`
+                    : "Не прив'язано до Telegram"}
                 </p>
               </div>
 

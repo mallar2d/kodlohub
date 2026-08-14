@@ -18,6 +18,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Kava bot integration
+
+The Telegram bot PostgreSQL database is the authoritative Kava balance. Configure
+the website deployment with both variables below; claim and transfer requests fail
+closed when they are absent, so the website cannot create a second independent
+balance:
+
+| Variable | Meaning |
+| --- | --- |
+| `PODROID_KAVA_API_URL` | Public base URL of the separately hosted bot, without `/clicker`. |
+| `KODLOHUB_API_TOKEN` | Shared secret used in both integration directions. |
+
+On the bot deployment, set `KODLOHUB_TOKEN` to the same shared secret and set
+`KODLOHUB_API_URL` to the website API base (for example,
+`https://kodlohub.vercel.app/api/v1`).
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

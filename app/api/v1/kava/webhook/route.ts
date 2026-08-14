@@ -8,7 +8,13 @@ export async function POST(req: NextRequest) {
     const adminToken = process.env.KODLOHUB_API_TOKEN;
 
     const providedToken = authHeader?.replace(/^Bearer\s+/i, "");
-    if (adminToken && providedToken && providedToken !== adminToken) {
+    if (!adminToken) {
+      return NextResponse.json(
+        { error: "KODLOHUB_API_TOKEN is not configured" },
+        { status: 503 }
+      );
+    }
+    if (providedToken !== adminToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -112,7 +118,11 @@ export async function POST(req: NextRequest) {
         .eq("telegram_id", String(telegram_id))
         .maybeSingle();
 
-      const profileUpdate: Record<string, any> = {
+      const profileUpdate: {
+        kava_balance_cache: number;
+        kava_last_claim_at?: string;
+        kava_total_claims?: number;
+      } = {
         kava_balance_cache: amount,
       };
 
@@ -153,10 +163,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, timestamp: now });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Kava webhook error:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { error: error?.message || "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }

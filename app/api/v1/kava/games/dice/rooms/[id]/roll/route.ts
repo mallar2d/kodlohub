@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  adjustPodroidKava,
+  getPodroidKavaState,
+  PodroidKavaIntegrationError,
+} from "@/lib/podroid-kava";
 
 const TARGET_SCORE = 22;
 
@@ -32,7 +37,14 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Профіль не знайдено" }, { status: 404 });
     }
 
-    const playerId = profile.telegram_id || profile.id;
+    if (!profile.telegram_id) {
+      return NextResponse.json(
+        { success: false, message: "Спочатку підключи Telegram акаунт" },
+        { status: 400 }
+      );
+    }
+    const playerId = String(profile.telegram_id);
+    await getPodroidKavaState(playerId);
 
     // 2. Fetch room
     const { data: room, error: roomErr } = await admin
@@ -79,27 +91,19 @@ export async function POST(
     const nextTurn = playerId === room.creator_id ? room.joiner_id : room.creator_id;
 
     if (isWinner) {
-      // Payout winner
       const pot = room.stake * 2;
-      const { data: winnerProfile } = await admin
-        .from("profiles")
-        .select("id, kava_balance_cache")
-        .or(`telegram_id.eq.${playerId},id.eq.${playerId}`)
-        .maybeSingle();
-
-      if (winnerProfile) {
-        const newBal = (winnerProfile.kava_balance_cache || 0) + pot;
-        await admin.from("profiles").update({ kava_balance_cache: newBal }).eq("id", winnerProfile.id);
-
-        await admin.from("kava_transactions_log").insert({
-          user_id: winnerProfile.id,
-          telegram_id: playerId,
-          action_type: "dice_win",
-          amount_change: pot - room.stake,
-          balance_after: newBal,
-          description: `Перемога у битві кубів (+${pot - room.stake} KAVA)`,
-          created_at: new Date().toISOString(),
-        });
+      const payout = await adjustPodroidKava({
+        operationId: `dice:${roomId}:payout`,
+        adjustments: [
+          {
+            telegramId: playerId,
+            delta: pot,
+            description: `KodloHUB dice payout ${roomId}`,
+          },
+        ],
+      });
+      if (!payout.success) {
+        throw new Error(payout.message);
       }
 
       await admin
@@ -137,7 +141,11 @@ export async function POST(
         next_turn: nextTurn,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Помилка кидка";
+    return NextResponse.json(
+      { success: false, message },
+      { status: error instanceof PodroidKavaIntegrationError ? 503 : 500 }
+    );
   }
 }

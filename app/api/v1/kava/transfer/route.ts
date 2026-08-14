@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  PodroidKavaIntegrationError,
+  transferPodroidKava,
+} from "@/lib/podroid-kava";
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,17 +21,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { recipient, amount } = body;
+    const transferAmount = Number(body?.amount);
+    const rawRecipient = String(body?.recipient || "").trim();
 
-    const transferAmount = Number(amount);
     if (!Number.isInteger(transferAmount) || transferAmount <= 0) {
       return NextResponse.json(
         { error: "Сума має бути цілим числом більше 0" },
         { status: 400 }
       );
     }
-
-    const rawRecipient = String(recipient || "").trim();
     if (!rawRecipient) {
       return NextResponse.json(
         { error: "Вкажи отримувача (@username, telegram_id або ID у KodloHUB)" },
@@ -33,18 +38,15 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
-
-    // 1. Fetch sender profile
-    const { data: sender, error: senderErr } = await admin
+    const { data: sender, error: senderError } = await admin
       .from("profiles")
-      .select("id, telegram_id, telegram_username, telegram_first_name, kava_balance_cache")
+      .select("id, telegram_id")
       .eq("id", user.id)
       .single();
 
-    if (senderErr || !sender) {
+    if (senderError || !sender) {
       return NextResponse.json({ error: "Профіль не знайдено" }, { status: 404 });
     }
-
     if (!sender.telegram_id) {
       return NextResponse.json(
         { error: "Спочатку підключи Telegram акаунт" },
@@ -52,165 +54,100 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanRecipient = rawRecipient.replace(/^@/, "");
-
-    // 2. Find recipient in profiles or cached leaderboard
-    let recipientProfile: any = null;
-
-    // Try finding by telegram_username, telegram_id, or profile id
-    const { data: byProfile } = await admin
-      .from("profiles")
-      .select("id, telegram_id, telegram_username, telegram_first_name, display_name, kava_balance_cache")
-      .or(`telegram_username.ilike.${cleanRecipient},telegram_id.eq.${cleanRecipient},id.eq.${cleanRecipient}`)
-      .maybeSingle();
-
-    if (byProfile) {
-      recipientProfile = byProfile;
-    } else {
-      // Look in cached leaderboard by username or telegram_id
-      const { data: byLeaderboard } = await admin
-        .from("kava_cached_leaderboard")
-        .select("telegram_id, amount, first_name, username, user_id")
-        .or(`username.ilike.${cleanRecipient},telegram_id.eq.${cleanRecipient}`)
-        .maybeSingle();
-
-      if (byLeaderboard) {
-        recipientProfile = {
-          id: byLeaderboard.user_id,
-          telegram_id: byLeaderboard.telegram_id,
-          telegram_username: byLeaderboard.username,
-          telegram_first_name: byLeaderboard.first_name,
-          kava_balance_cache: byLeaderboard.amount,
-        };
-      }
-    }
-
-    if (!recipientProfile || !recipientProfile.telegram_id) {
-      return NextResponse.json(
-        { error: "Отримувача не знайдено (користувач повинен бути в боті або на сайті)" },
-        { status: 404 }
-      );
-    }
-
-    // 3. Self-transfer check with classic penalty
-    if (recipientProfile.telegram_id === sender.telegram_id || recipientProfile.id === sender.id) {
-      const penaltyBalance = Math.max(0, (sender.kava_balance_cache || 0) - 1);
-      await admin
+    // A KodloHUB profile UUID is translated to Telegram ID. Usernames and
+    // Telegram IDs are resolved by the authoritative bot database itself.
+    let botRecipient = rawRecipient;
+    if (UUID_PATTERN.test(rawRecipient)) {
+      const { data: recipientProfile } = await admin
         .from("profiles")
-        .update({ kava_balance_cache: penaltyBalance })
-        .eq("id", user.id);
-
-      await admin.from("kava_transactions_log").insert({
-        telegram_id: sender.telegram_id,
-        user_id: sender.id,
-        action_type: "penalty",
-        amount_change: -1,
-        balance_after: penaltyBalance,
-        description: "Штраф за спробу переказу самому собі",
-        created_at: new Date().toISOString(),
-      });
-
-      return NextResponse.json(
-        {
-          error: "Переказ самому собі неможливий (-1 ☕ штрафу)",
-          newBalance: penaltyBalance,
-        },
-        { status: 400 }
-      );
+        .select("telegram_id")
+        .eq("id", rawRecipient)
+        .maybeSingle();
+      if (!recipientProfile?.telegram_id) {
+        return NextResponse.json(
+          { error: "У цього користувача не підключено Telegram" },
+          { status: 404 }
+        );
+      }
+      botRecipient = String(recipientProfile.telegram_id);
     }
 
-    // 4. Balance check
-    const senderBalance = sender.kava_balance_cache || 0;
-    if (senderBalance < transferAmount) {
-      return NextResponse.json(
-        { error: `Недостатньо кави (у тебе ${senderBalance} ☕, потрібно ${transferAmount} ☕)` },
-        { status: 400 }
-      );
-    }
+    const result = await transferPodroidKava({
+      senderTelegramId: String(sender.telegram_id),
+      recipient: botRecipient,
+      amount: transferAmount,
+    });
 
     const now = new Date().toISOString();
-    const newSenderBalance = senderBalance - transferAmount;
-    const recipientBalance = recipientProfile.kava_balance_cache || 0;
-    const newRecipientBalance = recipientBalance + transferAmount;
-
-    // 5. Deduct sender
-    await admin
-      .from("profiles")
-      .update({ kava_balance_cache: newSenderBalance })
-      .eq("id", sender.id);
-
-    await admin.from("kava_transactions_log").insert({
-      telegram_id: sender.telegram_id,
-      user_id: sender.id,
-      action_type: "transfer_sent",
-      amount_change: -transferAmount,
-      balance_after: newSenderBalance,
-      description: `Переказ ${transferAmount} ☕ для @${recipientProfile.telegram_username || recipientProfile.telegram_id}`,
-      created_at: now,
-    });
-
-    // 6. Credit recipient
-    if (recipientProfile.id) {
-      await admin
+    if (typeof result.newBalance === "number") {
+      const { error: senderUpdateError } = await admin
         .from("profiles")
-        .update({ kava_balance_cache: newRecipientBalance })
-        .eq("id", recipientProfile.id);
+        .update({ kava_balance_cache: result.newBalance })
+        .eq("id", sender.id);
+      if (senderUpdateError) throw senderUpdateError;
+
+      const { error: senderCacheError } = await admin
+        .from("kava_cached_leaderboard")
+        .upsert(
+          {
+            telegram_id: String(sender.telegram_id),
+            amount: result.newBalance,
+            user_id: sender.id,
+            updated_at: now,
+          },
+          { onConflict: "telegram_id" }
+        );
+      if (senderCacheError) throw senderCacheError;
     }
 
-    await admin.from("kava_cached_leaderboard").upsert({
-      telegram_id: recipientProfile.telegram_id,
-      amount: newRecipientBalance,
-      first_name: recipientProfile.telegram_first_name || null,
-      username: recipientProfile.telegram_username || null,
-      user_id: recipientProfile.id || null,
-      updated_at: now,
-    });
+    if (
+      result.success &&
+      result.recipientTelegramId &&
+      typeof result.recipientNewBalance === "number"
+    ) {
+      const { data: recipientProfile, error: recipientLookupError } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("telegram_id", result.recipientTelegramId)
+        .maybeSingle();
+      if (recipientLookupError) throw recipientLookupError;
 
-    await admin.from("kava_transactions_log").insert({
-      telegram_id: recipientProfile.telegram_id,
-      user_id: recipientProfile.id || null,
-      action_type: "transfer_received",
-      amount_change: transferAmount,
-      balance_after: newRecipientBalance,
-      description: `Отримано ${transferAmount} ☕ від @${sender.telegram_username || sender.telegram_id}`,
-      created_at: now,
-    });
+      if (recipientProfile) {
+        const { error: recipientUpdateError } = await admin
+          .from("profiles")
+          .update({ kava_balance_cache: result.recipientNewBalance })
+          .eq("id", recipientProfile.id);
+        if (recipientUpdateError) throw recipientUpdateError;
+      }
 
-    // 7. Outward sync to .podroid-kava
-    const podroidApiUrl = process.env.PODROID_KAVA_API_URL;
-    const podroidApiToken = process.env.KODLOHUB_API_TOKEN;
-    if (podroidApiUrl && podroidApiToken) {
-      fetch(`${podroidApiUrl}/clicker/api/external-transfer-sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${podroidApiToken}`,
-        },
-        body: JSON.stringify({
-          sender_telegram_id: sender.telegram_id,
-          recipient_telegram_id: recipientProfile.telegram_id,
-          amount: transferAmount,
-          sender_new_balance: newSenderBalance,
-          recipient_new_balance: newRecipientBalance,
-          timestamp: now,
-        }),
-      }).catch((e) => console.error("Outward transfer sync failed:", e));
+      const { error: recipientCacheError } = await admin
+        .from("kava_cached_leaderboard")
+        .upsert(
+          {
+            telegram_id: result.recipientTelegramId,
+            amount: result.recipientNewBalance,
+            user_id: recipientProfile?.id || null,
+            updated_at: now,
+          },
+          { onConflict: "telegram_id" }
+        );
+      if (recipientCacheError) throw recipientCacheError;
     }
 
-    return NextResponse.json({
-      success: true,
-      amount: transferAmount,
-      newBalance: newSenderBalance,
-      recipientName:
-        recipientProfile.telegram_first_name ||
-        recipientProfile.display_name ||
-        `@${recipientProfile.telegram_username || recipientProfile.telegram_id}`,
-    });
-  } catch (error: any) {
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.message, newBalance: result.newBalance },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(result);
+  } catch (error: unknown) {
     console.error("Transfer error:", error);
+    const message = error instanceof Error ? error.message : "Помилка переказу";
     return NextResponse.json(
-      { error: error?.message || "Помилка переказу" },
-      { status: 500 }
+      { error: message },
+      { status: error instanceof PodroidKavaIntegrationError ? 503 : 500 }
     );
   }
 }

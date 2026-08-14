@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  getPodroidKavaState,
+  PodroidKavaIntegrationError,
+} from "@/lib/podroid-kava";
 
 export async function GET() {
   try {
@@ -18,8 +22,9 @@ export async function GET() {
     }
 
     return NextResponse.json({ success: true, rooms: rooms || [] });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Помилка кімнат";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
 
@@ -45,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache")
+      .select("id, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url")
       .eq("id", user.id)
       .single();
 
@@ -53,15 +58,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Профіль не знайдено" }, { status: 404 });
     }
 
-    const balance = profile.kava_balance_cache || 0;
-    if (balance < stake) {
+    if (!profile.telegram_id) {
       return NextResponse.json(
-        { success: false, message: `Недостатньо кави (у тебе ${balance}, потрібно ${stake})` },
+        { success: false, message: "Спочатку підключи Telegram акаунт" },
+        { status: 400 }
+      );
+    }
+    const state = await getPodroidKavaState(String(profile.telegram_id));
+    if (state.balance < stake) {
+      return NextResponse.json(
+        { success: false, message: `Недостатньо кави (у тебе ${state.balance}, потрібно ${stake})` },
         { status: 400 }
       );
     }
 
-    const playerId = profile.telegram_id || profile.id;
+    const playerId = profile.telegram_id;
     const playerName = profile.telegram_first_name || profile.display_name || `@${profile.username}` || "Гравець";
     const playerPhoto = profile.telegram_photo_url || profile.avatar_url || null;
 
@@ -87,7 +98,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, room });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Помилка створення кімнати";
+    return NextResponse.json(
+      { success: false, message },
+      { status: error instanceof PodroidKavaIntegrationError ? 503 : 500 }
+    );
   }
 }

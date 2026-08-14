@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  adjustPodroidKava,
+  getPodroidKavaState,
+  PodroidKavaIntegrationError,
+} from "@/lib/podroid-kava";
 
 export async function POST(
   req: NextRequest,
@@ -32,7 +37,14 @@ export async function POST(
       .eq("id", user.id)
       .single();
 
-    const playerId = profile?.telegram_id || profile?.id;
+    if (!profile?.telegram_id) {
+      return NextResponse.json(
+        { success: false, message: "Спочатку підключи Telegram акаунт" },
+        { status: 400 }
+      );
+    }
+    const playerId = String(profile.telegram_id);
+    await getPodroidKavaState(playerId);
 
     const { data: room, error: roomErr } = await admin
       .from("hammer_rooms")
@@ -177,37 +189,30 @@ export async function POST(
       // Payout
       const pot = room.stake * 2;
       if (winnerId) {
-        const { data: winnerProfile } = await admin
-          .from("profiles")
-          .select("id, kava_balance_cache")
-          .or(`telegram_id.eq.${winnerId},id.eq.${winnerId}`)
-          .maybeSingle();
-
-        if (winnerProfile) {
-          const newBal = (winnerProfile.kava_balance_cache || 0) + pot;
-          await admin.from("profiles").update({ kava_balance_cache: newBal }).eq("id", winnerProfile.id);
-
-          await admin.from("kava_transactions_log").insert({
-            user_id: winnerProfile.id,
-            telegram_id: winnerId,
-            action_type: "hammer_win",
-            amount_change: pot - room.stake,
-            balance_after: newBal,
-            description: `Перемога у дуелі на молотках (+${pot - room.stake} KAVA)`,
-            created_at: new Date().toISOString(),
-          });
+        const payout = await adjustPodroidKava({
+          operationId: `hammer:${roomId}:payout`,
+          adjustments: [
+            {
+              telegramId: String(winnerId),
+              delta: pot,
+              description: `KodloHUB hammer payout ${roomId}`,
+            },
+          ],
+        });
+        if (!payout.success) {
+          throw new Error(payout.message);
         }
       } else {
-        // Refund on draw
-        for (const pid of [room.creator_id, room.joiner_id]) {
-          const { data: p } = await admin
-            .from("profiles")
-            .select("id, kava_balance_cache")
-            .or(`telegram_id.eq.${pid},id.eq.${pid}`)
-            .maybeSingle();
-          if (p) {
-            await admin.from("profiles").update({ kava_balance_cache: (p.kava_balance_cache || 0) + room.stake }).eq("id", p.id);
-          }
+        const refund = await adjustPodroidKava({
+          operationId: `hammer:${roomId}:draw-refund`,
+          adjustments: [room.creator_id, room.joiner_id].map((telegramId) => ({
+            telegramId: String(telegramId),
+            delta: room.stake,
+            description: `KodloHUB hammer draw refund ${roomId}`,
+          })),
+        });
+        if (!refund.success) {
+          throw new Error(refund.message);
         }
       }
     }
@@ -246,7 +251,11 @@ export async function POST(
         winner_id: winnerId,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: error?.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Помилка ходу";
+    return NextResponse.json(
+      { success: false, message },
+      { status: error instanceof PodroidKavaIntegrationError ? 503 : 500 }
+    );
   }
 }

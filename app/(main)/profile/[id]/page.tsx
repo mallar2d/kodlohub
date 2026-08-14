@@ -152,7 +152,7 @@ const getProfileData = unstable_cache(
         .eq("author_id", id),
     ]);
 
-    const wikiArticles = (wikiRes.data || []).map((a: any) => ({
+    const wikiArticles = (wikiRes.data || []).map((a) => ({
       ...a,
       wiki_categories: Array.isArray(a.wiki_categories) ? a.wiki_categories[0] : a.wiki_categories || null,
     }));
@@ -167,7 +167,7 @@ const getProfileData = unstable_cache(
       commentCount: (postCommentsRes.count || 0) + (mediaCommentsRes.count || 0),
     };
   },
-  ["profile-data-v2"],
+  ["profile-data-v3"],
   { revalidate: 60 }
 );
 
@@ -199,4 +199,3 @@ export default async function ProfilePage({
     />
   );
 }
-

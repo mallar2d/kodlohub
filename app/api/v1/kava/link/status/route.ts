@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canClaimToday, getTimeUntilNextClaim } from "@/lib/kava";
+import { resolveKavaAvatar } from "@/lib/kava-profile";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -49,7 +50,10 @@ export async function GET(req: NextRequest) {
             id: profile.telegram_id,
             username: profile.telegram_username,
             firstName: profile.telegram_first_name,
-            photoUrl: profile.telegram_photo_url,
+            photoUrl: resolveKavaAvatar(
+              profile.telegram_photo_url,
+              profile.avatar_url
+            ),
             linkedAt: profile.telegram_linked_at,
           },
           balance: profile.kava_balance_cache || 0,
@@ -61,10 +65,12 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, linked: false });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Link status error:", error);
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { error: error?.message || "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }

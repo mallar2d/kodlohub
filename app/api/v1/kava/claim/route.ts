@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canClaimToday, getKyivNow } from "@/lib/kava";
-
-function randomRange(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+import {
+  claimPodroidKava,
+  PodroidKavaIntegrationError,
+} from "@/lib/podroid-kava";
 
 export async function POST() {
   try {
@@ -19,15 +18,15 @@ export async function POST() {
     }
 
     const admin = createAdminClient();
-
-    // Fetch user profile
-    const { data: profile, error: profileErr } = await admin
+    const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select("id, telegram_id, telegram_username, telegram_first_name, telegram_photo_url, kava_balance_cache, kava_last_claim_at, kava_total_claims")
+      .select(
+        "id, telegram_id, telegram_username, telegram_first_name, telegram_photo_url"
+      )
       .eq("id", user.id)
       .single();
 
-    if (profileErr || !profile) {
+    if (profileError || !profile) {
       return NextResponse.json({ error: "Профіль не знайдено" }, { status: 404 });
     }
 
@@ -38,99 +37,55 @@ export async function POST() {
       );
     }
 
-    // Check if can claim today
-    const canClaim = canClaimToday(profile.kava_last_claim_at);
-    if (!canClaim) {
+    // The bot owns the balance and the 22:00 claim window. The website must not
+    // calculate or write an independent award because the services use separate DBs.
+    const result = await claimPodroidKava(String(profile.telegram_id));
+
+    if (typeof result.newBalance === "number") {
+      const profileUpdate: Record<string, string | number> = {
+        kava_balance_cache: result.newBalance,
+      };
+      if (result.lastClaimAt) {
+        profileUpdate.kava_last_claim_at = result.lastClaimAt;
+      }
+      const { error: updateError } = await admin
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", profile.id);
+      if (updateError) throw updateError;
+
+      const { error: leaderboardError } = await admin
+        .from("kava_cached_leaderboard")
+        .upsert(
+          {
+            telegram_id: String(profile.telegram_id),
+            amount: result.newBalance,
+            first_name: profile.telegram_first_name || null,
+            username: profile.telegram_username || null,
+            photo_url: profile.telegram_photo_url || null,
+            user_id: profile.id,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "telegram_id" }
+        );
+      if (leaderboardError) throw leaderboardError;
+    }
+
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Ти вже йобнув каву сьогодні. Спробуй після 22:00 за Коростишевом" },
+        { error: result.message, newBalance: result.newBalance },
         { status: 400 }
       );
     }
 
-    const kyiv = getKyivNow();
-    const now = new Date().toISOString();
-
-    const isBonus = kyiv.hour === 22 && kyiv.minute === 0;
-    const baseAward = isBonus ? randomRange(-10, 25) : randomRange(-20, 30);
-    const bonusAmount = isBonus ? 22 : 0;
-    let award = baseAward + bonusAmount;
-
-    const currentBalance = profile.kava_balance_cache || 0;
-    if (currentBalance + award < 0) {
-      award = -currentBalance;
-    }
-
-    const newBalance = currentBalance + award;
-    const newTotalClaims = (profile.kava_total_claims || 0) + 1;
-
-    // 1. Update KodloHUB profile
-    await admin
-      .from("profiles")
-      .update({
-        kava_balance_cache: newBalance,
-        kava_last_claim_at: now,
-        kava_total_claims: newTotalClaims,
-      })
-      .eq("id", user.id);
-
-    // 2. Log transaction
-    await admin.from("kava_transactions_log").insert({
-      telegram_id: profile.telegram_id,
-      user_id: user.id,
-      action_type: isBonus ? "claim_bonus" : "claim",
-      amount_change: award,
-      balance_after: newBalance,
-      description: isBonus ? "Daily claim with 22:00 bonus (+22)" : "Daily claim",
-      created_at: now,
-    });
-
-    // 3. Update leaderboard cache
-    await admin.from("kava_cached_leaderboard").upsert({
-      telegram_id: profile.telegram_id,
-      amount: newBalance,
-      first_name: profile.telegram_first_name || null,
-      username: profile.telegram_username || null,
-      photo_url: profile.telegram_photo_url || null,
-      user_id: user.id,
-      updated_at: now,
-    });
-
-    // 4. Sync outward to .podroid-kava if endpoint configured
-    const podroidApiUrl = process.env.PODROID_KAVA_API_URL;
-    const podroidApiToken = process.env.KODLOHUB_API_TOKEN;
-    if (podroidApiUrl && podroidApiToken) {
-      fetch(`${podroidApiUrl}/clicker/api/external-claim-sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${podroidApiToken}`,
-        },
-        body: JSON.stringify({
-          telegram_id: profile.telegram_id,
-          award,
-          new_balance: newBalance,
-          is_bonus: isBonus,
-          timestamp: now,
-        }),
-      }).catch((e) => console.error("Outward sync to podroid failed:", e));
-    }
-
-    return NextResponse.json({
-      success: true,
-      amount: award,
-      baseAward,
-      bonus: isBonus,
-      bonusAmount,
-      newBalance,
-      message: isBonus
-        ? `${award > 0 ? `+${award}` : award} kava (+22 йобнув бонус)`
-        : `${award > 0 ? `+${award}` : award} kava`,
-    });
-  } catch (error: any) {
+    return NextResponse.json(result);
+  } catch (error: unknown) {
     console.error("Claim error:", error);
+    const message =
+      error instanceof Error ? error.message : "Помилка клейму кави";
     return NextResponse.json(
-      { error: error?.message || "Помилка клейму кави" },
-      { status: 500 }
+      { error: message },
+      { status: error instanceof PodroidKavaIntegrationError ? 503 : 500 }
     );
   }
 }
