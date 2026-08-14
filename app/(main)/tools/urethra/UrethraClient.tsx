@@ -294,6 +294,8 @@ export default function UrethraClient() {
     [playerName, selectedSkin, fetchGlobalLeaderboard]
   );
 
+  const isGameActive = gameState === "playing" || gameState === "gameover";
+
   const startGame = useCallback(() => {
     audio.playClick();
     const finalName = playerName.trim() || "Опариш";
@@ -307,24 +309,29 @@ export default function UrethraClient() {
       setSelectedSkin(activeSkin);
     }
 
-    setGameState("playing");
+    let engine = engineRef.current;
+    let mp = multiplayerRef.current;
 
-    const engine = new UrethraEngine();
-    engineRef.current = engine;
+    if (!engine) {
+      engine = new UrethraEngine();
+      engineRef.current = engine;
+    }
 
-    const mp = new UrethraMultiplayer(engine);
-    multiplayerRef.current = mp;
+    if (!mp) {
+      mp = new UrethraMultiplayer(engine);
+      multiplayerRef.current = mp;
 
-    mp.onOnlineCountChange = (count) => {
-      setOnlineCount(count);
-    };
+      mp.onOnlineCountChange = (count) => {
+        setOnlineCount(count);
+      };
+    }
 
     engine.onPlayerDeathBroadcast = (payload) => {
-      mp.broadcastDeath(payload);
+      multiplayerRef.current?.broadcastDeath(payload);
     };
 
     engine.onGameOver = (stats) => {
-      mp.stopBroadcasting();
+      multiplayerRef.current?.stopBroadcasting();
       setLastGameStats({
         score: stats.score,
         coffeeEaten: stats.coffeeEaten,
@@ -349,11 +356,13 @@ export default function UrethraClient() {
     if (engine.player) {
       engine.player.id = localPlayerId;
     }
+
     mp.connect(localPlayerId, finalName, activeSkin);
+    setGameState("playing");
   }, [playerName, selectedSkin, randomSkinOnRestart, submitScore]);
 
   useEffect(() => {
-    if (gameState === "lobby" || !canvasRef.current) return;
+    if (!isGameActive || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -486,7 +495,7 @@ export default function UrethraClient() {
 
     animFrameRef.current = requestAnimationFrame(loop);
 
-    // Fallback heartbeat timer when tab is hidden so player doesn't freeze or drop
+    // Fallback heartbeat timer when tab is hidden
     const bgInterval = window.setInterval(() => {
       try {
         if (document.hidden && engineRef.current && engineRef.current.isRunning) {
@@ -500,6 +509,7 @@ export default function UrethraClient() {
     return () => {
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
       }
       window.clearInterval(bgInterval);
       window.removeEventListener("resize", handleResize);
@@ -513,9 +523,11 @@ export default function UrethraClient() {
       canvas.removeEventListener("touchmove", handleTouchMove);
 
       engineRef.current?.stop();
+      engineRef.current = null;
       multiplayerRef.current?.disconnect();
+      multiplayerRef.current = null;
     };
-  }, [gameState]);
+  }, [isGameActive]);
 
   return (
     <div className="relative w-full min-h-[85vh] flex flex-col items-center justify-center select-none overflow-hidden font-sans">
