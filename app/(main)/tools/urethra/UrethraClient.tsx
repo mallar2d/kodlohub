@@ -353,7 +353,7 @@ export default function UrethraClient() {
   }, [playerName, selectedSkin, randomSkinOnRestart, submitScore]);
 
   useEffect(() => {
-    if (gameState !== "playing" || !canvasRef.current) return;
+    if (gameState === "lobby" || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -442,39 +442,43 @@ export default function UrethraClient() {
     let lastHudUpdate = 0;
 
     const loop = () => {
-      const engine = engineRef.current;
-      if (engine && engine.isRunning) {
-        engine.update();
-        renderer.render(
-          engine.player,
-          engine.maggots,
-          engine.foods,
-          engine.powerUps,
-          engine.particles,
-          engine.shockwaves,
-          engine.floatingTexts,
-          engine.killFeed,
-          engine.getLeaderboard()
-        );
+      try {
+        const engine = engineRef.current;
+        if (engine && engine.isRunning) {
+          engine.update();
+          renderer.render(
+            engine.player,
+            engine.maggots,
+            engine.foods,
+            engine.powerUps,
+            engine.particles,
+            engine.shockwaves,
+            engine.floatingTexts,
+            engine.killFeed,
+            engine.getLeaderboard()
+          );
 
-        const now = performance.now();
-        if (now - lastHudUpdate > 80) {
-          lastHudUpdate = now;
-          if (engine.player && engine.player.alive) {
-            setPlayerScore(Math.floor(engine.player.score));
-            setCoffeeEaten(engine.player.coffeeEaten);
-            setPlayerKills(engine.player.kills);
+          const now = performance.now();
+          if (now - lastHudUpdate > 80) {
+            lastHudUpdate = now;
+            if (engine.player && engine.player.alive) {
+              setPlayerScore(Math.floor(engine.player.score || 0));
+              setCoffeeEaten(engine.player.coffeeEaten || 0);
+              setPlayerKills(engine.player.kills || 0);
 
-            const buffs = engine.player.activeBuffs
-              .filter((b) => b.expiresAt > now)
-              .map((b) => ({
-                type: b.type,
-                timeLeft: Math.max(1, Math.ceil((b.expiresAt - now) / 1000)),
-              }));
-            setActiveBuffsList(buffs);
+              const buffs = (engine.player.activeBuffs || [])
+                .filter((b) => b && b.expiresAt > now)
+                .map((b) => ({
+                  type: b.type,
+                  timeLeft: Math.max(1, Math.ceil((b.expiresAt - now) / 1000)),
+                }));
+              setActiveBuffsList(buffs);
+            }
+            setLiveLeaderboard(engine.getLeaderboard());
           }
-          setLiveLeaderboard(engine.getLeaderboard());
         }
+      } catch (err) {
+        console.error("Game loop error:", err);
       }
 
       animFrameRef.current = requestAnimationFrame(loop);
@@ -484,8 +488,12 @@ export default function UrethraClient() {
 
     // Fallback heartbeat timer when tab is hidden so player doesn't freeze or drop
     const bgInterval = window.setInterval(() => {
-      if (document.hidden && engineRef.current && engineRef.current.isRunning) {
-        engineRef.current.update();
+      try {
+        if (document.hidden && engineRef.current && engineRef.current.isRunning) {
+          engineRef.current.update();
+        }
+      } catch (err) {
+        console.error("Background loop error:", err);
       }
     }, 45);
 
