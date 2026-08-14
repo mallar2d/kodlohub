@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Try finding by telegram_username, telegram_id, or profile id
     const { data: byProfile } = await admin
       .from("profiles")
-      .select("id, telegram_id, telegram_username, telegram_first_name, full_name, kava_balance_cache")
+      .select("id, telegram_id, telegram_username, telegram_first_name, display_name, kava_balance_cache")
       .or(`telegram_username.ilike.${cleanRecipient},telegram_id.eq.${cleanRecipient},id.eq.${cleanRecipient}`)
       .maybeSingle();
 
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
       newBalance: newSenderBalance,
       recipientName:
         recipientProfile.telegram_first_name ||
-        recipientProfile.full_name ||
+        recipientProfile.display_name ||
         `@${recipientProfile.telegram_username || recipientProfile.telegram_id}`,
     });
   } catch (error: any) {

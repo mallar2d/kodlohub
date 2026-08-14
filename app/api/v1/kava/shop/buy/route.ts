@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // 2. Fetch user profile
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, full_name, display_name, username, telegram_id, telegram_first_name, telegram_username, kava_balance_cache")
+      .select("id, display_name, username, telegram_id, telegram_first_name, telegram_username, kava_balance_cache")
       .eq("id", user.id)
       .single();
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       telegram_id: profile.telegram_id || profile.id,
       user_id: profile.id,
       username: profile.telegram_username || profile.username,
-      first_name: profile.telegram_first_name || profile.display_name || profile.full_name,
+      first_name: profile.telegram_first_name || profile.display_name,
       item_title: item.title,
       item_price: item.price,
       created_at: now,

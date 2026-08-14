@@ -23,7 +23,7 @@ export async function GET() {
     const { data: profile, error: profileErr } = await admin
       .from("profiles")
       .select(
-        "id, full_name, avatar_url, telegram_id, telegram_username, telegram_first_name, telegram_photo_url, telegram_linked_at, kava_balance_cache, kava_last_claim_at, kava_total_claims"
+        "id, display_name, avatar_url, telegram_id, telegram_username, telegram_first_name, telegram_photo_url, telegram_linked_at, kava_balance_cache, kava_last_claim_at, kava_total_claims"
       )
       .eq("id", user.id)
       .single();

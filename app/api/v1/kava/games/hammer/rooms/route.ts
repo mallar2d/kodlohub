@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, full_name, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache")
+      .select("id, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache")
       .eq("id", user.id)
       .single();
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const playerId = profile.telegram_id || profile.id;
-    const playerName = profile.telegram_first_name || profile.display_name || profile.full_name || `@${profile.username}` || "Гравець";
+    const playerName = profile.telegram_first_name || profile.display_name || `@${profile.username}` || "Гравець";
     const playerPhoto = profile.telegram_photo_url || profile.avatar_url || null;
 
     const { data: room, error: insertErr } = await admin

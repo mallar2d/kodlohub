@@ -24,7 +24,7 @@ export async function GET() {
     if (!rows || rows.length === 0) {
       const { data: linkedProfiles } = await admin
         .from("profiles")
-        .select("id, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache, avatar_url, full_name, role")
+        .select("id, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache, avatar_url, display_name, role")
         .not("telegram_id", "is", null)
         .order("kava_balance_cache", { ascending: false })
         .limit(100);
@@ -33,7 +33,7 @@ export async function GET() {
         rows = linkedProfiles.map((p) => ({
           telegram_id: p.telegram_id,
           amount: p.kava_balance_cache || 0,
-          first_name: p.telegram_first_name || p.full_name,
+          first_name: p.telegram_first_name || p.display_name,
           username: p.telegram_username,
           photo_url: p.telegram_photo_url || p.avatar_url,
           user_id: p.id,
@@ -49,7 +49,7 @@ export async function GET() {
     if (userIds.length > 0) {
       const { data: profiles } = await admin
         .from("profiles")
-        .select("id, full_name, avatar_url, role")
+        .select("id, display_name, avatar_url, role")
         .in("id", userIds);
 
       (profiles || []).forEach((p) => profileMap.set(p.id, p));
@@ -67,7 +67,7 @@ export async function GET() {
         kodlohub_user: profile
           ? {
               id: profile.id,
-              full_name: profile.full_name,
+              full_name: profile.display_name,
               avatar_url: profile.avatar_url,
               role: profile.role,
             }

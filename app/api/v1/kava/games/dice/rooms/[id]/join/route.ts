@@ -22,7 +22,7 @@ export async function POST(
     // 1. Fetch joiner profile
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, full_name, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache")
+      .select("id, display_name, username, avatar_url, telegram_id, telegram_first_name, telegram_username, telegram_photo_url, kava_balance_cache")
       .eq("id", user.id)
       .single();
 
@@ -31,7 +31,7 @@ export async function POST(
     }
 
     const joinerId = profile.telegram_id || profile.id;
-    const joinerName = profile.telegram_first_name || profile.display_name || profile.full_name || `@${profile.username}` || "Гравець";
+    const joinerName = profile.telegram_first_name || profile.display_name || `@${profile.username}` || "Гравець";
     const joinerPhoto = profile.telegram_photo_url || profile.avatar_url || null;
 
     // 2. Fetch room

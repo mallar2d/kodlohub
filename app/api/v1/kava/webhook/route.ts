@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeLeaderboardSnapshot } from "@/lib/kava-sync";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,18 +27,73 @@ export async function POST(req: NextRequest) {
 
     // 1. Bulk leaderboard sync
     if (event === "leaderboard_sync" && Array.isArray(leaderboard)) {
-      for (const item of leaderboard) {
-        if (!item.telegram_id) continue;
-        await admin.from("kava_cached_leaderboard").upsert({
-          telegram_id: String(item.telegram_id),
-          amount: Number(item.amount || 0),
-          first_name: item.first_name || null,
-          username: item.username || null,
-          photo_url: item.photo_url || null,
-          updated_at: now,
+      const snapshot = normalizeLeaderboardSnapshot(leaderboard);
+
+      // Do not erase a valid cache when the bot sends an empty/invalid snapshot.
+      if (snapshot.length === 0) {
+        return NextResponse.json({
+          success: true,
+          count: 0,
+          linked_profiles_updated: 0,
         });
       }
-      return NextResponse.json({ success: true, count: leaderboard.length });
+
+      const telegramIds = snapshot.map((item) => item.telegram_id);
+      const { data: linkedProfiles, error: linkedProfilesError } = await admin
+        .from("profiles")
+        .select("id, telegram_id")
+        .in("telegram_id", telegramIds);
+
+      if (linkedProfilesError) {
+        throw linkedProfilesError;
+      }
+
+      const userIdByTelegramId = new Map(
+        (linkedProfiles || [])
+          .filter((profile) => profile.telegram_id)
+          .map((profile) => [String(profile.telegram_id), profile.id])
+      );
+      const amountByTelegramId = new Map(
+        snapshot.map((item) => [item.telegram_id, item.amount])
+      );
+
+      const { error: upsertError } = await admin
+        .from("kava_cached_leaderboard")
+        .upsert(
+          snapshot.map((item) => ({
+            ...item,
+            user_id: userIdByTelegramId.get(item.telegram_id) || null,
+            updated_at: now,
+          })),
+          { onConflict: "telegram_id" }
+        );
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      // Keep linked KodloHUB profiles on the same authoritative bot balance.
+      const profileUpdates = await Promise.all(
+        (linkedProfiles || []).map((profile) =>
+          admin
+            .from("profiles")
+            .update({
+              kava_balance_cache:
+                amountByTelegramId.get(String(profile.telegram_id)) ?? 0,
+            })
+            .eq("id", profile.id)
+        )
+      );
+      const failedProfileUpdate = profileUpdates.find((result) => result.error);
+      if (failedProfileUpdate?.error) {
+        throw failedProfileUpdate.error;
+      }
+
+      return NextResponse.json({
+        success: true,
+        count: snapshot.length,
+        linked_profiles_updated: linkedProfiles?.length || 0,
+      });
     }
 
     if (!telegram_id) {
