@@ -200,7 +200,7 @@ export default function UrethraClient() {
     fetchGlobalLeaderboard();
   }, [fetchGlobalLeaderboard]);
 
-  // Skin preview canvas animation in Lobby (reliably re-runs on activeTab switch!)
+  // Skin preview canvas animation in Lobby
   useEffect(() => {
     if (gameState !== "lobby" || activeTab !== "play" || !skinCanvasRef.current) return;
     const canvas = skinCanvasRef.current;
@@ -416,11 +416,19 @@ export default function UrethraClient() {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        engineRef.current?.resetLastTime();
+      }
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
     canvas.addEventListener("touchmove", handleTouchMove, { passive: true });
 
     let lastHudUpdate = 0;
@@ -466,16 +474,26 @@ export default function UrethraClient() {
 
     animFrameRef.current = requestAnimationFrame(loop);
 
+    // Fallback heartbeat timer when tab is hidden so player doesn't freeze or drop
+    const bgInterval = window.setInterval(() => {
+      if (document.hidden && engineRef.current && engineRef.current.isRunning) {
+        engineRef.current.update();
+      }
+    }, 45);
+
     return () => {
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
       }
+      window.clearInterval(bgInterval);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
       canvas.removeEventListener("touchmove", handleTouchMove);
 
       engineRef.current?.stop();

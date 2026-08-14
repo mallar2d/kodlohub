@@ -32,6 +32,7 @@ export class UrethraEngine {
   public floatingTexts: FloatingText[] = [];
   public killFeed: KillFeedItem[] = [];
   public spatialGrid = new SpatialGrid(140);
+  public deadMaggotIds = new Set<string>();
 
   public player: Maggot | null = null;
   public isRunning = false;
@@ -60,6 +61,16 @@ export class UrethraEngine {
     // Ready
   }
 
+  public resetLastTime() {
+    this.lastTime = performance.now();
+  }
+
+  public isMaggotDead(id: string): boolean {
+    if (this.deadMaggotIds.has(id)) return true;
+    const m = this.maggots.find((item) => item.id === id);
+    return m ? !m.alive : false;
+  }
+
   public start(playerName: string, playerSkin: SkinId) {
     this.maggots = [];
     this.foods = [];
@@ -68,6 +79,7 @@ export class UrethraEngine {
     this.shockwaves = [];
     this.floatingTexts = [];
     this.killFeed = [];
+    this.deadMaggotIds.clear();
     this.gameOver = false;
     this.isRunning = true;
     this.gameStartTime = Date.now();
@@ -252,24 +264,27 @@ export class UrethraEngine {
     }
   }
 
-  private spawnSinglePowerUp() {
+  public spawnSinglePowerUp(atX?: number, atY?: number, forcedType?: BuffType) {
     const types: BuffType[] = ["magnet", "ghost", "turbo", "multiplier", "shockwave"];
-    const type = types[Math.floor(Math.random() * types.length)];
+    const type = forcedType || types[Math.floor(Math.random() * types.length)];
     const angle = Math.random() * Math.PI * 2;
     const r = Math.sqrt(0.1 + Math.random() * 0.8) * (ARENA_RADIUS - 200);
+
+    const x = atX !== undefined ? atX : Math.cos(angle) * r;
+    const y = atY !== undefined ? atY : Math.sin(angle) * r;
 
     const durations: Record<BuffType, number> = {
       magnet: 8000,
       ghost: 5000,
       turbo: 7000,
       multiplier: 10000,
-      shockwave: 0, // Instant
+      shockwave: 0,
     };
 
     this.powerUps.push({
       id: this.nextPowerUpId++,
-      x: Math.cos(angle) * r,
-      y: Math.sin(angle) * r,
+      x,
+      y,
       radius: 18,
       type,
       durationMs: durations[type],
@@ -277,7 +292,7 @@ export class UrethraEngine {
     });
   }
 
-  private spawnSingleFood(
+  public spawnSingleFood(
     atX?: number,
     atY?: number,
     forcedType?: FoodType,
@@ -329,22 +344,24 @@ export class UrethraEngine {
       }
     } else {
       if (type === "carrot") {
-        radius = 14;
+        radius = Math.min(22, 12 + value * 0.3);
         color = "#ff7a17";
         glow = "rgba(255, 122, 23, 0.6)";
       } else if (type === "sadoczyk") {
-        radius = 16;
+        radius = Math.min(24, 14 + value * 0.25);
         color = "#4caf50";
         glow = "rgba(76, 175, 80, 0.6)";
       } else if (type === "drop") {
-        radius = 9.5;
+        radius = Math.min(18, 8 + value * 0.4);
         color = "#3e2723";
+        glow = "rgba(78, 52, 46, 0.5)";
       } else if (type === "bean") {
-        radius = 8;
+        radius = Math.min(16, 7 + value * 0.3);
         color = "#4e342e";
       } else {
-        radius = 5.5;
+        radius = Math.min(14, 5 + value * 0.35);
         color = "#e5c158";
+        glow = value > 10 ? "rgba(229, 193, 88, 0.6)" : undefined;
       }
     }
 
@@ -407,7 +424,7 @@ export class UrethraEngine {
       }
     }
 
-    // 3. Update Kinetic Foods (physics velocity deceleration)
+    // 3. Update Kinetic Foods
     for (let i = 0; i < this.foods.length; i++) {
       const f = this.foods[i];
       if (f.vx || f.vy) {
@@ -443,7 +460,7 @@ export class UrethraEngine {
         if (distSq < magRadius * magRadius) {
           const dist = Math.sqrt(distSq);
           if (dist > 1) {
-            const pullSpeed = 480 * dt;
+            const pullSpeed = 500 * dt;
             food.x += (dx / dist) * pullSpeed;
             food.y += (dy / dist) * pullSpeed;
           }
@@ -451,7 +468,7 @@ export class UrethraEngine {
       }
     }
 
-    // 6. Rebuild Spatial Grid for food
+    // 6. Fast Rebuild Spatial Grid for food
     this.spatialGrid.rebuild(this.foods);
 
     // 7. Update Bots AI
@@ -462,18 +479,20 @@ export class UrethraEngine {
       }
     }
 
-    // 8. Update Maggots Movement and Segments
+    // 8. Update Local Player and Bots Movement & Segments (skip remote players which sync via network)
     for (let i = 0; i < this.maggots.length; i++) {
       const maggot = this.maggots[i];
       if (!maggot.alive) continue;
-      this.updateMaggotMovement(maggot, dt, now);
+      if (maggot.isPlayer || maggot.isBot) {
+        this.updateMaggotMovement(maggot, dt, now);
+      }
     }
 
     // 9. Food & PowerUp Collisions
     this.checkFoodCollisions();
     this.checkPowerUpCollisions(now);
 
-    // 10. Maggot vs Maggot Body Collisions
+    // 10. Maggot vs Maggot Body Collisions (with distance culling)
     this.checkMaggotCollisions(now);
 
     // 11. Update Shockwaves & Particles
@@ -502,45 +521,33 @@ export class UrethraEngine {
     const currentRadius = this.calculateRadius(maggot.score);
     const targetSegmentCount = this.calculateSegmentCount(maggot.score);
 
-    // Turbo mass consumption & enhanced trails
+    // Turbo mass consumption & trails
     if (isBoosting) {
       if (!hasTurboBuff) {
         const burnRate = 2.4 * dt;
         maggot.score = Math.max(25, maggot.score - burnRate);
       }
 
-      if (now - maggot.lastBoostDropTime > 80) {
+      if (now - maggot.lastBoostDropTime > 90) {
         maggot.lastBoostDropTime = now;
         const tail = maggot.segments[maggot.segments.length - 1] || maggot;
         const dropX = tail.x + (Math.random() - 0.5) * 16;
         const dropY = tail.y + (Math.random() - 0.5) * 16;
         this.spawnSingleFood(dropX, dropY, "granule", 1);
 
-        // Multi-layered jet stream particles
-        this.particles.push({
-          x: tail.x,
-          y: tail.y,
-          vx: -Math.cos(maggot.angle) * 4 + (Math.random() - 0.5) * 3,
-          vy: -Math.sin(maggot.angle) * 4 + (Math.random() - 0.5) * 3,
-          life: 0.4,
-          maxLife: 0.4,
-          size: hasTurboBuff ? 12 : 7,
-          color: hasTurboBuff ? "#ff5252" : (maggot.glowColor || "rgba(212, 175, 55, 0.8)"),
-          type: "trail",
-        });
-
-        // Espresso smoke puff
-        this.particles.push({
-          x: tail.x,
-          y: tail.y,
-          vx: -Math.cos(maggot.angle) * 1.5 + (Math.random() - 0.5) * 2,
-          vy: -Math.sin(maggot.angle) * 1.5 + (Math.random() - 0.5) * 2,
-          life: 0.5,
-          maxLife: 0.5,
-          size: 9 + Math.random() * 5,
-          color: "rgba(100, 100, 110, 0.3)",
-          type: "smoke",
-        });
+        if (this.particles.length < 120) {
+          this.particles.push({
+            x: tail.x,
+            y: tail.y,
+            vx: -Math.cos(maggot.angle) * 4 + (Math.random() - 0.5) * 3,
+            vy: -Math.sin(maggot.angle) * 4 + (Math.random() - 0.5) * 3,
+            life: 0.35,
+            maxLife: 0.35,
+            size: hasTurboBuff ? 11 : 6,
+            color: hasTurboBuff ? "#ff5252" : (maggot.glowColor || "rgba(212, 175, 55, 0.8)"),
+            type: "trail",
+          });
+        }
       }
     }
 
@@ -619,22 +626,10 @@ export class UrethraEngine {
 
         if (maggot.isPlayer) {
           audio.playEat(food.type);
-          if (food.value >= 5 || hasMultiplier) {
+          if (food.value >= 8 || hasMultiplier) {
             this.addFloatingText(food.x, food.y, `+${gain}`, hasMultiplier ? "#ffd700" : food.color);
           }
         }
-
-        this.particles.push({
-          x: food.x,
-          y: food.y,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          life: 0.25,
-          maxLife: 0.25,
-          size: 4,
-          color: food.color,
-          type: "spark",
-        });
       }
     }
 
@@ -658,7 +653,6 @@ export class UrethraEngine {
         const hitRadius = head.radius + pu.radius + 10;
 
         if (distSq < hitRadius * hitRadius) {
-          // Trigger powerup
           this.applyBuff(maggot, pu, now);
           this.powerUps.splice(i, 1);
           break;
@@ -669,7 +663,6 @@ export class UrethraEngine {
 
   private applyBuff(maggot: Maggot, pu: PowerUpItem, now: number) {
     if (pu.type === "shockwave") {
-      // Instant caffeine blast wave pushing all nearby maggots away
       this.triggerShockwave(pu.x, pu.y, 450, "#ffffff");
       if (maggot.isPlayer) {
         audio.playKill();
@@ -709,7 +702,6 @@ export class UrethraEngine {
       color,
     });
 
-    // Push nearby maggots away
     for (let i = 0; i < this.maggots.length; i++) {
       const m = this.maggots[i];
       if (!m.alive) continue;
@@ -727,9 +719,8 @@ export class UrethraEngine {
   private checkMaggotCollisions(now: number) {
     for (let i = 0; i < this.maggots.length; i++) {
       const maggotA = this.maggots[i];
-      if (!maggotA.alive) continue;
+      if (!maggotA.alive || this.deadMaggotIds.has(maggotA.id)) continue;
 
-      // Spawn protection or Ghost buff immunity
       if ((maggotA.invulnerableUntil && now < maggotA.invulnerableUntil) || this.hasBuff(maggotA, "ghost")) {
         continue;
       }
@@ -739,9 +730,17 @@ export class UrethraEngine {
       for (let j = 0; j < this.maggots.length; j++) {
         if (i === j) continue;
         const maggotB = this.maggots[j];
-        if (!maggotB.alive) continue;
+        if (!maggotB.alive || this.deadMaggotIds.has(maggotB.id)) continue;
 
         if (maggotB.invulnerableUntil && now < maggotB.invulnerableUntil) {
+          continue;
+        }
+
+        // Fast bounding circle culling: skip maggotB if far away
+        const bHead = maggotB.segments[0] || maggotB;
+        const approxReach = maggotB.segments.length * (bHead.radius * 0.75) + 60;
+        const distToBHeadSq = (headA.x - bHead.x) * (headA.x - bHead.x) + (headA.y - bHead.y) * (headA.y - bHead.y);
+        if (distToBHeadSq > approxReach * approxReach) {
           continue;
         }
 
@@ -765,59 +764,91 @@ export class UrethraEngine {
   }
 
   public killMaggot(victim: Maggot, killer?: Maggot) {
-    if (!victim.alive) return;
+    if (!victim.alive || this.deadMaggotIds.has(victim.id)) return;
+    this.deadMaggotIds.add(victim.id);
     victim.alive = false;
     victim.deathTime = performance.now();
+
     if (victim.isPlayer) {
       audio.stopTurbo();
       audio.playDeath();
     }
 
-    if (killer) {
+    // 1. Direct Kill Bounty: 40% mass absorbed directly by killer
+    if (killer && killer.alive && !this.deadMaggotIds.has(killer.id)) {
       killer.kills += 1;
-      killer.score += Math.floor(victim.score * 0.2);
+      const killBounty = Math.max(30, Math.floor(victim.score * 0.4));
+      killer.score += killBounty;
       if (killer.isPlayer) {
         audio.playKill();
-        this.addFloatingText(victim.x, victim.y, `+${Math.floor(victim.score * 0.2)} ВБИТО`, "#ffffff");
+        this.addFloatingText(victim.x, victim.y, `+${killBounty}g ДЖЕКПОТ!`, "#ffd700");
       }
       this.addKillFeed(killer.name, victim.name, killer.skin);
       this.onKill?.(killer.name, victim.name);
     }
 
-    // Epic radial shockwave burst
+    // 2. Epic radial shockwave burst
     this.shockwaves.push({
       x: victim.x,
       y: victim.y,
       radius: 10,
-      maxRadius: Math.min(320, 80 + victim.score * 0.4),
+      maxRadius: Math.min(350, 90 + victim.score * 0.45),
       life: 0.7,
       maxLife: 0.7,
-      color: "rgba(212, 175, 55, 0.8)",
+      color: "rgba(212, 175, 55, 0.9)",
     });
 
-    // Fireworks-like explosion of coffee beans and granules with kinetic velocity
+    // 3. Guaranteed Power-Up Orb drop if victim was large
+    if (victim.score >= 180) {
+      this.spawnSinglePowerUp(victim.x, victim.y);
+    }
+
+    // 4. Massive Concentrated Loot Spills (80% of victim's remaining mass)
+    const totalDropMass = Math.max(40, Math.floor(victim.score * 0.8));
     const segCount = victim.segments.length;
-    for (let s = 0; s < segCount; s += 2) {
+    let distributedMass = 0;
+
+    for (let s = 0; s < segCount; s++) {
+      if (distributedMass >= totalDropMass) break;
       const seg = victim.segments[s];
+
       const burstAngle = Math.random() * Math.PI * 2;
-      const burstSpeed = 4 + Math.random() * 8;
+      const burstSpeed = 3 + Math.random() * 8;
       const vx = Math.cos(burstAngle) * burstSpeed;
       const vy = Math.sin(burstAngle) * burstSpeed;
 
-      const foodType: FoodType = s % 6 === 0 ? "bean" : s % 12 === 0 ? "carrot" : "granule";
-      const foodVal = foodType === "carrot" ? 15 : foodType === "bean" ? 4 : 2;
-      this.spawnSingleFood(seg.x, seg.y, foodType, foodVal, vx, vy);
+      // High-tier loot drops
+      let foodType: FoodType = "granule";
+      let foodVal = 5;
 
-      // Splatter particles
-      for (let p = 0; p < 4; p++) {
+      const roll = Math.random();
+      if (victim.score > 400 && roll < 0.2) {
+        foodType = "sadoczyk";
+        foodVal = 40;
+      } else if (victim.score > 200 && roll < 0.35) {
+        foodType = "carrot";
+        foodVal = 25;
+      } else if (roll < 0.6) {
+        foodType = "drop";
+        foodVal = 12;
+      } else {
+        foodType = "bean";
+        foodVal = 6;
+      }
+
+      this.spawnSingleFood(seg.x, seg.y, foodType, foodVal, vx, vy);
+      distributedMass += foodVal;
+
+      // Lightweight splatter particles (capped)
+      if (this.particles.length < 120 && s % 2 === 0) {
         this.particles.push({
           x: seg.x,
           y: seg.y,
-          vx: (Math.random() - 0.5) * 10,
-          vy: (Math.random() - 0.5) * 10,
-          life: 0.7,
-          maxLife: 0.7,
-          size: 6 + Math.random() * 8,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          life: 0.5,
+          maxLife: 0.5,
+          size: 6 + Math.random() * 6,
           color: s % 2 === 0 ? "#4e342e" : "#d4af37",
           type: "blood",
         });
@@ -839,11 +870,17 @@ export class UrethraEngine {
   }
 
   private addKillFeed(killer: string, victim: string, killerSkin: SkinId) {
+    const now = Date.now();
+    const existing = this.killFeed.find(
+      (k) => k.killer === killer && k.victim === victim && now - k.time < 3500
+    );
+    if (existing) return;
+
     this.killFeed.unshift({
-      id: `${Date.now()}_${Math.random()}`,
+      id: `${now}_${Math.random()}`,
       killer,
       victim,
-      time: Date.now(),
+      time: now,
       killerSkin,
     });
     if (this.killFeed.length > 5) {
@@ -860,15 +897,15 @@ export class UrethraEngine {
       color,
       life: 1.2,
       maxLife: 1.2,
-      vy: -1.6,
+      vy: -1.2,
     });
   }
 
   private updateShockwaves(dt: number) {
     for (let i = this.shockwaves.length - 1; i >= 0; i--) {
       const sw = this.shockwaves[i];
-      sw.radius += (sw.maxRadius - sw.radius) * 8 * dt;
       sw.life -= dt;
+      sw.radius += (sw.maxRadius - sw.radius) * 8 * dt;
       if (sw.life <= 0) {
         this.shockwaves.splice(i, 1);
       }
@@ -878,9 +915,11 @@ export class UrethraEngine {
   private updateParticles(dt: number) {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
+      p.life -= dt;
       p.x += p.vx * 60 * dt;
       p.y += p.vy * 60 * dt;
-      p.life -= dt;
+      p.vx *= 0.94;
+      p.vy *= 0.94;
       if (p.life <= 0) {
         this.particles.splice(i, 1);
       }
@@ -890,8 +929,8 @@ export class UrethraEngine {
   private updateFloatingTexts(dt: number) {
     for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
       const ft = this.floatingTexts[i];
-      ft.y += ft.vy * 60 * dt;
       ft.life -= dt;
+      ft.y += ft.vy * 60 * dt;
       if (ft.life <= 0) {
         this.floatingTexts.splice(i, 1);
       }
@@ -900,7 +939,7 @@ export class UrethraEngine {
 
   public getLeaderboard(): LeaderboardEntry[] {
     const list: LeaderboardEntry[] = this.maggots
-      .filter((m) => m.alive)
+      .filter((m) => m.alive && !this.deadMaggotIds.has(m.id))
       .map((m) => ({
         id: m.id,
         name: m.name,
