@@ -56,6 +56,25 @@ const TOOLS_DATA: ToolItem[] = [
     highlight: true,
   },
   {
+    id: "urethra",
+    name: "URETHRA.IO",
+    category: "games",
+    categoryLabel: "ІГРА / ОНЛАЙН",
+    badge: "Slither.io у всесвіті Kodlo",
+    description: "Аналог Slither.io в уретрі! Пожирай Nescafe Gold та моркву Подро, рости в довжину, підрізай інших опаришів і підкорюй світовий лідерборд.",
+    href: "/tools/urethra",
+    ctaText: "ЗАЛІЗТИ В УРЕТРУ",
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 19c-1.66 0-3-1.34-3-3 0-2 2-3 4-3s4-1 4-3-2-3-4-3-3 1.34-3 3" />
+        <circle cx="17" cy="7" r="3" />
+        <path d="M14 7h-2" />
+        <path d="M12 17h5a3 3 0 0 0 3-3c0-2-2-3-4-3" />
+      </svg>
+    ),
+    highlight: true,
+  },
+  {
     id: "kodlo-arena",
     name: "HALF BRAT (ARENA)",
     category: "games",
