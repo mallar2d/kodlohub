@@ -29,20 +29,27 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { playerName, skin, score, coffeeEaten, kills, durationSeconds } = body;
 
-    if (!score || score < 5) {
+    if (!score || typeof score !== "number" || score < 5) {
       return NextResponse.json({ ok: false, reason: "invalid_score" }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      // Guest player without session
+      userId = null;
+    }
 
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("urethra_scores")
       .insert({
-        user_id: user?.id ?? null,
+        user_id: userId,
         player_name: (playerName || "Опариш").substring(0, 32),
         skin: (skin || "classic").substring(0, 32),
         score: Math.floor(score),

@@ -271,7 +271,7 @@ export default function UrethraClient() {
     async (stats: GameStats) => {
       setIsSubmittingScore(true);
       try {
-        await fetch("/api/urethra", {
+        const res = await fetch("/api/urethra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -282,11 +282,15 @@ export default function UrethraClient() {
             kills: stats.kills,
             durationSeconds: stats.timeAlive,
           }),
+          keepalive: true,
         });
-        setScoreSubmitted(true);
-        fetchGlobalLeaderboard();
-      } catch {
-        // Fallback
+        const data = await res.json();
+        if (data && data.ok) {
+          setScoreSubmitted(true);
+          fetchGlobalLeaderboard();
+        }
+      } catch (err) {
+        console.error("Failed to submit score:", err);
       } finally {
         setIsSubmittingScore(false);
       }
@@ -330,8 +334,22 @@ export default function UrethraClient() {
       multiplayerRef.current?.broadcastDeath(payload);
     };
 
-    engine.onGameOver = (stats) => {
+    engine.onGameOver = async (stats) => {
       multiplayerRef.current?.stopBroadcasting();
+
+      // Easter egg: If score is 10,000+, guarantee DB save before navigating
+      if (stats.score >= 10000) {
+        await submitScore({
+          score: stats.score,
+          coffeeEaten: stats.coffeeEaten,
+          kills: stats.kills,
+          timeAlive: stats.timeAlive,
+          peakRank: stats.finalRank,
+          finalRank: stats.finalRank,
+        });
+        window.location.href = "/forgotten-man";
+        return;
+      }
 
       submitScore({
         score: stats.score,
@@ -341,12 +359,6 @@ export default function UrethraClient() {
         peakRank: stats.finalRank,
         finalRank: stats.finalRank,
       });
-
-      // Easter egg: If score is 10,000+, immediately transport player to /forgotten-man
-      if (stats.score >= 10000) {
-        window.location.href = "/forgotten-man";
-        return;
-      }
 
       setLastGameStats({
         score: stats.score,

@@ -40,9 +40,9 @@ export default function ForgottenManClient() {
           audioRef.current.play().catch(() => {});
         }
       }}
-      className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-4 cursor-default select-none"
+      className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-4 cursor-default selection:bg-white selection:text-black"
     >
-      <div className="relative flex flex-col items-center justify-center select-none">
+      <div className="relative flex flex-col items-center justify-center select-none pointer-events-none">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={IMAGE_URL}
@@ -55,13 +55,14 @@ export default function ForgottenManClient() {
         />
       </div>
 
-      {/* Large black text positioned in the bottom area */}
-      <div className="w-full max-w-4xl flex items-center justify-center mt-6 sm:mt-12 pointer-events-auto">
+      {/* Large black invisible text on black background that can be selected */}
+      <div className="w-full max-w-4xl flex items-center justify-center mt-6 sm:mt-12 select-text pointer-events-auto">
         <p
-          className="text-black font-mono text-3xl sm:text-5xl md:text-6xl font-bold uppercase tracking-wider text-center select-text cursor-text"
+          className="text-black font-mono text-3xl sm:text-5xl md:text-6xl font-bold uppercase tracking-wider text-center select-text cursor-text selection:bg-white selection:text-black"
           style={{
             userSelect: "text",
             WebkitUserSelect: "text",
+            MozUserSelect: "text",
           }}
         >
           Ще не готово
