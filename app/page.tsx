@@ -80,32 +80,76 @@ export default async function HomePage() {
 
       {/* Main Content Sections */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-        {/* Announcement Banner & Subtle Roadmap Pin */}
-        <div className="mb-16 border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-5 sm:p-6 transition-all hover:border-white/20">
-          <Link
-            href="/support-ending"
-            className="group block"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
-                    Маніфест 2.0
-                  </span>
-                  <span className="micro-cap text-ink-mute text-[10px]">ВІД 01.08.2026</span>
-                </div>
-                <p className="text-base sm:text-xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors">
-                  Завершення підтримки KodloHUB та перехід до автономної моделі
-                </p>
-                <p className="text-xs sm:text-sm text-on-primary-mute mt-1">
-                  Дізнайтесь про статус KodloHUB 2.0, Kodlorune, BratTD+ 1.2, Half-Brat 22.22 та відкриття вихідного коду.
-                </p>
+        {/* 2 Key Announcements: Barista Open Source & Kodlorune Cancelled */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-16">
+          {/* Banner 1: Barista Games Open Source */}
+          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all hover:border-white/20 group relative overflow-hidden">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
+                  Open Source
+                </span>
+                <span className="micro-cap text-ink-mute text-[10px]">MALLARDASK-OPS</span>
               </div>
-              <span className="button-cap flex shrink-0 items-center gap-2 text-on-primary-mute transition-colors group-hover:text-on-primary group-hover:translate-x-1">
-                ЧИТАТИ
+              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors mb-3 leading-snug">
+                Ігри Barista тепер Open Source
+              </h2>
+              <p className="text-xs sm:text-sm text-on-primary-mute leading-relaxed mb-6">
+                Всі ігри Barista переведено у відкритий вихідний код. У репозиторії також опубліковано одну додаткову неанонсовану гру, яку було скасовано.
+              </p>
+            </div>
+            <div>
+              <a
+                href="https://github.com/mallardask-ops/barista-games"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-white/40 inline-flex items-center gap-2"
+              >
+                <span>РЕПОЗИТОРІЙ GITHUB</span>
                 <svg
-                  width="18"
-                  height="18"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          {/* Banner 2: Kodlorune Cancelled */}
+          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all hover:border-white/20 group relative overflow-hidden">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
+                  Статус
+                </span>
+                <span className="micro-cap text-ink-mute text-[10px]">KODLORUNE</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors mb-3 leading-snug">
+                Розробка KODLORUNE повністю відмінена
+              </h2>
+              <p className="text-xs sm:text-sm text-on-primary-mute leading-relaxed mb-6">
+                Розробку гри KODLORUNE на даний момент повністю скасовано (відмінено). Роботу над релізом зупинено.
+              </p>
+            </div>
+            <div>
+              <Link
+                href="/support-ending"
+                className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-white/40 inline-flex items-center gap-2"
+              >
+                <span>ДЕТАЛІ В МАНІФЕСТІ</span>
+                <svg
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -114,49 +158,7 @@ export default async function HomePage() {
                   <path d="M5 12h14" />
                   <path d="m13 6 6 6-6 6" />
                 </svg>
-              </span>
-            </div>
-          </Link>
-
-          {/* Subtle Industrial Roadmap Progress Pin */}
-          <div className="mt-5 pt-4 border-t border-hairline-dark/70">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="micro-cap text-[10px] text-ink-mute font-mono flex items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                СТАТУС ФІНАЛЬНИХ РЕЛІЗІВ
-              </span>
-              <span className="text-[10px] font-mono text-on-primary">
-                2 / 5 ЗАВЕРШЕНО
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-              {[
-                { name: "KodloHUB 2.0", status: "ГОТОВО", done: true },
-                { name: "Kodlorune", status: "СЕРПЕНЬ 2026", done: false },
-                { name: "BratTD+ 1.2", status: "У РОЗРОБЦІ", done: false },
-                { name: "Half-Brat 22.22", status: "У РОЗРОБЦІ", done: false },
-                { name: "ZT-Barista", status: "АРХІВОВАНО", done: true },
-              ].map((item) => (
-                <div
-                  key={item.name}
-                  className="p-2.5 rounded-lg bg-canvas-night/70 border border-hairline-dark/60 flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-xs font-bold text-on-primary truncate">{item.name}</span>
-                    {item.done ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                    ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
-                    )}
-                  </div>
-                  <span className={`text-[9px] font-mono uppercase truncate ${item.done ? "text-on-primary font-semibold" : "text-ink-mute"}`}>
-                    {item.status}
-                  </span>
-                </div>
-              ))}
+              </Link>
             </div>
           </div>
         </div>
