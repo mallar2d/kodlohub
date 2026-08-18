@@ -89,7 +89,7 @@ export default async function HomePage() {
                 <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
                   Open Source
                 </span>
-                <span className="micro-cap text-ink-mute text-[10px]">MALLARDASK-OPS</span>
+                <span className="micro-cap text-ink-mute text-[10px]">Barista Games</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors mb-3 leading-snug">
                 Ігри Barista тепер Open Source

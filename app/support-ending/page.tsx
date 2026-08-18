@@ -72,26 +72,17 @@ export default function SupportEndingPage() {
 
         <AnnouncementSection title="Kodlorune та Hammer Launcher">
           <p>
-            Реліз <strong className="font-bold text-on-primary">Kodlorune</strong> запланований на серпень
-            2026 року.
+            Розробку гри <strong className="font-bold text-on-primary">Kodlorune</strong> на даний момент{" "}
+            <strong className="font-bold text-on-primary">повністю скасовано (відмінено)</strong>.
           </p>
           <p>
-            Гра складатиметься з однієї повноцінної завершеної битви. Я вирішив не розширювати її до
-            більшого проєкту, а зосередитися на тому, щоб довести вже створену частину до нормального
-            релізного стану.
+            Активну роботу над проєктом зупинено, запланований реліз не відбудеться. Вихідний код Hammer Launcher
+            та Kodlorune відкриватися не буде.
           </p>
           <p>
-            У день виходу Kodlorune стане доступною через <strong className="font-bold text-on-primary">Hammer Launcher</strong>.
-          </p>
-          <p>
-            Підтримка Hammer Launcher завершиться одночасно з релізом гри. Kodlorune також не
-            отримуватиме великих оновлень після виходу, хоча протягом певного часу можливі невеликі
-            виправлення критичних помилок.
-          </p>
-          <p>Вихідний код Hammer Launcher та Kodlorune відкриватися не буде.</p>
-          <p>
-            Навіть після завершення підтримки лаунчер продовжить працювати. Можливість завантажувати,
-            встановлювати та оновлювати доступні в ньому ігри залишатиметься доти, доки працюватиме
+            Щодо <strong className="font-bold text-on-primary">Hammer Launcher</strong>: офіційна активна розробка
+            також завершується, проте сам лаунчер залишається повністю функціональним. Можливість завантажувати,
+            встановлювати та оновлювати всі доступні в ньому ігри залишатиметься доти, доки працюватиме
             інфраструктура KodloHUB.
           </p>
         </AnnouncementSection>
@@ -149,7 +140,7 @@ export default function SupportEndingPage() {
           </p>
         </AnnouncementSection>
 
-        <AnnouncementSection title="ZT-Barista">
+        <AnnouncementSection title="ZT-Barista та Barista Games">
           <p>
             Проєкт <strong className="font-bold text-on-primary">ZT-Barista</strong> офіційно завершує
             випуск нових треків.
@@ -159,9 +150,16 @@ export default function SupportEndingPage() {
             релізи або закривати сторінку я не планую.
           </p>
           <p>
-            Також не виключаю, що в майбутньому акаунт ZT-Barista може бути передано людям, які захочуть
-            продовжити проєкт, публікувати нові роботи або зберігати його як архів. Але наразі ZT-Barista
-            переходить у завершений стан і більше не розвиватиметься мною особисто.
+            Всі ігри Barista переведено в Open Source і опубліковано у відкритому репозиторії{" "}
+            <a
+              href="https://github.com/mallardask-ops/barista-games"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-on-primary underline hover:text-white"
+            >
+              mallardask-ops/barista-games
+            </a>
+            , включаючи одну додаткову неанонсовану гру, яку було скасовано.
           </p>
         </AnnouncementSection>
 
@@ -169,10 +167,12 @@ export default function SupportEndingPage() {
           <p>У найближчий час основна увага буде зосереджена на випуску фінальних оновлень:</p>
           <ul className="list-disc space-y-1 pl-6 marker:text-ink-mute">
             <li>KodloHUB 2.0;</li>
-            <li>Kodlorune та Hammer Launcher;</li>
             <li>BratTD+ 1.2;</li>
             <li>Half-Brat 22.22.</li>
           </ul>
+          <p className="text-xs text-ink-mute">
+            * Розробку Kodlorune повністю скасовано.
+          </p>
           <p>
             Точні дати виходу окремих оновлень можуть змінюватися залежно від обсягу роботи. Я не хочу
             випускати їх лише заради формального завершення підтримки, тому намагатимусь довести кожен
