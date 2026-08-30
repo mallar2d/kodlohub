@@ -5,6 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import CoffeeReminder from "@/components/ui/CoffeeReminder";
 import SoundCloudPlayer from "@/components/ui/SoundCloudPlayer";
+import MemeAdPopup from "@/components/ui/MemeAdPopup";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/Toast";
 import AuthProvider from "@/components/providers/AuthProvider";
@@ -48,6 +49,7 @@ export default function RootLayout({
               <Footer />
               <SoundCloudPlayer />
               <CoffeeReminder />
+              <MemeAdPopup />
             </ToastProvider>
           </AuthProvider>
         </ErrorBoundary>

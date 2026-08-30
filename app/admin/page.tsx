@@ -16,6 +16,7 @@ interface Profile {
   display_name: string;
   avatar_url: string | null;
   role: string;
+  is_premium?: boolean;
   created_at: string;
 }
 
@@ -92,6 +93,9 @@ export default function AdminPage() {
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [slopCollected, setSlopCollected] = useState("148.80");
+  const [slopGoal, setSlopGoal] = useState("400.00");
+  const [savingSlop, setSavingSlop] = useState(false);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -112,18 +116,25 @@ export default function AdminPage() {
   }, []);
 
   async function fetchData() {
-    const [profilesRes, mediaRes, pendingRes, joinRes, postCommentsRes, mediaCommentsRes] = await Promise.all([
+    const [profilesRes, mediaRes, pendingRes, joinRes, postCommentsRes, mediaCommentsRes, settingsRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: true }),
       supabase.from("media").select("id, author_id, file_size"),
       supabase.from("posts").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("join_requests").select("*, profiles(display_name, username, avatar_url)").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("comments").select("*, profiles(display_name, username)").order("created_at", { ascending: false }).limit(50),
       supabase.from("media_comments").select("*, profiles(display_name, username)").order("created_at", { ascending: false }).limit(50),
+      supabase.from("site_settings").select("value").eq("key", "slop_fund").single(),
     ]);
 
     setProfiles(profilesRes.data || []);
     setPendingPosts(pendingRes.data || []);
     setJoinRequests(joinRes.data || []);
+
+    if (settingsRes.data?.value) {
+      const val = typeof settingsRes.data.value === "string" ? JSON.parse(settingsRes.data.value) : settingsRes.data.value;
+      if (val.collected !== undefined) setSlopCollected(String(val.collected));
+      if (val.goal !== undefined) setSlopGoal(String(val.goal));
+    }
 
     const allComments: AdminComment[] = [
       ...(postCommentsRes.data || []).map((c: any) => ({
@@ -202,6 +213,50 @@ export default function AdminPage() {
       link: `/profile/${userId}`,
     });
 
+    await fetchData();
+    setUpdating(null);
+  }
+
+  async function saveSlopFund() {
+    setSavingSlop(true);
+    const numCollected = parseFloat(slopCollected) || 0;
+    const numGoal = parseFloat(slopGoal) || 400;
+
+    const { error } = await supabase.from("site_settings").upsert({
+      key: "slop_fund",
+      value: { collected: numCollected, goal: numGoal, updated_at: new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      toast("Помилка збереження цілі: " + error.message, "error");
+    } else {
+      toast("Ціль фонду слопу оновлено!", "success");
+    }
+    setSavingSlop(false);
+  }
+
+  async function toggleUserPremium(userId: string, newPremium: boolean) {
+    setUpdating(userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_premium: newPremium })
+      .eq("id", userId);
+
+    if (error) {
+      toast("Помилка зміни статусу Premium: " + error.message, "error");
+    } else {
+      toast(newPremium ? "Преміум видано!" : "Преміум знято", "success");
+      await supabase.from("notifications").insert({
+        user_id: userId,
+        type: "role_changed",
+        title: newPremium ? "Тобі видано KodloHUB Premium!" : "KodloHUB Premium вимкнено",
+        message: newPremium
+          ? "Вітаємо! Тобі надано статус KodloHUB Premium: рекламу вимкнено, доступ до матеріалів та ексклюзивний бейдж відкрито."
+          : "Твій статус KodloHUB Premium було вимкнено адміністратором.",
+        link: `/premium`,
+      });
+    }
     await fetchData();
     setUpdating(null);
   }
@@ -495,6 +550,59 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Slop Fund Settings */}
+        {(isOwner || isPodrofikovany) && (
+          <div className="mb-12 card-dark p-6 rounded-2xl border border-hairline-dark bg-canvas-night-soft">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <p className="micro-cap text-ink-mute font-mono tracking-wider uppercase text-[10px]">
+                  KODLOHUB PREMIUM & FUND
+                </p>
+                <h2 className="heading-sub text-on-primary mt-1">ЦІЛЬ ЗБОРУ НА СЛОП (OPENCODE)</h2>
+                <p className="text-xs text-ink-mute">
+                  Керування прогрес-баром збору, який відображається на сторінці /premium.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="text-xs text-ink-mute font-mono block mb-1">
+                  Зібрано (₴):
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={slopCollected}
+                  onChange={(e) => setSlopCollected(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-canvas-night border border-hairline-dark rounded-xl text-on-primary text-sm font-mono focus:outline-none focus:border-white/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-ink-mute font-mono block mb-1">
+                  Загальна ціль (₴):
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={slopGoal}
+                  onChange={(e) => setSlopGoal(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-canvas-night border border-hairline-dark rounded-xl text-on-primary text-sm font-mono focus:outline-none focus:border-white/40"
+                />
+              </div>
+              <div>
+                <button
+                  onClick={saveSlopFund}
+                  disabled={savingSlop}
+                  className="w-full btn-solid !py-2.5 !text-xs font-mono font-bold uppercase cursor-pointer disabled:opacity-50"
+                >
+                  {savingSlop ? "ЗБЕРЕЖЕННЯ..." : "ЗБЕРЕГТИ ЦІЛЬ"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Role stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           <div className="card-dark p-4 text-center">
@@ -758,6 +866,11 @@ export default function AdminPage() {
                           <span className={`button-cap px-2 py-0.5 rounded border text-[10px] ${roleColors[profile.role] || roleColors.shemetovany}`}>
                             {roleLabels[profile.role] || profile.role}
                           </span>
+                          {profile.is_premium && (
+                            <span className="button-cap px-2 py-0.5 rounded border text-[10px] border-white/30 bg-white/[0.06] text-white font-mono">
+                              PREMIUM
+                            </span>
+                          )}
                         </div>
                         <p className="caption text-ink-mute">
                           @{profile.username} · {new Date(profile.created_at).toLocaleDateString("uk-UA")}
@@ -766,27 +879,43 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {editable && (
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={profile.role}
-                          onChange={(e) => updateRole(profile.id, e.target.value)}
-                          disabled={updating === profile.id}
-                          className="px-3 py-2 bg-canvas-night-soft border border-hairline-dark rounded text-on-primary text-sm focus:outline-none focus:border-on-primary-mute disabled:opacity-50"
-                        >
-                          <option value="kodlo">Кодло</option>
-                          <option value="shemetovany">Шеметований</option>
-                          {isOwner && <option value="podrofikovany">Подрофікований</option>}
-                        </select>
+                    <div className="flex items-center gap-2">
+                      {(isOwner || isPodrofikovany) && (
                         <button
-                          onClick={() => deleteUser(profile.id)}
+                          onClick={() => toggleUserPremium(profile.id, !profile.is_premium)}
                           disabled={updating === profile.id}
-                          className="button-cap px-3 py-2 rounded bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                          className={`button-cap px-2.5 py-1.5 rounded text-xs font-mono transition-colors disabled:opacity-50 cursor-pointer ${
+                            profile.is_premium
+                              ? "bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20"
+                              : "bg-white/[0.04] text-ink-mute border border-hairline-dark hover:text-white hover:border-white/30"
+                          }`}
                         >
-                          ×
+                          {profile.is_premium ? "ЗНЯТИ PREM" : "+ PREM"}
                         </button>
-                      </div>
-                    )}
+                      )}
+
+                      {editable && (
+                        <>
+                          <select
+                            value={profile.role}
+                            onChange={(e) => updateRole(profile.id, e.target.value)}
+                            disabled={updating === profile.id}
+                            className="px-3 py-1.5 bg-canvas-night-soft border border-hairline-dark rounded text-on-primary text-sm focus:outline-none focus:border-on-primary-mute disabled:opacity-50"
+                          >
+                            <option value="kodlo">Кодло</option>
+                            <option value="shemetovany">Шеметований</option>
+                            {isOwner && <option value="podrofikovany">Подрофікований</option>}
+                          </select>
+                          <button
+                            onClick={() => deleteUser(profile.id)}
+                            disabled={updating === profile.id}
+                            className="button-cap px-3 py-1.5 rounded bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 transition-colors disabled:opacity-50 cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}

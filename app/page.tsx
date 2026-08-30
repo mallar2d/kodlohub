@@ -80,73 +80,20 @@ export default async function HomePage() {
 
       {/* Main Content Sections */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-        {/* 2 Key Announcements: Barista Open Source & Kodlorune Cancelled */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-16">
-          {/* Banner 1: Barista Games Open Source */}
-          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all hover:border-white/20 group relative overflow-hidden">
+        {/* Key Announcement: KODLORUNE IS AWAITING */}
+        <div className="mb-16">
+          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-white/20 group relative overflow-hidden">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
-                  Open Source
-                </span>
-                <span className="micro-cap text-ink-mute text-[10px]">Barista Games</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors mb-3 leading-snug">
-                Ігри Barista тепер Open Source
+              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors leading-snug">
+                KODLORUNE IS AWAITING
               </h2>
-              <p className="text-xs sm:text-sm text-on-primary-mute leading-relaxed mb-6">
-                Всі ігри Barista переведено у відкритий вихідний код. У репозиторії також опубліковано одну додаткову неанонсовану гру, яку було скасовано.
-              </p>
             </div>
-            <div>
-              <a
-                href="https://github.com/mallardask-ops/barista-games"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-white/40 inline-flex items-center gap-2"
-              >
-                <span>РЕПОЗИТОРІЙ GITHUB</span>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Banner 2: Kodlorune Cancelled */}
-          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all hover:border-white/20 group relative overflow-hidden">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-on-primary font-mono font-semibold uppercase border border-hairline-dark">
-                  Статус
-                </span>
-                <span className="micro-cap text-ink-mute text-[10px]">KODLORUNE</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors mb-3 leading-snug">
-                Розробка KODLORUNE повністю відмінена
-              </h2>
-              <p className="text-xs sm:text-sm text-on-primary-mute leading-relaxed mb-6">
-                Розробку гри KODLORUNE на даний момент повністю скасовано (відмінено). Роботу над релізом зупинено.
-              </p>
-            </div>
-            <div>
+            <div className="shrink-0">
               <Link
-                href="/support-ending"
+                href="/kodlorune-awaiting"
                 className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-white/40 inline-flex items-center gap-2"
               >
-                <span>ДЕТАЛІ В МАНІФЕСТІ</span>
+                <span>ДЕТАЛІ ОГОЛОШЕННЯ</span>
                 <svg
                   width="14"
                   height="14"

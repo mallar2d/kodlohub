@@ -97,6 +97,11 @@ export default function Footer() {
             <p className="micro-cap text-ink-mute text-[10px] tracking-[0.1em]">СПІЛЬНОТА</p>
             <ul className="space-y-2 text-sm text-on-primary-mute">
               <li>
+                <Link href="/premium" className="hover:text-on-primary transition-colors flex items-center gap-1.5">
+                  <span>KodloHUB Premium</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/support-ending" className="hover:text-on-primary transition-colors">
                   Маніфест 2.0
                 </Link>

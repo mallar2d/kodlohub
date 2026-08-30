@@ -15,7 +15,6 @@ interface ToolItem {
   href: string;
   ctaText: string;
   icon: ReactNode;
-  highlight?: boolean;
 }
 
 const TOOLS_DATA: ToolItem[] = [
@@ -29,7 +28,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/kava",
     ctaText: "ВІДКРИТИ KAVA HUB",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
         <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
         <line x1="6" y1="1" x2="6" y2="4" />
@@ -37,7 +36,6 @@ const TOOLS_DATA: ToolItem[] = [
         <line x1="14" y1="1" x2="14" y2="4" />
       </svg>
     ),
-    highlight: true,
   },
   {
     id: "brat-td",
@@ -49,11 +47,10 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/brat-td",
     ctaText: "ГРАТИ В БРАУЗЕРІ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
-    highlight: true,
   },
   {
     id: "urethra",
@@ -65,14 +62,13 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/urethra",
     ctaText: "ЗАЛІЗТИ В УРЕТРУ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M7 19c-1.66 0-3-1.34-3-3 0-2 2-3 4-3s4-1 4-3-2-3-4-3-3 1.34-3 3" />
         <circle cx="17" cy="7" r="3" />
         <path d="M14 7h-2" />
         <path d="M12 17h5a3 3 0 0 0 3-3c0-2-2-3-4-3" />
       </svg>
     ),
-    highlight: true,
   },
   {
     id: "kodlo-arena",
@@ -84,7 +80,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/kodlo-arena",
     ctaText: "УВІЙТИ В АРЕНУ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <line x1="22" y1="12" x2="18" y2="12" />
         <line x1="6" y1="12" x2="2" y2="12" />
@@ -92,7 +88,6 @@ const TOOLS_DATA: ToolItem[] = [
         <line x1="12" y1="22" x2="12" y2="18" />
       </svg>
     ),
-    highlight: true,
   },
   {
     id: "hammer",
@@ -104,13 +99,12 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/hammer",
     ctaText: "ВДАРИТИ / ЛАУНЧЕР",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" />
         <path d="m18 15 4-4" />
         <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
       </svg>
     ),
-    highlight: true,
   },
   {
     id: "podro-clicker",
@@ -122,7 +116,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/podro-clicker",
     ctaText: "ВАРИТИ КАВУ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
         <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
         <line x1="6" y1="1" x2="6" y2="4" />
@@ -141,7 +135,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/podro-nmt",
     ctaText: "СКЛАСТИ НМТ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
         <path d="m9 14 2 2 4-4" />
@@ -158,7 +152,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/audio-combiner",
     ctaText: "ОБРОБИТИ ЗВУК",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
@@ -175,7 +169,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/magic-8ball",
     ctaText: "СПИТАТИ КУЛЮ",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="4" />
         <line x1="12" y1="10" x2="12" y2="10.01" />
@@ -192,7 +186,7 @@ const TOOLS_DATA: ToolItem[] = [
     href: "/tools/spintrick",
     ctaText: "КРУТИТИ ТЕЛЕФОН",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
       </svg>
     ),
@@ -225,19 +219,19 @@ export default function ToolsClient() {
   }, [selectedCategory, search]);
 
   return (
-    <div className="space-y-10">
-      {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 rounded-xl bg-canvas-night-soft/60 border border-hairline-dark">
+    <div className="space-y-6">
+      {/* Controls Bar: Compact & Minimalist */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl bg-canvas-night-soft/80 backdrop-blur border border-hairline-dark">
         {/* Category tabs */}
         <div className="flex flex-wrap gap-1">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
-              className={`button-cap px-3.5 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-pointer ${
                 selectedCategory === cat.key
-                  ? "bg-on-primary text-ink font-bold"
-                  : "text-on-primary-mute hover:text-on-primary hover:bg-canvas-night"
+                  ? "bg-white text-ink font-bold shadow-sm"
+                  : "text-ink-mute hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               {cat.label}
@@ -247,12 +241,18 @@ export default function ToolsClient() {
 
         {/* Search input */}
         <div className="relative w-full sm:w-64">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute pointer-events-none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Фільтр тулзів..."
-            className="w-full px-3.5 py-2 text-xs rounded-lg bg-canvas-night border border-hairline-dark text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary-mute transition-colors"
+            placeholder="Пошук утиліт..."
+            className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-canvas-night border border-hairline-dark text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-white/30 transition-colors"
           />
           {search && (
             <button
@@ -265,57 +265,70 @@ export default function ToolsClient() {
         </div>
       </div>
 
-      {/* Tools Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Tools Grid: Compact, Well-Structured Monochrome Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTools.map((tool) => (
-          <div
+          <Link
             key={tool.id}
-            className={`card-dark p-6 flex flex-col justify-between hover:border-on-primary-mute transition-all group ${
-              tool.highlight ? "bg-canvas-night-soft/30 border-hairline-dark" : ""
-            }`}
+            href={tool.href}
+            className="card-dark group p-5 flex flex-col justify-between hover:border-white/30 hover:bg-canvas-night-soft transition-all rounded-2xl relative overflow-hidden"
           >
             <div>
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <div className="p-2.5 rounded-lg bg-canvas-night-soft border border-hairline-dark text-on-primary group-hover:border-on-primary-mute transition-colors">
+              {/* Top Row: Icon + Category Badge */}
+              <div className="flex items-center justify-between gap-2 mb-3.5">
+                <div className="w-9 h-9 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white group-hover:border-white/25 transition-colors shrink-0">
                   {tool.icon}
                 </div>
-                <span className="micro-cap px-2 py-0.5 rounded border border-hairline-dark bg-canvas-night text-[10px] text-ink-mute font-mono">
+                <span className="micro-cap px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night text-[10px] text-ink-mute font-mono">
                   {tool.categoryLabel}
                 </span>
               </div>
 
+              {/* Middle: Badge & Name */}
               <div className="mb-2">
-                <span className="text-xs text-cyan-400 font-mono block mb-1">
+                <span className="text-[11px] text-ink-mute font-mono uppercase tracking-wider block mb-1">
                   {tool.badge}
                 </span>
-                <h3 className="heading-sub !text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-cyan-300 transition-colors">
+                <h3 className="text-lg sm:text-xl font-bold uppercase tracking-tight text-on-primary group-hover:text-white transition-colors">
                   {tool.name}
                 </h3>
               </div>
 
-              <p className="text-on-primary-mute text-sm leading-relaxed mb-6">
+              {/* Description */}
+              <p className="text-on-primary-mute text-xs sm:text-sm leading-relaxed line-clamp-3 mb-4">
                 {tool.description}
               </p>
             </div>
 
-            <div className="pt-4 border-t border-hairline-dark">
-              <Link
-                href={tool.href}
-                className="btn-ghost text-on-primary text-xs w-full justify-center !py-3"
+            {/* Bottom CTA Row */}
+            <div className="pt-3 border-t border-hairline-dark/60 flex items-center justify-between text-[11px] font-mono font-medium text-ink-mute group-hover:text-white transition-colors">
+              <span className="uppercase tracking-wider">{tool.ctaText}</span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="transition-transform group-hover:translate-x-1"
               >
-                {tool.ctaText} →
-              </Link>
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
       {filteredTools.length === 0 && (
-        <div className="text-center py-16 border border-hairline-dark rounded-xl bg-canvas-night-soft/40">
-          <p className="text-lg font-bold text-on-primary mb-1">Нічого не знайдено</p>
-          <p className="text-sm text-ink-mute">Спробуйте змінити категорію або пошуковий запит.</p>
+        <div className="text-center py-16 border border-hairline-dark rounded-2xl bg-canvas-night-soft/40">
+          <p className="text-base font-bold text-on-primary mb-1">Нічого не знайдено</p>
+          <p className="text-xs text-ink-mute">Спробуйте змінити категорію або пошуковий запит.</p>
         </div>
       )}
     </div>
   );
 }
+

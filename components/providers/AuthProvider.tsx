@@ -40,22 +40,45 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       fetch("/api/sync-profile", { method: "POST" }).catch(() => {});
     }
 
+    function checkDevUser(): User | null {
+      try {
+        const raw = localStorage.getItem("dev_mock_user");
+        if (raw) return JSON.parse(raw) as User;
+      } catch {}
+      return null;
+    }
+
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      ensureProfile(data.user);
+      const activeUser = data.user || checkDevUser();
+      setUser(activeUser);
+      ensureProfile(activeUser);
       setLoading(false);
     }).catch(() => {
+      const devUser = checkDevUser();
+      setUser(devUser);
       setLoading(false);
     });
 
+    const handleDevAuth = () => {
+      const devUser = checkDevUser();
+      setUser(devUser);
+    };
+
+    window.addEventListener("dev_auth_changed", handleDevAuth);
+    window.addEventListener("storage", handleDevAuth);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const nextUser = session?.user ?? null;
+      const nextUser = session?.user ?? checkDevUser();
       setUser(nextUser);
       ensureProfile(nextUser);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("dev_auth_changed", handleDevAuth);
+      window.removeEventListener("storage", handleDevAuth);
+    };
   }, [supabase]);
 
   return (

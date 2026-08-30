@@ -3,7 +3,7 @@ import KodloruneClient from "./KodloruneClient";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "unforgettable",
+    absolute: "progress",
   },
   robots: {
     index: false,
@@ -14,3 +14,4 @@ export const metadata: Metadata = {
 export default function KodlorunePage() {
   return <KodloruneClient />;
 }
+

@@ -1,54 +1,41 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+interface ProgressItem {
+  icon: string;
+  percent: number;
+}
 
-const AUDIO_URL = "/13am.ogg";
-const GIF_URL = "/prophecy.gif";
+const ITEMS: ProgressItem[] = [
+  { icon: "🎮", percent: 20 },
+  { icon: "🎵", percent: 50 },
+  { icon: "🎨", percent: 10 },
+  { icon: "❤️", percent: 30 },
+  { icon: "💙", percent: 70 },
+  { icon: "💛", percent: 10 },
+  { icon: "💚", percent: 0 },
+  { icon: "💜", percent: 25 },
+  { icon: "🩵", percent: 20 },
+  { icon: "🧡", percent: 10 },
+];
+
+function renderBar(percent: number, totalBlocks: number = 20): string {
+  const filledCount = Math.round((percent / 100) * totalBlocks);
+  const emptyCount = totalBlocks - filledCount;
+  return "▓".repeat(filledCount) + "░".repeat(emptyCount);
+}
 
 export default function KodloruneClient() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    const audio = new Audio(AUDIO_URL);
-    audio.loop = true;
-    audio.volume = 0.7;
-    audioRef.current = audio;
-
-    audio.play().catch(() => {});
-
-    const handleUserInteract = () => {
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().catch(() => {});
-      }
-    };
-
-    window.addEventListener("click", handleUserInteract);
-    window.addEventListener("keydown", handleUserInteract);
-
-    return () => {
-      audio.pause();
-      audio.src = "";
-      window.removeEventListener("click", handleUserInteract);
-      window.removeEventListener("keydown", handleUserInteract);
-    };
-  }, []);
-
   return (
-    <div
-      onClick={() => {
-        if (audioRef.current && audioRef.current.paused) {
-          audioRef.current.play().catch(() => {});
-        }
-      }}
-      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-4 select-none cursor-default"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={GIF_URL}
-        alt="The Prophecy"
-        draggable={false}
-        className="max-w-full max-h-[90vh] w-auto h-auto object-contain pointer-events-none select-none [image-rendering:pixelated]"
-      />
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col gap-2 items-center justify-center text-white select-text">
+      {ITEMS.map((item, index) => (
+        <span key={index} className="font-mono tracking-wider text-base sm:text-lg">
+          {item.icon} {renderBar(item.percent)}
+        </span>
+      ))}
+      <span className="text-black text-lg mt-8 select-text selection:bg-white selection:text-black">
+        Це не він
+      </span>
     </div>
   );
 }
+
