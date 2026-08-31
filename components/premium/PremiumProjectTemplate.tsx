@@ -1,6 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+
+export interface DevlogPost {
+  id: string;
+  title: string;
+  version?: string;
+  date: string;
+  excerpt: string;
+  content: string[];
+  tags?: string[];
+  pinned?: boolean;
+}
 
 export interface PremiumProjectMeta {
   slug: string;
@@ -11,13 +23,43 @@ export interface PremiumProjectMeta {
   version?: string;
   engine?: string;
   statusText?: string;
+  posts?: DevlogPost[];
 }
 
 interface PremiumProjectTemplateProps {
   project: PremiumProjectMeta;
 }
 
+function renderParagraphWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white underline underline-offset-4 decoration-white/40 hover:decoration-white font-mono transition-colors"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function PremiumProjectTemplate({ project }: PremiumProjectTemplateProps) {
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(
+    project.posts && project.posts.length > 0 ? project.posts[0].id : null
+  );
+
+  const togglePost = (id: string) => {
+    setExpandedPostId((prev) => (prev === id ? null : id));
+  };
+
   return (
     <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6">
       <div className="max-w-[1000px] mx-auto space-y-10">
@@ -44,6 +86,12 @@ export default function PremiumProjectTemplate({ project }: PremiumProjectTempla
               <>
                 <span className="text-ink-mute text-xs">•</span>
                 <span className="text-[10px] font-mono text-ink-mute">{project.version}</span>
+              </>
+            )}
+            {project.engine && (
+              <>
+                <span className="text-ink-mute text-xs">•</span>
+                <span className="text-[10px] font-mono text-ink-mute">{project.engine}</span>
               </>
             )}
           </div>
@@ -137,28 +185,105 @@ export default function PremiumProjectTemplate({ project }: PremiumProjectTempla
           </div>
         </div>
 
-        {/* Section 3: Devlog & Changelog */}
-        <div className="card-dark p-6 rounded-2xl border border-hairline-dark bg-canvas-night-soft space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="micro-cap text-[10px] text-ink-mute font-mono uppercase tracking-wider">
-              ЖУРНАЛ РОЗРОБКИ (DEVLOG)
-            </p>
-            <span className="text-[10px] font-mono text-ink-mute">ОНОВЛЮЄТЬСЯ</span>
+        {/* Section 3: Devlog & Changelog with Interactive Rich Posts */}
+        <div className="card-dark p-6 sm:p-8 rounded-3xl border border-hairline-dark bg-canvas-night-soft space-y-6">
+          <div className="flex items-center justify-between border-b border-hairline-dark pb-4">
+            <div>
+              <p className="micro-cap text-[10px] text-ink-mute font-mono uppercase tracking-wider">
+                ЖУРНАЛ РОЗРОБКИ (DEVLOG)
+              </p>
+              <h3 className="text-lg font-bold text-on-primary uppercase tracking-wide">
+                Офіційні пости та апдейти
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-white/70 px-2.5 py-1 rounded bg-white/[0.05] border border-hairline-dark">
+              ЕКСКЛЮЗИВ PREMIUM
+            </span>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-4 rounded-xl bg-canvas-night border border-hairline-dark flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-white">v0.1.0-alpha</span>
-                  <span className="text-[10px] font-mono text-ink-mute">• Ініціалізація розділу</span>
+          <div className="space-y-4">
+            {project.posts && project.posts.length > 0 ? (
+              project.posts.map((post) => {
+                const isExpanded = expandedPostId === post.id;
+                return (
+                  <div
+                    key={post.id}
+                    className="card-dark p-5 sm:p-6 rounded-2xl border border-hairline-dark bg-canvas-night space-y-4 transition-all hover:border-white/20"
+                  >
+                    <div
+                      onClick={() => togglePost(post.id)}
+                      className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer select-none"
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {post.pinned && (
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-white/20 text-white uppercase">
+                              PINNED
+                            </span>
+                          )}
+                          {post.version && (
+                            <span className="text-xs font-mono font-bold text-white">
+                              {post.version}
+                            </span>
+                          )}
+                          <span className="text-ink-mute text-xs">•</span>
+                          <span className="text-xs font-mono text-ink-mute">{post.date}</span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-bold text-on-primary hover:text-white transition-colors">
+                          {post.title}
+                        </h4>
+                        <p className="text-xs text-ink-mute leading-relaxed">
+                          {post.excerpt}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn-ghost !text-xs !py-1 !px-3 font-mono shrink-0 self-start mt-1 cursor-pointer"
+                      >
+                        {isExpanded ? "ЗГОРНУТИ ↑" : "ЧИТАТИ ДЕТАЛЬНІШЕ ↓"}
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="pt-4 border-t border-hairline-dark space-y-4 text-xs sm:text-sm text-on-primary-mute leading-relaxed animate-in fade-in duration-200">
+                        {post.content.map((paragraph, pIdx) => (
+                          <p key={pIdx} className="leading-relaxed">
+                            {renderParagraphWithLinks(paragraph)}
+                          </p>
+                        ))}
+
+                        {post.tags && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                            {post.tags.map((tag, tIdx) => (
+                              <span
+                                key={tIdx}
+                                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night-soft text-ink-mute"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-4 rounded-xl bg-canvas-night border border-hairline-dark flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-white">v0.1.0-alpha</span>
+                    <span className="text-[10px] font-mono text-ink-mute">• Ініціалізація розділу</span>
+                  </div>
+                  <p className="text-xs text-ink-mute">
+                    Створення преміум-сторінки проєкту та підготовка структури для завантаження матеріалів.
+                  </p>
                 </div>
-                <p className="text-xs text-ink-mute">
-                  Створення преміум-сторінки проєкту та підготовка структури для завантаження матеріалів.
-                </p>
+                <span className="text-[10px] font-mono text-ink-mute shrink-0">Сьогодні</span>
               </div>
-              <span className="text-[10px] font-mono text-ink-mute shrink-0">Сьогодні</span>
-            </div>
+            )}
           </div>
         </div>
       </div>
