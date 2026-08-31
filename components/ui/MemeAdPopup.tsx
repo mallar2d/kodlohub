@@ -18,7 +18,7 @@ const ADS: AdItem[] = [
   { id: "ad5", src: "/ads/ad5.png", alt: "Рекламний банер 5" },
   { id: "ad6", src: "/ads/ad6.png", alt: "Рекламний банер 6" },
   { id: "ad7", src: "/ads/ad7.png", alt: "Рекламний банер 7" },
-  { id: "infinix_ad", src: "/ads/infinix_ad.png", alt: "Infinix Реклама" },
+  { id: "ad8", src: "/ads/ad8.png", alt: "Рекламний банер 8" },
 ];
 
 const EXCLUDED_ROUTES = [
