@@ -105,6 +105,16 @@ export default function PaymentClient() {
             </div>
           )}
 
+          {/* Leak Warning Box */}
+          <div className="p-4 rounded-2xl bg-canvas-night border border-hairline-dark text-xs font-mono text-ink-mute space-y-1">
+            <p className="text-white font-bold uppercase tracking-wider text-[11px]">
+              УВАГА ЩОДО ЗЛИВУ ІНФОРМАЦІЇ:
+            </p>
+            <p className="leading-relaxed text-[11px]">
+              У разі зливу закритої інформації, тестових білдів або матеріалів розробки — підписка анулюється без повернення коштів, а доступ блокується назавжди.
+            </p>
+          </div>
+
           {/* Back Action */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <Link

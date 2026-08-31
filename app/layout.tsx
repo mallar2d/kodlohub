@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -15,6 +16,12 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "700"],
+});
+
+const deltaruneFont = localFont({
+  src: "../public/fonts/deltarune.ttf",
+  variable: "--font-deltarune",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={`${inter.variable} h-full antialiased`}>
+    <html lang="uk" className={`${inter.variable} ${deltaruneFont.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas-night text-on-primary">
         <ErrorBoundary>
           <AuthProvider>

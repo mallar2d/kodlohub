@@ -86,6 +86,10 @@ const FAQS = [
     q: "Як відбувається активація підписки?",
     a: "Ви здійснюєте прямий переказ 22 ₴ на карту, вказавши свій нікнейм, і головний адмін вручну активує статус Premium на ваш акаунт.",
   },
+  {
+    q: "Що буде у разі зливу матеріалів розробки?",
+    a: "Усі матеріали розробки, концепт-арти та білди є ексклюзивними. У разі виявлення зливу інформації підписка негайно анулюється без повернення коштів, а доступ блокується назавжди.",
+  },
 ];
 
 export default function PremiumClient() {
@@ -364,8 +368,13 @@ export default function PremiumClient() {
                 )}
               </div>
 
-              <div className="text-[11px] text-ink-mute font-mono text-center leading-relaxed">
-                Переказ на карту з ручною видачею адміном.
+              <div className="space-y-1 text-center">
+                <p className="text-[11px] text-ink-mute font-mono leading-relaxed">
+                  Переказ на карту з ручною видачею адміном.
+                </p>
+                <p className="text-[10px] text-ink-mute font-mono leading-relaxed text-red-300/80">
+                  У разі зливу закритої інфи підписка анулюється без повернення коштів.
+                </p>
               </div>
             </div>
           </div>
