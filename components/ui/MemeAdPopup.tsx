@@ -64,8 +64,8 @@ export default function MemeAdPopup() {
   const isAdBlocked = isPremium && !showAdsAnyway;
 
   const getRandomInterval = () => {
-    // Random interval between 60s (60,000ms) and 120s (120,000ms)
-    return Math.floor(Math.random() * (120000 - 60000 + 1)) + 60000;
+    // Random interval between 15s (15,000ms) and 20s (20,000ms)
+    return Math.floor(Math.random() * (20000 - 15000 + 1)) + 15000;
   };
 
   const showNextAd = useCallback(() => {
