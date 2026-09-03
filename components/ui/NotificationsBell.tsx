@@ -174,7 +174,7 @@ export default function NotificationsBell({ fullWidth = false }: NotificationsBe
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center font-mono">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-on-primary text-canvas-night text-[9px] font-bold rounded-full flex items-center justify-center font-mono">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

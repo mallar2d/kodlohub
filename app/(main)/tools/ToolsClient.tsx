@@ -230,8 +230,8 @@ export default function ToolsClient() {
               onClick={() => setSelectedCategory(cat.key)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-pointer ${
                 selectedCategory === cat.key
-                  ? "bg-white text-ink font-bold shadow-sm"
-                  : "text-ink-mute hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-on-primary text-canvas-night font-bold shadow-sm"
+                  : "text-ink-mute hover:text-on-primary hover:bg-on-primary/10"
               }`}
             >
               {cat.label}
@@ -252,7 +252,7 @@ export default function ToolsClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Пошук утиліт..."
-            className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-canvas-night border border-hairline-dark text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-white/30 transition-colors"
+            className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-canvas-night border border-hairline-dark text-on-primary placeholder:text-ink-mute focus:outline-none focus:border-on-primary/30 transition-colors"
           />
           {search && (
             <button
@@ -271,12 +271,12 @@ export default function ToolsClient() {
           <Link
             key={tool.id}
             href={tool.href}
-            className="card-dark group p-5 flex flex-col justify-between hover:border-white/30 hover:bg-canvas-night-soft transition-all rounded-2xl relative overflow-hidden"
+            className="card-dark group p-5 flex flex-col justify-between hover:border-on-primary/30 hover:bg-canvas-night-soft transition-all rounded-2xl relative overflow-hidden"
           >
             <div>
               {/* Top Row: Icon + Category Badge */}
               <div className="flex items-center justify-between gap-2 mb-3.5">
-                <div className="w-9 h-9 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white group-hover:border-white/25 transition-colors shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary group-hover:border-on-primary/25 transition-colors shrink-0">
                   {tool.icon}
                 </div>
                 <span className="micro-cap px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night text-[10px] text-ink-mute font-mono">
@@ -289,7 +289,7 @@ export default function ToolsClient() {
                 <span className="text-[11px] text-ink-mute font-mono uppercase tracking-wider block mb-1">
                   {tool.badge}
                 </span>
-                <h3 className="text-lg sm:text-xl font-bold uppercase tracking-tight text-on-primary group-hover:text-white transition-colors">
+                <h3 className="text-lg sm:text-xl font-bold uppercase tracking-tight text-on-primary transition-colors">
                   {tool.name}
                 </h3>
               </div>
@@ -301,7 +301,7 @@ export default function ToolsClient() {
             </div>
 
             {/* Bottom CTA Row */}
-            <div className="pt-3 border-t border-hairline-dark/60 flex items-center justify-between text-[11px] font-mono font-medium text-ink-mute group-hover:text-white transition-colors">
+            <div className="pt-3 border-t border-hairline-dark/60 flex items-center justify-between text-[11px] font-mono font-medium text-ink-mute group-hover:text-on-primary transition-colors">
               <span className="uppercase tracking-wider">{tool.ctaText}</span>
               <svg
                 width="14"

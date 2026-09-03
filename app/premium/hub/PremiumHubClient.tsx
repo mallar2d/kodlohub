@@ -144,7 +144,7 @@ export default function PremiumHubClient() {
             </Link>
             <Link
               href="/"
-              className="block text-xs text-ink-mute hover:text-white font-mono transition-colors"
+              className="block text-xs text-ink-mute hover:text-on-primary font-mono transition-colors"
             >
               На головну
             </Link>
@@ -225,7 +225,7 @@ export default function PremiumHubClient() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-on-primary group-hover:text-white transition-colors">
+                    <h3 className="text-base font-bold text-on-primary group-hover:opacity-85 transition-opacity">
                       {item.title}
                     </h3>
                     <p className="text-xs text-ink-mute mt-1 leading-relaxed">

@@ -701,7 +701,7 @@ export default function KavaClient() {
             }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "hub"
-                ? "bg-white text-black border-white font-bold"
+                ? "bg-on-primary text-canvas-night border-on-primary font-bold"
                 : "border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
             }`}
           >
@@ -715,7 +715,7 @@ export default function KavaClient() {
             }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "games"
-                ? "bg-white text-black border-white font-bold"
+                ? "bg-on-primary text-canvas-night border-on-primary font-bold"
                 : "border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
             }`}
           >
@@ -728,7 +728,7 @@ export default function KavaClient() {
             }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "shop"
-                ? "bg-white text-black border-white font-bold"
+                ? "bg-on-primary text-canvas-night border-on-primary font-bold"
                 : "border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
             }`}
           >
@@ -741,7 +741,7 @@ export default function KavaClient() {
             }}
             className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
               tab === "leaderboard"
-                ? "bg-white text-black border-white font-bold"
+                ? "bg-on-primary text-canvas-night border-on-primary font-bold"
                 : "border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
             }`}
           >
@@ -752,7 +752,7 @@ export default function KavaClient() {
               onClick={() => setTab("history")}
               className={`button-cap px-5 py-2.5 rounded-lg border transition-all cursor-pointer ${
                 tab === "history"
-                  ? "bg-white text-black border-white font-bold"
+                  ? "bg-on-primary text-canvas-night border-on-primary font-bold"
                   : "border-hairline-dark text-on-primary-mute hover:border-on-primary hover:text-on-primary"
               }`}
             >
@@ -939,7 +939,7 @@ export default function KavaClient() {
                   onClick={handleClaim}
                   className={`w-full py-4 rounded-xl font-bold uppercase tracking-wider text-xs transition-all cursor-pointer ${
                     canClaim && isLinked
-                      ? "bg-white text-black hover:bg-zinc-200 shadow-xl hover:scale-[1.01]"
+                      ? "bg-on-primary text-canvas-night hover:opacity-90 shadow-xl hover:scale-[1.01]"
                       : "bg-white/5 border border-hairline-dark text-ink-mute cursor-not-allowed opacity-60"
                   }`}
                 >
@@ -1206,7 +1206,7 @@ export default function KavaClient() {
                         <button
                           disabled={diceRolling}
                           onClick={handleRollDice}
-                          className="w-full py-4 rounded-xl bg-white text-black font-bold uppercase tracking-wider text-xs hover:bg-zinc-200 cursor-pointer shadow-xl transition-all"
+                          className="w-full py-4 rounded-xl bg-on-primary text-canvas-night font-bold uppercase tracking-wider text-xs hover:opacity-90 cursor-pointer shadow-xl transition-all"
                         >
                           {diceRolling ? "КИДОК..." : "КИНОТИ КУБИК (d6)"}
                         </button>

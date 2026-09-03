@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import NotificationsBell from "@/components/ui/NotificationsBell";
 import SearchBar from "@/components/ui/SearchBar";
 import Avatar from "@/components/ui/Avatar";
+import ThemeSelector from "@/components/ui/ThemeSelector";
 
 const navLinks = [
   { href: "/projects", label: "ПРОЄКТИ" },
@@ -143,8 +144,8 @@ export default function Navbar() {
                 style={
                   isPremium
                     ? {
-                        backgroundImage:
-                          "linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 20%, #dbeafe 35%, #fbcfe8 48%, #c4b5fd 58%, #e0f2fe 68%, #FFFFFF 80%, #FFFFFF 100%)",
+                        backgroundImage: "var(--premium-gradient)",
+                        filter: "var(--premium-text-filter)",
                       }
                     : undefined
                 }
@@ -153,10 +154,13 @@ export default function Navbar() {
               </span>
               {isPremium && (
                 <span
-                  className="font-[var(--font-display)] text-[11px] font-black tracking-[1.6px] px-2.5 py-0.5 rounded-full border border-white/30 bg-white/10 text-transparent bg-clip-text animate-premium-sheen uppercase shrink-0 transition-all shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+                  className="font-[var(--font-display)] text-[11px] font-black tracking-[1.6px] px-2.5 py-0.5 rounded-full border text-transparent bg-clip-text animate-premium-sheen uppercase shrink-0 transition-all"
                   style={{
-                    backgroundImage:
-                      "linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 20%, #dbeafe 35%, #fbcfe8 48%, #c4b5fd 58%, #e0f2fe 68%, #FFFFFF 80%, #FFFFFF 100%)",
+                    backgroundImage: "var(--premium-gradient)",
+                    borderColor: "var(--premium-badge-border)",
+                    backgroundColor: "var(--premium-badge-bg)",
+                    boxShadow: "var(--premium-badge-shadow)",
+                    filter: "var(--premium-text-filter)",
                   }}
                 >
                   PREMIUM
@@ -192,6 +196,8 @@ export default function Navbar() {
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2">
               <SearchBar />
+
+              <ThemeSelector />
 
               <Link
                 href="/tools/hammer"
@@ -396,8 +402,9 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobile Actions: Hammer & Hamburger */}
+            {/* Mobile Actions: Theme, Hammer & Hamburger */}
             <div className="flex items-center gap-2 lg:hidden">
+              <ThemeSelector variant="icon" />
               <Link
                 href="/tools/hammer"
                 className="w-8 h-8 rounded-full flex items-center justify-center border border-hairline-dark text-on-primary-mute hover:text-on-primary bg-canvas-night-soft/60 transition-colors"
@@ -503,12 +510,12 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
                     pathname === "/projects" || pathname.startsWith("/projects/")
-                      ? "bg-canvas-night-soft border-white/30 text-white"
-                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-white/20 hover:bg-canvas-night-soft"
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polygon points="12 2 2 7 12 12 22 7 12 2" />
                         <polyline points="2 17 12 22 22 17" />
@@ -520,7 +527,7 @@ export default function Navbar() {
                       <p className="text-xs text-ink-mute font-mono">Каталог ігор, розробка, devlog</p>
                     </div>
                   </div>
-                  <span className="text-ink-mute group-hover:text-white transition-colors">→</span>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
                 </Link>
 
                 {/* 2. Archive */}
@@ -529,12 +536,12 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
                     pathname === "/archive" || ["/gallery", "/blog", "/lore", "/cast"].some((m) => pathname.startsWith(m))
-                      ? "bg-canvas-night-soft border-white/30 text-white"
-                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-white/20 hover:bg-canvas-night-soft"
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                         <circle cx="8.5" cy="8.5" r="1.5" />
@@ -546,7 +553,7 @@ export default function Navbar() {
                       <p className="text-xs text-ink-mute font-mono">Медіатека, блог, лор, подкасти</p>
                     </div>
                   </div>
-                  <span className="text-ink-mute group-hover:text-white transition-colors">→</span>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
                 </Link>
 
                 {/* 3. Wiki */}
@@ -555,12 +562,12 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
                     pathname === "/wiki" || pathname.startsWith("/wiki/")
-                      ? "bg-canvas-night-soft border-white/30 text-white"
-                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-white/20 hover:bg-canvas-night-soft"
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
@@ -571,7 +578,7 @@ export default function Navbar() {
                       <p className="text-xs text-ink-mute font-mono">База знань та енциклопедія</p>
                     </div>
                   </div>
-                  <span className="text-ink-mute group-hover:text-white transition-colors">→</span>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
                 </Link>
 
                 {/* 4. Tools */}
@@ -580,12 +587,12 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
                     pathname === "/tools" || pathname.startsWith("/tools/")
-                      ? "bg-canvas-night-soft border-white/30 text-white"
-                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-white/20 hover:bg-canvas-night-soft"
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                       </svg>
@@ -595,7 +602,7 @@ export default function Navbar() {
                       <p className="text-xs text-ink-mute font-mono">Всі інтерактивні утиліти та ігри</p>
                     </div>
                   </div>
-                  <span className="text-ink-mute group-hover:text-white transition-colors">→</span>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
                 </Link>
 
                 {/* 5. Premium */}
@@ -604,12 +611,12 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
                     pathname === "/premium"
-                      ? "bg-canvas-night-soft border-white/30 text-white"
-                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-white/20 hover:bg-canvas-night-soft"
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-white transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                       </svg>
@@ -618,7 +625,7 @@ export default function Navbar() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold uppercase tracking-wide">Преміум</p>
                         {isPremium && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded border border-white/20 bg-white/10 text-white font-mono font-semibold">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded border border-on-primary/25 bg-on-primary/10 text-on-primary font-mono font-semibold">
                             АКТИВНО
                           </span>
                         )}
@@ -626,7 +633,7 @@ export default function Navbar() {
                       <p className="text-xs text-ink-mute font-mono">22 ₴/міс • Підтримка слопу, без реклами</p>
                     </div>
                   </div>
-                  <span className="text-ink-mute group-hover:text-white transition-colors">→</span>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
                 </Link>
               </div>
             </div>
@@ -688,6 +695,14 @@ export default function Navbar() {
                   </Link>
                 )}
               </div>
+            </div>
+
+            {/* Themes Section in Mobile Drawer */}
+            <div className="space-y-2">
+              <p className="micro-cap text-ink-mute text-[10px] px-1 tracking-wider">
+                ОФОРМЛЕННЯ
+              </p>
+              <ThemeSelector compact />
             </div>
           </div>
 

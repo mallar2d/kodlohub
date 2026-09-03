@@ -155,7 +155,7 @@ export default function SupportEndingPage() {
               href="https://github.com/mallardask-ops/barista-games"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-on-primary underline hover:text-white"
+              className="text-on-primary underline hover:opacity-80"
             >
               mallardask-ops/barista-games
             </a>

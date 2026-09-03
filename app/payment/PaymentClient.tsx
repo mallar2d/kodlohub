@@ -125,7 +125,7 @@ export default function PaymentClient() {
             </Link>
             <Link
               href="/"
-              className="text-xs text-ink-mute hover:text-white font-mono transition-colors"
+              className="text-xs text-ink-mute hover:text-on-primary font-mono transition-colors"
             >
               На головну сторінку
             </Link>

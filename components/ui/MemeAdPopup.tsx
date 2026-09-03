@@ -208,28 +208,24 @@ export default function MemeAdPopup() {
             maxWidth: "min(380px, calc(100vw - 2rem))",
           }}
         >
-          <div className="bg-canvas-night-soft/95 backdrop-blur-md border border-hairline-dark hover:border-white/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-colors">
-            {/* Header Bar */}
-            <div className="flex items-center justify-between px-3.5 py-2 bg-canvas-night/80 border-b border-hairline-dark">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                <span className="micro-cap text-[10px] text-ink-mute tracking-wider uppercase font-mono">
-                  РЕКЛАМА
-                </span>
-              </div>
-              <button
-                onClick={closeAd}
-                className="text-ink-mute hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors text-xs leading-none cursor-pointer"
-                aria-label="Закрити рекламу"
-              >
-                ✕
-              </button>
-            </div>
+          <div className="relative bg-canvas-night-soft/95 backdrop-blur-md border border-hairline-dark hover:border-white/30 rounded-2xl shadow-2xl overflow-hidden transition-colors group">
+            {/* Close Button overlaid directly on the image */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeAd();
+              }}
+              className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full bg-black/70 hover:bg-black/95 text-white/80 hover:text-white border border-white/20 hover:border-white/50 backdrop-blur-md flex items-center justify-center text-[11px] leading-none transition-all shadow-md cursor-pointer"
+              aria-label="Закрити рекламу"
+            >
+              ✕
+            </button>
 
             {/* Ad Image Content */}
             <div
               onClick={handleAdClick}
-              className="relative cursor-pointer group bg-black/40 flex items-center justify-center overflow-hidden p-1.5 select-none"
+              className="relative cursor-pointer bg-black/40 flex items-center justify-center overflow-hidden p-1.5 select-none"
               title="Клікніть щоб збільшити"
             >
               <Image
@@ -237,12 +233,12 @@ export default function MemeAdPopup() {
                 alt={currentAd.alt}
                 width={380}
                 height={280}
-                className="w-auto max-h-[280px] max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
+                className="w-auto max-h-[280px] max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
                 priority
               />
 
               {/* Hover highlight overlay with click hint */}
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.04] transition-colors pointer-events-none rounded-lg flex items-end justify-center pb-2">
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.04] transition-colors pointer-events-none rounded-xl flex items-end justify-center pb-2">
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-mono font-semibold bg-black/80 px-2 py-0.5 rounded-full text-white/90 border border-white/20">
                   🔍 Клікніть щоб відкрити
                 </span>

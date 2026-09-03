@@ -64,14 +64,19 @@ export default function HomeHero() {
             className="font-deltarune text-6xl sm:text-8xl md:text-9xl lg:text-[130px] xl:text-[150px] tracking-normal leading-none select-none text-transparent bg-clip-text hover:opacity-85 transition-opacity cursor-pointer inline-block"
             style={{
               backgroundImage:
-                "linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 28%, rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.01) 92%, transparent 100%)",
+                "var(--hero-gradient, linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 28%, rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.01) 92%, transparent 100%))",
             }}
             title="kodlOrune"
           >
             kodlOrune
           </Link>
         ) : (
-          <div className="relative inline-block">
+          <div
+            className="relative inline-block"
+            style={{
+              filter: isPremium ? "var(--premium-text-filter)" : undefined,
+            }}
+          >
             {isPremium && (
               <>
                 <div className="absolute -top-3 -right-3 sm:-right-6 pointer-events-none text-cyan-300/80 animate-twinkle">
@@ -95,8 +100,8 @@ export default function HomeHero() {
               }`}
               style={{
                 backgroundImage: isPremium
-                  ? "linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 20%, #e2e8f0 32%, #bae6fd 42%, #fbcfe8 50%, #c4b5fd 58%, #e0f2fe 68%, #FFFFFF 80%, #FFFFFF 100%)"
-                  : "linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 28%, rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.01) 92%, transparent 100%)",
+                  ? "var(--premium-gradient)"
+                  : "var(--hero-gradient, linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 28%, rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.01) 92%, transparent 100%))",
                 maskImage: isPremium
                   ? "linear-gradient(180deg, #000 0%, #000 48%, rgba(0,0,0,0.72) 78%, rgba(0,0,0,0.32) 100%)"
                   : undefined,

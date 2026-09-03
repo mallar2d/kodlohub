@@ -254,7 +254,7 @@ function MediaCardItem({
           </div>
 
           <div className="min-w-0">
-            <p className="text-sm text-on-primary font-medium truncate group-hover:text-white transition-colors">
+            <p className="text-sm text-on-primary font-medium truncate group-hover:opacity-85 transition-opacity">
               {item.caption ? stripWikiMarkup(item.caption) : fileName}
             </p>
             <p className="text-xs text-ink-mute font-mono">
@@ -394,7 +394,7 @@ function MediaCardItem({
 
         {/* Caption */}
         {item.caption && (
-          <p className="text-on-primary text-xs sm:text-sm p-3.5 pb-2 line-clamp-2 leading-relaxed font-medium group-hover:text-white transition-colors">
+          <p className="text-on-primary text-xs sm:text-sm p-3.5 pb-2 line-clamp-2 leading-relaxed font-medium group-hover:opacity-85 transition-opacity">
             {stripWikiMarkup(item.caption)}
           </p>
         )}
@@ -791,7 +791,7 @@ export default function UnifiedArchiveClient({
                             </span>
                           </div>
 
-                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:text-white transition-colors line-clamp-2">
+                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:opacity-85 transition-opacity line-clamp-2">
                             {p.title}
                           </h3>
 
@@ -826,7 +826,7 @@ export default function UnifiedArchiveClient({
                       <Link
                         key={`lore-${l.id}`}
                         href={`/lore/${l.id}`}
-                        className="card-dark p-6 rounded-xl hover:border-white/30 transition-all group flex flex-col justify-between"
+                        className="card-dark p-6 rounded-xl hover:border-on-primary/30 transition-all group flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
@@ -838,7 +838,7 @@ export default function UnifiedArchiveClient({
                             </span>
                           </div>
 
-                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:text-white transition-colors line-clamp-2">
+                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:opacity-85 transition-opacity line-clamp-2">
                             {l.title}
                           </h3>
 
@@ -880,7 +880,7 @@ export default function UnifiedArchiveClient({
                     return (
                       <div
                         key={`podcast-${ep.id}`}
-                        className="card-dark p-6 rounded-xl hover:border-white/30 transition-all group flex flex-col justify-between"
+                        className="card-dark p-6 rounded-xl hover:border-on-primary/30 transition-all group flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
@@ -892,7 +892,7 @@ export default function UnifiedArchiveClient({
                             </span>
                           </div>
 
-                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:text-white transition-colors">
+                          <h3 className="font-bold text-on-primary text-lg mb-2 group-hover:opacity-85 transition-opacity">
                             {ep.title}
                           </h3>
 
@@ -999,7 +999,7 @@ export default function UnifiedArchiveClient({
                   className="card-dark p-6 rounded-xl block hover:border-white/30 transition-all group"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                    <h3 className="font-bold text-on-primary text-xl group-hover:text-white transition-colors">
+                    <h3 className="font-bold text-on-primary text-xl group-hover:opacity-85 transition-opacity">
                       {post.title}
                     </h3>
                     <span className="text-xs text-ink-mute font-mono shrink-0">
@@ -1046,7 +1046,7 @@ export default function UnifiedArchiveClient({
                   <Link
                     key={item.id}
                     href={`/lore/${item.id}`}
-                    className="card-dark p-6 rounded-xl hover:border-white/30 transition-all group flex flex-col justify-between"
+                    className="card-dark p-6 rounded-xl hover:border-on-primary/30 transition-all group flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-3">
@@ -1058,7 +1058,7 @@ export default function UnifiedArchiveClient({
                         </span>
                       </div>
 
-                      <h3 className="font-bold text-on-primary text-xl mb-2 group-hover:text-white transition-colors line-clamp-2">
+                      <h3 className="font-bold text-on-primary text-xl mb-2 group-hover:opacity-85 transition-opacity line-clamp-2">
                         {item.title}
                       </h3>
 
@@ -1108,7 +1108,7 @@ export default function UnifiedArchiveClient({
               {filteredPodcasts.map((ep) => (
                 <div
                   key={ep.id}
-                  className="card-dark p-6 rounded-xl hover:border-white/30 transition-all flex flex-col justify-between"
+                  className="card-dark p-6 rounded-xl hover:border-on-primary/30 transition-all flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
@@ -1120,7 +1120,7 @@ export default function UnifiedArchiveClient({
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-on-primary text-xl mb-2 group-hover:text-white transition-colors">
+                    <h3 className="font-bold text-on-primary text-xl mb-2 group-hover:opacity-85 transition-opacity">
                       {ep.title}
                     </h3>
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FooterThemeButton from "@/components/layout/FooterThemeButton";
 
 export default function Footer() {
   return (
@@ -148,13 +149,14 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-6 border-t border-hairline-dark flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-ink-mute">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-on-primary font-bold tracking-[1.4px] uppercase flex items-center gap-1.5 font-mono text-[11px]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
               POWERED BY PODROID
             </span>
+            <FooterThemeButton />
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px]">© {new Date().getFullYear()} 22:00 КОДЛО · KODLOHUB 2.0</span>

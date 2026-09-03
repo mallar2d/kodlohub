@@ -569,8 +569,8 @@ export default function UrethraClient() {
                 }}
                 className={`button-cap px-5 sm:px-6 py-1.5 rounded-full text-xs font-medium transition-all ${
                   activeTab === "play"
-                    ? "bg-white text-ink shadow-sm"
-                    : "text-on-primary-mute hover:text-white"
+                    ? "bg-on-primary text-canvas-night shadow-sm"
+                    : "text-on-primary-mute hover:text-on-primary"
                 }`}
               >
                 СКАФАНДР & В БІЙ
@@ -583,8 +583,8 @@ export default function UrethraClient() {
                 }}
                 className={`button-cap px-5 sm:px-6 py-1.5 rounded-full text-xs font-medium transition-all ${
                   activeTab === "leaderboard"
-                    ? "bg-white text-ink shadow-sm"
-                    : "text-on-primary-mute hover:text-white"
+                    ? "bg-on-primary text-canvas-night shadow-sm"
+                    : "text-on-primary-mute hover:text-on-primary"
                 }`}
               >
                 РЕЙТИНГ
@@ -596,8 +596,8 @@ export default function UrethraClient() {
                 }}
                 className={`button-cap px-5 sm:px-6 py-1.5 rounded-full text-xs font-medium transition-all ${
                   activeTab === "buffs"
-                    ? "bg-white text-ink shadow-sm"
-                    : "text-on-primary-mute hover:text-white"
+                    ? "bg-on-primary text-canvas-night shadow-sm"
+                    : "text-on-primary-mute hover:text-on-primary"
                 }`}
               >
                 БАФИ ТА КЕРУВАННЯ
@@ -645,7 +645,7 @@ export default function UrethraClient() {
                         type="button"
                         onClick={handleRandomizeNick}
                         title="Випадковий мемний позивний"
-                        className="px-3 bg-canvas-night hover:bg-canvas-card text-on-primary-mute hover:text-white rounded-xl border border-hairline-dark transition-colors flex items-center justify-center"
+                        className="px-3 bg-canvas-night hover:bg-canvas-card text-on-primary-mute hover:text-on-primary rounded-xl border border-hairline-dark transition-colors flex items-center justify-center"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="2" y="2" width="20" height="20" rx="5" />
@@ -667,7 +667,7 @@ export default function UrethraClient() {
                 {/* Launch Button */}
                 <button
                   onClick={startGame}
-                  className="w-full py-3.5 rounded-full bg-white text-ink font-semibold text-xs tracking-wider uppercase hover:bg-neutral-200 transition-all flex items-center justify-center gap-2 mt-auto"
+                  className="w-full py-3.5 rounded-full bg-on-primary text-canvas-night font-semibold text-xs tracking-wider uppercase hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-auto"
                 >
                   <span>ЗАЛІЗТИ В УРЕТРУ (PLAY)</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -690,8 +690,8 @@ export default function UrethraClient() {
                       onClick={toggleRandomSkin}
                       className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-full border transition-all ${
                         randomSkinOnRestart
-                          ? "bg-white/[0.12] border-white/60 text-white shadow-sm"
-                          : "border-hairline-dark bg-canvas-night text-ink-mute hover:text-white hover:border-hairline-hover"
+                          ? "bg-on-primary/15 border-on-primary text-on-primary shadow-sm"
+                          : "border-hairline-dark bg-canvas-night text-ink-mute hover:text-on-primary hover:border-hairline-hover"
                       }`}
                       title="Змінювати скін випадковим чином при кожному перезапуску"
                     >
@@ -708,7 +708,7 @@ export default function UrethraClient() {
                     {/* Sound Toggle */}
                     <button
                       onClick={toggleSound}
-                      className="flex items-center gap-1.5 text-[11px] font-mono text-ink-mute hover:text-white px-2.5 py-1 rounded-full border border-hairline-dark bg-canvas-night transition-colors"
+                      className="flex items-center gap-1.5 text-[11px] font-mono text-ink-mute hover:text-on-primary px-2.5 py-1 rounded-full border border-hairline-dark bg-canvas-night transition-colors"
                     >
                       {soundEnabled ? (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -773,13 +773,13 @@ export default function UrethraClient() {
             <div className="w-full card-dark p-6">
               <div className="flex items-center justify-between mb-4 border-b border-hairline-dark pb-3">
                 <div>
-                  <h2 className="button-cap text-white">РЕЄСТР РЕКОРДІВ</h2>
+                  <h2 className="button-cap text-on-primary">РЕЄСТР РЕКОРДІВ</h2>
                   <p className="text-xs text-ink-mute">Найбільша маса за всю історію уретри</p>
                 </div>
                 <button
                   onClick={fetchGlobalLeaderboard}
                   disabled={isLoadingScores}
-                  className="px-3 py-1 rounded-full border border-hairline-dark bg-canvas-night hover:border-hairline-hover text-xs font-mono text-on-primary-mute hover:text-white transition-colors"
+                  className="px-3 py-1 rounded-full border border-hairline-dark bg-canvas-night hover:border-hairline-hover text-xs font-mono text-on-primary-mute hover:text-on-primary transition-colors"
                 >
                   {isLoadingScores ? "ОНОВЛЕННЯ..." : "ОНОВИТИ"}
                 </button>
@@ -926,13 +926,13 @@ export default function UrethraClient() {
                   multiplayerRef.current?.disconnect();
                   setGameState("lobby");
                 }}
-                className="px-3.5 py-1.5 rounded-full bg-canvas-night/80 backdrop-blur border border-hairline-dark text-xs font-mono text-on-primary-mute hover:text-white hover:border-white/30 transition-colors"
+                className="px-3.5 py-1.5 rounded-full bg-canvas-night/80 backdrop-blur border border-hairline-dark text-xs font-mono text-on-primary-mute hover:text-on-primary hover:border-on-primary/30 transition-colors"
               >
                 ← МЕНЮ
               </button>
               <button
                 onClick={toggleSound}
-                className="p-2 rounded-full bg-canvas-night/80 backdrop-blur border border-hairline-dark text-xs text-on-primary-mute hover:text-white transition-colors"
+                className="p-2 rounded-full bg-canvas-night/80 backdrop-blur border border-hairline-dark text-xs text-on-primary-mute hover:text-on-primary transition-colors"
               >
                 {soundEnabled ? (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1109,7 +1109,7 @@ export default function UrethraClient() {
               <div className="space-y-2">
                 <button
                   onClick={startGame}
-                  className="w-full py-3 rounded-full bg-white text-ink font-semibold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all"
+                  className="w-full py-3 rounded-full bg-on-primary text-canvas-night font-semibold text-xs uppercase tracking-wider hover:opacity-90 transition-all"
                 >
                   СПРОБУВАТИ ЗНОВУ
                 </button>
@@ -1118,7 +1118,7 @@ export default function UrethraClient() {
                     audio.playClick();
                     setGameState("lobby");
                   }}
-                  className="w-full py-2.5 rounded-full bg-transparent border border-hairline-dark hover:border-hairline-hover text-on-primary-mute hover:text-white font-medium text-xs uppercase tracking-wider transition-colors"
+                  className="w-full py-2.5 rounded-full bg-transparent border border-hairline-dark hover:border-hairline-hover text-on-primary-mute hover:text-on-primary font-medium text-xs uppercase tracking-wider transition-colors"
                 >
                   ГОЛОВНЕ МЕНЮ
                 </button>

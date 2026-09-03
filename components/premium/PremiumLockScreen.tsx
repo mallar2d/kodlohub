@@ -44,7 +44,7 @@ export default function PremiumLockScreen({
           </Link>
           <Link
             href="/premium"
-            className="block text-xs text-ink-mute hover:text-white font-mono transition-colors"
+            className="block text-xs text-ink-mute hover:text-on-primary font-mono transition-colors"
           >
             Детальніше про фонд та тариф
           </Link>

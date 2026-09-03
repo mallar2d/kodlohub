@@ -82,16 +82,16 @@ export default async function HomePage() {
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         {/* Key Announcement: KODLORUNE IS AWAITING */}
         <div className="mb-16">
-          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-white/20 group relative overflow-hidden">
+          <div className="border border-hairline-dark bg-canvas-night-soft/80 backdrop-blur rounded-2xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-on-primary/20 group relative overflow-hidden">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary group-hover:text-white transition-colors leading-snug">
+              <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-on-primary transition-colors leading-snug">
                 KODLORUNE IS AWAITING
               </h2>
             </div>
             <div className="shrink-0">
               <Link
                 href="/kodlorune-awaiting"
-                className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-white/40 inline-flex items-center gap-2"
+                className="btn-ghost text-on-primary text-xs w-full sm:w-fit group-hover:border-on-primary/40 inline-flex items-center gap-2"
               >
                 <span>ДЕТАЛІ ОГОЛОШЕННЯ</span>
                 <svg
@@ -138,7 +138,7 @@ export default async function HomePage() {
                     </span>
                     <span className="text-xs text-ink-mute font-mono">{item.badge}</span>
                   </div>
-                  <h3 className="text-2xl font-bold uppercase tracking-wider text-on-primary mb-2 group-hover:text-white transition-colors">
+                  <h3 className="text-2xl font-bold uppercase tracking-wider text-on-primary mb-2 transition-colors">
                     {item.title}
                   </h3>
                   <p className="text-on-primary-mute text-sm leading-relaxed mb-6">

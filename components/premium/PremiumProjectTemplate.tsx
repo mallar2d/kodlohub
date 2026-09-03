@@ -222,14 +222,14 @@ export default function PremiumProjectTemplate({ project }: PremiumProjectTempla
                             </span>
                           )}
                           {post.version && (
-                            <span className="text-xs font-mono font-bold text-white">
+                            <span className="text-xs font-mono font-bold text-on-primary">
                               {post.version}
                             </span>
                           )}
                           <span className="text-ink-mute text-xs">•</span>
                           <span className="text-xs font-mono text-ink-mute">{post.date}</span>
                         </div>
-                        <h4 className="text-base sm:text-lg font-bold text-on-primary hover:text-white transition-colors">
+                        <h4 className="text-base sm:text-lg font-bold text-on-primary hover:opacity-85 transition-opacity">
                           {post.title}
                         </h4>
                         <p className="text-xs text-ink-mute leading-relaxed">

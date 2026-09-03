@@ -638,7 +638,7 @@ export default function SoundCloudPlayer() {
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <p className={`text-xs truncate font-medium ${isCurrent ? "text-on-primary font-bold" : "text-zinc-300 group-hover:text-white"}`}>
+                    <p className={`text-xs truncate font-medium ${isCurrent ? "text-on-primary font-bold" : "text-on-primary-mute group-hover:text-on-primary"}`}>
                       {track.title}
                     </p>
                     <p className="text-[10px] text-ink-mute font-mono truncate">

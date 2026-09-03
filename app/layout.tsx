@@ -10,6 +10,7 @@ import MemeAdPopup from "@/components/ui/MemeAdPopup";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/Toast";
 import AuthProvider from "@/components/providers/AuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { buildPageMetadata } from "@/lib/seo";
 
 const inter = Inter({
@@ -46,18 +47,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={`${inter.variable} ${deltaruneFont.variable} h-full antialiased`}>
+    <html
+      lang="uk"
+      suppressHydrationWarning
+      className={`${inter.variable} ${deltaruneFont.variable} h-full antialiased`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var a=["space","nescafe","kodlorune","matrix","atb","biohazard","sadochok"];var t=localStorage.getItem("kodlohub_theme");if(t&&a.indexOf(t)!==-1){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-canvas-night text-on-primary">
         <ErrorBoundary>
           <AuthProvider>
-            <ToastProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <SoundCloudPlayer />
-              <CoffeeReminder />
-              <MemeAdPopup />
-            </ToastProvider>
+            <ThemeProvider>
+              <ToastProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <SoundCloudPlayer />
+                <CoffeeReminder />
+                <MemeAdPopup />
+              </ToastProvider>
+            </ThemeProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

@@ -189,12 +189,10 @@ export default function PremiumClient() {
             <h1
               className="relative font-[var(--font-display)] text-6xl sm:text-8xl md:text-9xl lg:text-[130px] font-black uppercase tracking-[-0.04em] leading-none select-none text-transparent bg-clip-text animate-premium-sheen"
               style={{
-                backgroundImage:
-                  "linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 20%, #e2e8f0 32%, #bae6fd 42%, #fbcfe8 50%, #c4b5fd 58%, #e0f2fe 68%, #FFFFFF 80%, #FFFFFF 100%)",
-                maskImage:
-                  "linear-gradient(180deg, #000 0%, #000 48%, rgba(0,0,0,0.72) 78%, rgba(0,0,0,0.32) 100%)",
-                WebkitMaskImage:
-                  "linear-gradient(180deg, #000 0%, #000 48%, rgba(0,0,0,0.72) 78%, rgba(0,0,0,0.32) 100%)",
+                backgroundImage: "var(--premium-gradient)",
+                filter: "var(--premium-text-filter)",
+                maskImage: "var(--premium-mask-image, none)",
+                WebkitMaskImage: "var(--premium-mask-image, none)",
               }}
             >
               KODLOHUB
@@ -202,17 +200,17 @@ export default function PremiumClient() {
 
             {/* Deluxe Sub-Signature in Deltarune aesthetic with subtle glow */}
             <div className="mt-4 sm:mt-5 flex items-center justify-center gap-3 sm:gap-4">
-              <div className="h-px w-10 sm:w-24 bg-gradient-to-r from-transparent via-white/30 to-white/70" />
+              <div className="h-px w-10 sm:w-24 bg-gradient-to-r from-transparent via-on-primary/20 to-on-primary/50" />
               <span
-                className="font-deltarune text-base sm:text-xl tracking-[0.25em] sm:tracking-[0.3em] uppercase text-transparent bg-clip-text animate-premium-sheen select-none drop-shadow-[0_0_12px_rgba(255,255,255,0.35)]"
+                className="font-deltarune text-base sm:text-xl tracking-[0.25em] sm:tracking-[0.3em] uppercase text-transparent bg-clip-text animate-premium-sheen select-none"
                 style={{
-                  backgroundImage:
-                    "linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 25%, #bae6fd 45%, #fbcfe8 55%, #c4b5fd 65%, #FFFFFF 85%, #FFFFFF 100%)",
+                  backgroundImage: "var(--premium-gradient)",
+                  filter: "var(--premium-text-filter)",
                 }}
               >
                 PREMIUM
               </span>
-              <div className="h-px w-10 sm:w-24 bg-gradient-to-l from-transparent via-white/30 to-white/70" />
+              <div className="h-px w-10 sm:w-24 bg-gradient-to-l from-transparent via-on-primary/20 to-on-primary/50" />
             </div>
           </div>
 
@@ -291,7 +289,7 @@ export default function PremiumClient() {
                         {feat.tags.map((tag, tIdx) => (
                           <span
                             key={tIdx}
-                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night text-white/90"
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full border border-hairline-dark bg-canvas-night text-on-primary"
                           >
                             {tag}
                           </span>
@@ -331,7 +329,7 @@ export default function PremiumClient() {
               <div className="space-y-3 pt-4 border-t border-hairline-dark">
                 {isPremium ? (
                   <div className="p-3.5 rounded-2xl bg-canvas-night border border-hairline-dark text-center space-y-2">
-                    <p className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+                    <p className="text-xs font-bold text-on-primary font-mono uppercase tracking-wider">
                       PREMIUM АКТИВОВАНО
                     </p>
                     <p className="text-[11px] text-ink-mute">
@@ -347,7 +345,7 @@ export default function PremiumClient() {
                 ) : user ? (
                   <div className="p-3.5 rounded-xl bg-canvas-night border border-hairline-dark text-center">
                     <p className="text-xs text-ink-mute font-mono">
-                      Акаунт: <span className="text-white font-bold">{user.email}</span>
+                      Акаунт: <span className="text-on-primary font-bold">{user.email}</span>
                     </p>
                   </div>
                 ) : (

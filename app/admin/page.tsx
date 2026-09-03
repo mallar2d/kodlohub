@@ -887,7 +887,7 @@ export default function AdminPage() {
                           className={`button-cap px-2.5 py-1.5 rounded text-xs font-mono transition-colors disabled:opacity-50 cursor-pointer ${
                             profile.is_premium
                               ? "bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20"
-                              : "bg-white/[0.04] text-ink-mute border border-hairline-dark hover:text-white hover:border-white/30"
+                              : "bg-on-primary/[0.04] text-ink-mute border border-hairline-dark hover:text-on-primary hover:border-on-primary/30"
                           }`}
                         >
                           {profile.is_premium ? "ЗНЯТИ PREM" : "+ PREM"}
