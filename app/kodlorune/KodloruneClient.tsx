@@ -6,16 +6,17 @@ interface ProgressItem {
 }
 
 const ITEMS: ProgressItem[] = [
-  { icon: "🎮", percent: 30 },
+  { icon: "🎮", percent: 60 },
   { icon: "🎵", percent: 50 },
-  { icon: "🎨", percent: 20 },
-  { icon: "❤️", percent: 70 },
+  { icon: "🎨", percent: 50 },
+  { icon: "❤️", percent: 90 },
   { icon: "💙", percent: 85 },
-  { icon: "💛", percent: 70 },
-  { icon: "💚", percent: 50 },
-  { icon: "💜", percent: 40 },
-  { icon: "🩵", percent: 30 },
-  { icon: "🧡", percent: 30 },
+  { icon: "💛", percent: 80 },
+  { icon: "💚", percent: 80 },
+  { icon: "💜", percent: 60 },
+  { icon: "🩵", percent: 90 },
+  { icon: "🧡", percent: 75 },
+  { icon: "🐽", percent: 100 },
 ];
 
 function renderBar(percent: number, totalBlocks: number = 20): string {
