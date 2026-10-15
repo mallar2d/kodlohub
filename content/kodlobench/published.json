@@ -180,7 +180,7 @@
       "model": "zai-glm-5-3",
       "agent": "Mistral Vibe",
       "config": "high · без Vision",
-      "score": 295,
+      "score": 250,
       "timeSeconds": 1085.4,
       "tokens": 7262507,
       "cost": 2.5051,
