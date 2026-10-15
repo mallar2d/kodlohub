@@ -1,4 +1,4 @@
-import { DEFAULT_CATEGORY_ID, isCategoryId } from "./categories";
+import { DEFAULT_CATEGORY_ID, isViewCategoryId } from "./categories";
 import { metricValue } from "./format";
 import type { ChartView, PublishedResult, SortDir, SortKey } from "./types";
 
@@ -53,7 +53,7 @@ function one(v: string | string[] | undefined): string | undefined {
 
 /** Tolerant parse: unknown or stale values fall back to defaults and never throw. */
 export function parseView(params: RawParams, all: readonly PublishedResult[]): ViewState {
-  const category = isCategoryId(one(params.category)) ? (one(params.category) as string) : DEFAULT_CATEGORY_ID;
+  const category = isViewCategoryId(one(params.category)) ? (one(params.category) as string) : DEFAULT_CATEGORY_ID;
   const inCategory = new Map(all.filter((r) => r.category === category).map((r) => [r.id, r]));
 
   const sort = SORT_KEYS.find((k) => k === one(params.sort)) ?? DEFAULT_VIEW.sort;

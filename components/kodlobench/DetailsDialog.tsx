@@ -79,7 +79,7 @@ export default function DetailsDialog({ result, currency, selected, full, onTogg
             <Row label="Модель">{result.model}</Row>
             <Row label="CLI-агент">{result.agent ?? dash}</Row>
             <Row label="Конфігурація">{result.config ?? dash}</Row>
-            <Row label="Бал">{result.score === null ? dash : <b>{formatScore(result.score)}</b>}</Row>
+            <Row label="Бал">{result.score === null ? dash : <b>{formatScore(result.score, result.category)}</b>}</Row>
             <Row label="Час">{result.timeSeconds === null ? dash : formatDuration(result.timeSeconds)}</Row>
             <Row label="Токени">{result.tokens === null ? dash : formatTokensFull(result.tokens)}</Row>
             <Row label="Вартість">{result.cost === null ? dash : formatCost(result.cost, currency)}</Row>
@@ -88,7 +88,7 @@ export default function DetailsDialog({ result, currency, selected, full, onTogg
 
           {result.metrics.length > 0 && (
             <div className="mt-5">
-              <p className="micro-cap text-ink-mute mb-1">ДОДАТКОВІ ПОКАЗНИКИ</p>
+              <p className="micro-cap text-ink-mute mb-1">{result.category === "overall" ? "СКЛАДОВІ ЗАГАЛЬНОГО БАЛУ" : "ДОДАТКОВІ ПОКАЗНИКИ"}</p>
               <dl>
                 {result.metrics.map((m, i) => (
                   <Row key={`${m.label}-${i}`} label={m.label}>

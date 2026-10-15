@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { CATEGORIES } from "@/lib/kodlobench/categories";
+import { OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
 
 interface Props {
   active: string;
@@ -12,18 +12,18 @@ interface Props {
 /** Four categories. No combined tab on purpose: categories are never merged into one score. */
 export default function CategoryTabs({ active, counts, onChange }: Props) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const activeCategory = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0];
+  const activeCategory = VIEW_CATEGORIES.find((c) => c.id === active) ?? VIEW_CATEGORIES[0];
 
   function onKeyDown(e: React.KeyboardEvent, index: number) {
     let next = index;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (index + 1) % CATEGORIES.length;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (index - 1 + CATEGORIES.length) % CATEGORIES.length;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (index + 1) % VIEW_CATEGORIES.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (index - 1 + VIEW_CATEGORIES.length) % VIEW_CATEGORIES.length;
     else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = CATEGORIES.length - 1;
+    else if (e.key === "End") next = VIEW_CATEGORIES.length - 1;
     else return;
     e.preventDefault();
     refs.current[next]?.focus();
-    onChange(CATEGORIES[next].id);
+    onChange(VIEW_CATEGORIES[next].id);
   }
 
   return (
@@ -31,9 +31,9 @@ export default function CategoryTabs({ active, counts, onChange }: Props) {
       <div
         role="tablist"
         aria-label="Категорії KodloBench"
-        className="grid grid-cols-2 md:grid-cols-4 gap-2"
+        className="grid grid-cols-2 md:grid-cols-5 gap-2"
       >
-        {CATEGORIES.map((c, i) => {
+        {VIEW_CATEGORIES.map((c, i) => {
           const selected = c.id === active;
           const n = counts[c.id] ?? 0;
           return (
@@ -49,7 +49,7 @@ export default function CategoryTabs({ active, counts, onChange }: Props) {
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(c.id)}
               onKeyDown={(e) => onKeyDown(e, i)}
-              className={`text-left rounded-xl border p-3 sm:p-4 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
+              className={`text-left rounded-xl border p-3 sm:p-4 transition-colors cursor-pointer ${c.id === OVERALL_ID ? "col-span-2 md:col-span-1" : ""} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
                 selected
                   ? "bg-canvas-night-soft border-on-primary/50"
                   : "bg-canvas-night-soft/40 border-hairline-dark hover:border-on-primary-mute"

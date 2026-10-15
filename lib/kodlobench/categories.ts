@@ -32,10 +32,42 @@ export const CATEGORIES: readonly KodloBenchCategory[] = [
   },
 ] as const;
 
-export const DEFAULT_CATEGORY_ID = CATEGORIES[0].id;
+/** Per-category maximum of the published score, in the units used in the data file. */
+export const CATEGORY_SCORE_MAX = 550;
+
+export const OVERALL_ID = "overall";
+
+/**
+ * The overall score is the sum of the four category scores (every coefficient is 1).
+ * It is derived on the server and never read from the data file. Displayed value = raw sum / 100.
+ */
+export const OVERALL_DIVISOR = 100;
+export const OVERALL_SCORE_MAX = (CATEGORIES.length * CATEGORY_SCORE_MAX) / OVERALL_DIVISOR;
+
+export const OVERALL: KodloBenchCategory = {
+  id: OVERALL_ID,
+  name: "Загальний",
+  caption:
+    "Сума балів чотирьох категорій, коефіцієнт кожної дорівнює 1. Максимум 22,00. Показується лише для конфігурацій, які мають результат у всіх чотирьох категоріях.",
+};
+
+/** Tabs shown on the page: the overall view first, then the four categories. */
+export const VIEW_CATEGORIES: readonly KodloBenchCategory[] = [OVERALL, ...CATEGORIES];
+
+export const DEFAULT_CATEGORY_ID = OVERALL_ID;
+
+/** Upper bound of the score axis for a view (data may still exceed it). */
+export function scoreMaxFor(categoryId: string): number {
+  return categoryId === OVERALL_ID ? OVERALL_SCORE_MAX : CATEGORY_SCORE_MAX;
+}
 
 export function getCategory(id: string | undefined | null): KodloBenchCategory | undefined {
-  return CATEGORIES.find((c) => c.id === id);
+  return VIEW_CATEGORIES.find((c) => c.id === id);
+}
+
+/** True for the overall view or one of the four categories (what the URL may name). */
+export function isViewCategoryId(id: unknown): id is string {
+  return typeof id === "string" && VIEW_CATEGORIES.some((c) => c.id === id);
 }
 
 export function isCategoryId(id: unknown): id is string {

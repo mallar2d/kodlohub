@@ -74,7 +74,7 @@ function PointShape({ cx, cy, payload }: PointProps) {
   const hasSelection = st.slots.some(Boolean);
   const dim = hasSelection && slot === -1 && !hot;
   const anchor = st.anchorId === id;
-  const aria = `${entryLabel(r)}: бал ${formatScore(r.score)}, ${METRIC_LABEL[st.xKey].toLowerCase()} ${formatMetric(r, st.xKey, st.currency)}. ${
+  const aria = `${entryLabel(r)}: бал ${formatScore(r.score, r.category)}, ${METRIC_LABEL[st.xKey].toLowerCase()} ${formatMetric(r, st.xKey, st.currency)}. ${
     slot !== -1 ? "Прибрати з порівняння" : "Додати до порівняння"
   }`;
   const actions = st;
@@ -149,7 +149,6 @@ const DOMAIN_LOG: ["auto", "auto"] = ["auto", "auto"];
 const DOMAIN_LINEAR: [number, "auto"] = [0, "auto"];
 const DOMAIN_Y: ["auto", "auto"] = ["auto", "auto"];
 const Z_RANGE: [number, number] = [60, 60];
-const fmtScoreTick = (v: number) => formatScore(v);
 
 export default function ScatterPlot({ rows, xKey, log, slots, hoverId, onHover, onToggle, currency }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -193,6 +192,8 @@ export default function ScatterPlot({ rows, xKey, log, slots, hoverId, onHover, 
     [onHover, onToggle, ordered, slots, hoverId, anchorId, byId, xKey, currency],
   );
 
+  const category = rows[0]?.category;
+  const fmtScoreTick = useCallback((v: number) => formatScore(v, category), [category]);
   const fmtX = useCallback(
     (v: number) => (xKey === "cost" ? formatCost(v, currency) : xKey === "time" ? formatDuration(v) : formatTokens(v)),
     [xKey, currency],
@@ -234,7 +235,7 @@ export default function ScatterPlot({ rows, xKey, log, slots, hoverId, onHover, 
         </ScatterChart>
       </ResponsiveContainer>
     ),
-    [base, top, xKey, log, fmtX],
+    [base, top, xKey, log, fmtX, fmtScoreTick],
   );
 
   return (

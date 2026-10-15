@@ -37,16 +37,17 @@ describe("sortResults", () => {
 
 describe("visibleResults", () => {
   const all = [r("a"), r("b", { model: "Other" }), r("c", { category: "redotui-bench" })];
+  const base = { ...DEFAULT_VIEW, category: "pdrbench-pro" };
   it("scopes to the category and filters", () => {
-    expect(visibleResults(all, DEFAULT_VIEW).map((x) => x.id)).toEqual(["a", "b"]);
-    expect(visibleResults(all, { ...DEFAULT_VIEW, models: ["Other"] }).map((x) => x.id)).toEqual(["b"]);
-    expect(visibleResults(all, { ...DEFAULT_VIEW, query: "oth" }).map((x) => x.id)).toEqual(["b"]);
+    expect(visibleResults(all, base).map((x) => x.id)).toEqual(["a", "b"]);
+    expect(visibleResults(all, { ...base, models: ["Other"] }).map((x) => x.id)).toEqual(["b"]);
+    expect(visibleResults(all, { ...base, query: "oth" }).map((x) => x.id)).toEqual(["b"]);
   });
   it("never hides a selected entry behind a filter", () => {
-    expect(visibleResults(all, { ...DEFAULT_VIEW, models: ["Other"], slots: ["a"] }).map((x) => x.id)).toEqual(["a", "b"]);
+    expect(visibleResults(all, { ...base, models: ["Other"], slots: ["a"] }).map((x) => x.id)).toEqual(["a", "b"]);
   });
   it("only-selected narrows to the selection", () => {
-    expect(visibleResults(all, { ...DEFAULT_VIEW, slots: ["a"], onlySelected: true }).map((x) => x.id)).toEqual(["a"]);
+    expect(visibleResults(all, { ...base, slots: ["a"], onlySelected: true }).map((x) => x.id)).toEqual(["a"]);
   });
 });
 
@@ -72,7 +73,7 @@ describe("url state", () => {
   });
   it("falls back to defaults on garbage", () => {
     const v = parseView({ category: "zzz", sort: "zzz", dir: "x", chart: "zzz", only: "1" }, all);
-    expect(v).toMatchObject({ category: DEFAULT_VIEW.category, sort: "score", dir: "desc", chart: "bars", onlySelected: false });
+    expect(v).toMatchObject({ category: "overall", sort: "score", dir: "desc", chart: "bars", onlySelected: false });
   });
   it("keeps the default address clean", () => {
     expect(serializeView(DEFAULT_VIEW)).toBe("");

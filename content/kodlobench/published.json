@@ -1,6 +1,143 @@
 {
   "schemaVersion": 1,
-  "updatedAt": null,
+  "updatedAt": "2026-10-15",
   "currency": null,
-  "results": []
+  "results": [
+    {
+      "id": "gpt-6-luna-codex-cli-high-pdrbench-pro",
+      "category": "pdrbench-pro",
+      "model": "gpt-6-luna",
+      "agent": "Codex CLI",
+      "config": "high",
+      "score": 267,
+      "timeSeconds": 51.9,
+      "tokens": 181777,
+      "cost": null,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "0.162.1"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 177642
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 152576
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 4135
+        },
+        {
+          "label": "Токени міркування",
+          "value": 988
+        }
+      ]
+    },
+    {
+      "id": "gpt-6-luna-codex-cli-high-redotui-bench",
+      "category": "redotui-bench",
+      "model": "gpt-6-luna",
+      "agent": "Codex CLI",
+      "config": "high",
+      "score": 295,
+      "timeSeconds": 235.5,
+      "tokens": 1078026,
+      "cost": null,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "0.162.1"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 1061836
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 974208
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 16190
+        },
+        {
+          "label": "Токени міркування",
+          "value": 3613
+        }
+      ]
+    },
+    {
+      "id": "gpt-6-luna-codex-cli-high-utwmr-rec-bench",
+      "category": "utwmr-rec-bench",
+      "model": "gpt-6-luna",
+      "agent": "Codex CLI",
+      "config": "high",
+      "score": 345,
+      "timeSeconds": 433.7,
+      "tokens": 1289861,
+      "cost": null,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "0.162.1"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 1255350
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 1188096
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 34511
+        },
+        {
+          "label": "Токени міркування",
+          "value": 18957
+        }
+      ]
+    },
+    {
+      "id": "gpt-6-luna-codex-cli-high-3dsc-gt-plus",
+      "category": "3dsc-gt-plus",
+      "model": "gpt-6-luna",
+      "agent": "Codex CLI",
+      "config": "high",
+      "score": 180,
+      "timeSeconds": 376.5,
+      "tokens": 879911,
+      "cost": null,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "0.162.1"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 859751
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 805632
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 20160
+        },
+        {
+          "label": "Токени міркування",
+          "value": 8580
+        }
+      ]
+    }
+  ]
 }

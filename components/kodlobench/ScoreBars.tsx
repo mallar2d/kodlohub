@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { PublishedResult } from "@/lib/kodlobench/types";
 import { entryLabel, formatScore, NO_DATA } from "@/lib/kodlobench/format";
+import { scoreMaxFor } from "@/lib/kodlobench/categories";
 import { slotOf, sortResults } from "@/lib/kodlobench/view";
 import { slotColor } from "./palette";
 
@@ -26,7 +27,8 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
   const { min, span } = useMemo(() => {
     const vals = rows.map((r) => r.score).filter((v): v is number => v !== null);
     const lo = Math.min(0, ...vals);
-    const hi = Math.max(0, ...vals);
+    // Bars are measured against the known maximum, unless a published value exceeds it.
+    const hi = Math.max(rows[0] ? scoreMaxFor(rows[0].category) : 0, ...vals);
     return { min: lo, span: hi - lo || 1 };
   }, [rows]);
   const zeroPct = (-min / span) * 100;
@@ -47,7 +49,7 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
             <button
               type="button"
               aria-pressed={selected}
-              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? NO_DATA : formatScore(r.score)}. ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
+              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? NO_DATA : formatScore(r.score, r.category)}. ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
               onClick={() => onToggle(r.id)}
               onMouseEnter={() => onHover(r.id)}
               onMouseLeave={() => onHover(null)}
@@ -88,7 +90,7 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
                 {min < 0 && <span className="absolute top-[-2px] bottom-[-2px] w-px bg-hairline-dark" style={{ left: `${zeroPct}%` }} />}
               </span>
               <span className={`text-sm tabular-nums sm:text-right ${r.score === null ? "text-ink-mute italic text-xs" : "font-semibold text-on-primary"}`}>
-                {r.score === null ? NO_DATA : formatScore(r.score)}
+                {r.score === null ? NO_DATA : formatScore(r.score, r.category)}
               </span>
             </button>
           </li>

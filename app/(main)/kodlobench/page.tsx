@@ -6,7 +6,7 @@ import { DEFAULT_VIEW, parseView } from "@/lib/kodlobench/view";
 export const metadata = buildPageMetadata({
   title: "KodloBench — результати тестування моделей ШІ — KodloHUB 2.0",
   description:
-    "Публічні результати тестування моделей ШІ за чотирма напрямами: PDRBench-Pro, REDOTUI-Bench, UTWMR-REC-Bench та 3DSC-GT+. Порівняння балів із часом, токенами та вартістю.",
+    "Публічні результати тестування моделей ШІ: загальний бал і чотири напрями PDRBench-Pro, REDOTUI-Bench, UTWMR-REC-Bench та 3DSC-GT+. Порівняння балів із часом, токенами та вартістю.",
   path: "/kodlobench",
 });
 
@@ -26,7 +26,7 @@ export default async function KodloBenchPage({
           <p className="micro-cap text-ink-mute mb-2">РЕЗУЛЬТАТИ ТЕСТУВАННЯ МОДЕЛЕЙ ШІ</p>
           <h1 className="heading-section mb-3">KodloBench</h1>
           <p className="text-sm text-on-primary-mute max-w-2xl">
-            Чотири окремі напрями. Бали різних категорій не підсумовуються і між собою не порівнюються.
+            Загальний бал: сума чотирьох напрямів до 22,00. Кожен напрям також доступний окремо.
           </p>
         </header>
         <KodloBenchClient data={data} initialView={initialView} />
