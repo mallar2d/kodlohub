@@ -142,6 +142,130 @@
         }
       ],
       "notes": "Вартість приблизна: розрахована за токенами з урахуванням кешу за орієнтовним тарифом gpt-6-luna (вхід $0,10, кешований вхід $0,01, вихід $0,50 за 1 млн токенів). Це не фактичні витрати: запуск ішов за підпискою."
+    },
+    {
+      "id": "zai-glm-5-3-mistral-vibe-high-novision-pdrbench-pro",
+      "category": "pdrbench-pro",
+      "model": "zai-glm-5-3",
+      "agent": "Mistral Vibe",
+      "config": "high · без Vision",
+      "score": 450,
+      "timeSeconds": 109.1,
+      "tokens": 377784,
+      "cost": 0.2189,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "2.26.0"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 358179
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 323520
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 19605
+        }
+      ],
+      "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
+    },
+    {
+      "id": "zai-glm-5-3-mistral-vibe-high-novision-redotui-bench",
+      "category": "redotui-bench",
+      "model": "zai-glm-5-3",
+      "agent": "Mistral Vibe",
+      "config": "high · без Vision",
+      "score": 295,
+      "timeSeconds": 1085.4,
+      "tokens": 7262507,
+      "cost": 2.5051,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "2.26.0"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 7168717
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 6968256
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 93790
+        }
+      ],
+      "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
+    },
+    {
+      "id": "zai-glm-5-3-mistral-vibe-high-novision-utwmr-rec-bench",
+      "category": "utwmr-rec-bench",
+      "model": "zai-glm-5-3",
+      "agent": "Mistral Vibe",
+      "config": "high · без Vision",
+      "score": 380,
+      "timeSeconds": 729.1,
+      "tokens": 1907022,
+      "cost": 0.8324,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "2.26.0"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 1850837
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 1759680
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 56185
+        }
+      ],
+      "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
+    },
+    {
+      "id": "zai-glm-5-3-mistral-vibe-high-novision-3dsc-gt-plus",
+      "category": "3dsc-gt-plus",
+      "model": "zai-glm-5-3",
+      "agent": "Mistral Vibe",
+      "config": "high · без Vision",
+      "score": 320,
+      "timeSeconds": 563.2,
+      "tokens": 2726725,
+      "cost": 1.044,
+      "publishedAt": "2026-10-15",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "2.26.0"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 2652582
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 2627968
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 74143
+        }
+      ],
+      "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
     }
   ]
 }
