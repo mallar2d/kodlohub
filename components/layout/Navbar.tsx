@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/archive", label: "АРХІВ", match: ["/archive", "/gallery", "/blog", "/lore", "/cast"] },
   { href: "/wiki", label: "КОДЛОПЕДІЯ" },
   { href: "/tools", label: "ТУЛЗИ" },
+  { href: "/kodlobench", label: "KODLOBENCH", wide: true },
   { href: "/premium", label: "ПРЕМІУМ" },
 ];
 
@@ -179,6 +180,8 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     className={`button-cap transition-all py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                      "wide" in link && link.wide ? "hidden xl:inline-block " : ""
+                    }${
                       isActive
                         ? "bg-on-primary text-ink font-bold shadow-sm"
                         : "text-on-primary-mute hover:text-on-primary hover:bg-white/[0.06]"
@@ -600,6 +603,32 @@ export default function Navbar() {
                     <div>
                       <p className="text-sm font-bold uppercase tracking-wide">Тулзи</p>
                       <p className="text-xs text-ink-mute font-mono">Всі інтерактивні утиліти та ігри</p>
+                    </div>
+                  </div>
+                  <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>
+                </Link>
+
+                {/* 4b. KodloBench */}
+                <Link
+                  href="/kodlobench"
+                  onClick={() => setMenuOpen(false)}
+                  className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between group ${
+                    pathname === "/kodlobench" || pathname.startsWith("/kodlobench/")
+                      ? "bg-canvas-night-soft border-on-primary/30 text-on-primary"
+                      : "bg-canvas-night-soft/60 border-hairline-dark text-on-primary hover:border-on-primary/20 hover:bg-canvas-night-soft"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-canvas-night border border-hairline-dark flex items-center justify-center text-on-primary-mute group-hover:text-on-primary transition-colors shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wide">KodloBench</p>
+                      <p className="text-xs text-ink-mute font-mono">Результати тестування моделей ШІ</p>
                     </div>
                   </div>
                   <span className="text-ink-mute group-hover:text-on-primary transition-colors">→</span>

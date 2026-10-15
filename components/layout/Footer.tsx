@@ -53,6 +53,11 @@ export default function Footer() {
                   Усі тулзи
                 </Link>
               </li>
+              <li>
+                <Link href="/kodlobench" className="hover:text-on-primary transition-colors">
+                  KodloBench
+                </Link>
+              </li>
             </ul>
           </div>
 

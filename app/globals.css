@@ -747,3 +747,40 @@ input[type="number"] {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(1.8); }
 }
+
+/* KodloBench chart series — fixed-order categorical slots (validated per surface).
+   Colours follow the entry (slot), never its rank. Light values apply to the light theme only. */
+:root {
+  --kb-s1: #3987e5;
+  --kb-s2: #d95926;
+  --kb-s3: #199e70;
+  --kb-s4: #c98500;
+  --kb-s5: #d55181;
+  --kb-s6: #008300;
+  --kb-s7: #9085e9;
+  --kb-s8: #e66767;
+}
+
+html[data-theme="sadochok"] {
+  --kb-s1: #2a78d6;
+  --kb-s2: #eb6834;
+  --kb-s3: #1baf7a;
+  --kb-s4: #eda100;
+  --kb-s5: #e87ba4;
+  --kb-s6: #008300;
+  --kb-s7: #6250d6;
+  --kb-s8: #e34948;
+}
+
+/* Hatch used for "Немає даних" tracks, so a missing value never looks like a zero-length bar. */
+.kb-nodata {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--hairline-dark) 0 2px,
+    transparent 2px 7px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-motion { transition: none !important; }
+}
