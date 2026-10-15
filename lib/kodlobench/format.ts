@@ -44,7 +44,7 @@ export function formatCost(v: number | null, currency: string | null): string {
         style: "currency",
         currency,
         minimumFractionDigits: v < 10 ? 2 : 0,
-        maximumFractionDigits: v < 10 ? 3 : 2,
+        maximumFractionDigits: v < 1 ? 4 : v < 10 ? 3 : 2,
       }).format(v);
     } catch {
       /* unknown code: fall through */
