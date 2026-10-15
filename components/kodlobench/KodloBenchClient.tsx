@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { CATEGORIES, getCategory } from "@/lib/kodlobench/categories";
+import { getCategory, OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
 import { formatDate } from "@/lib/kodlobench/format";
 import type { ChartView, LoadResult, PublishedResult, SortKey } from "@/lib/kodlobench/types";
 import {
@@ -75,7 +75,7 @@ export default function KodloBenchClient({ data, initialView }: Props) {
   const visible = useMemo(() => visibleResults(all, view), [all, view]);
   const tableRows = useMemo(() => sortResults(visible, view.sort, view.dir), [visible, view.sort, view.dir]);
 
-  const category = getCategory(view.category) ?? CATEGORIES[0];
+  const category = getCategory(view.category) ?? VIEW_CATEGORIES[0];
   const selected = selectedIds(view.slots);
   const dirty = view.query.trim() !== "" || view.models.length > 0 || view.agents.length > 0 || view.onlySelected;
 
@@ -112,7 +112,7 @@ export default function KodloBenchClient({ data, initialView }: Props) {
     );
   }
 
-  const hasAny = all.length > 0;
+  const hasAny = all.some((r) => r.category !== OVERALL_ID);
   const hasInCategory = categoryRows.length > 0;
 
   return (
@@ -129,6 +129,10 @@ export default function KodloBenchClient({ data, initialView }: Props) {
       <div id="kb-panel" role="tabpanel" aria-labelledby={`kb-tab-${view.category}`} className="space-y-4">
         {!hasAny ? (
           <EmptyNotice title="Результати KodloBench ще не опубліковані." />
+        ) : !hasInCategory && view.category === OVERALL_ID ? (
+          <EmptyNotice title="Загальний бал поки не можна показати.">
+            Потрібні результати в усіх чотирьох категоріях для однієї конфігурації моделі й агента. Окремі категорії доступні на вкладках вище.
+          </EmptyNotice>
         ) : !hasInCategory ? (
           <EmptyNotice title={`Для ${category.name} результати ще не опубліковані.`}>
             Інші категорії можна переглянути вище.

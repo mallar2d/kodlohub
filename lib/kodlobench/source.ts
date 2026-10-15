@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { LoadResult } from "./types";
+import type { LoadResult, PublishedResult } from "./types";
+import { buildOverall } from "./overall";
 import { parsePublishedFile } from "./validate";
 
 /**
@@ -27,13 +28,18 @@ function syntheticModeEnabled() {
   return process.env.NODE_ENV !== "production" && process.env.KODLOBENCH_SYNTHETIC === "1";
 }
 
+/** Published rows plus the derived overall rows. Overall is computed here, never read from the file. */
+function withOverall(results: PublishedResult[]): PublishedResult[] {
+  return [...results, ...buildOverall(results)];
+}
+
 export async function loadKodloBench(): Promise<LoadResult> {
   try {
     if (syntheticModeEnabled()) {
       const { SYNTHETIC_FILE } = await import("./fixtures");
       const parsed = parsePublishedFile(SYNTHETIC_FILE, { allowSynthetic: true });
       if (!parsed.ok) return { status: "error", message: parsed.message };
-      return { status: "ok", ...parsed, synthetic: true };
+      return { status: "ok", ...parsed, results: withOverall(parsed.results), synthetic: true };
     }
 
     const raw = await loadPublishedFile();
@@ -48,7 +54,7 @@ export async function loadKodloBench(): Promise<LoadResult> {
     if (parsed.rejected > 0) {
       console.error(`[kodlobench] ${parsed.rejected} record(s) failed validation and were hidden`);
     }
-    return { status: "ok", ...parsed, synthetic: false };
+    return { status: "ok", ...parsed, results: withOverall(parsed.results), synthetic: false };
   } catch (e) {
     console.error("[kodlobench] load failed:", e);
     return { status: "error", message: "Не вдалося завантажити результати." };

@@ -42,7 +42,7 @@ function Readout({ r, currency }: { r: PublishedResult | undefined; currency: st
           <span className="font-semibold text-on-primary">{entryLabel(r)}</span>
           {r.agent && <span className="text-ink-mute text-xs">{r.agent}</span>}
           <span className="text-on-primary-mute tabular-nums">
-            Бал <b className="text-on-primary">{formatScore(r.score)}</b>
+            Бал <b className="text-on-primary">{formatScore(r.score, r.category)}</b>
           </span>
           <span className="text-on-primary-mute tabular-nums">Час {formatDuration(r.timeSeconds)}</span>
           <span className="text-on-primary-mute tabular-nums">Токени {formatTokensFull(r.tokens)}</span>

@@ -14,7 +14,12 @@ describe("loadKodloBench", () => {
     vi.stubEnv("KODLOBENCH_SYNTHETIC", "1");
     const dev = await loadKodloBench();
     expect(dev.status === "ok" && dev.synthetic && dev.results.length > 0).toBe(true);
-    expect(dev.status === "ok" && dev.results.every((r) => r.id.startsWith("synthetic-"))).toBe(true);
+    expect(
+      dev.status === "ok" &&
+        dev.results.filter((r) => r.category !== "overall").every((r) => r.id.startsWith("synthetic-")),
+    ).toBe(true);
+    // Overall rows are derived on the server from the four categories.
+    expect(dev.status === "ok" && dev.results.some((r) => r.category === "overall")).toBe(true);
   });
 
   it("never serves synthetic data in production", async () => {

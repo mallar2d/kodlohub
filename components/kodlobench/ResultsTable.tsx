@@ -135,7 +135,7 @@ export default function ResultsTable({
                     )}
                   </Cell>
                   <Cell numeric className="font-semibold text-on-primary">
-                    {r.score === null ? <NoDataText /> : formatScore(r.score)}
+                    {r.score === null ? <NoDataText /> : formatScore(r.score, r.category)}
                   </Cell>
                   <Cell numeric className="text-on-primary-mute">
                     {r.timeSeconds === null ? <NoDataText /> : formatDuration(r.timeSeconds)}

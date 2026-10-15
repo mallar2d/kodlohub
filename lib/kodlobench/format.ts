@@ -5,8 +5,12 @@ export const NO_DATA = "Немає даних";
 const nf = (digits: number) =>
   new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits, minimumFractionDigits: 0 });
 
-export function formatScore(v: number | null): string {
-  return v === null ? NO_DATA : nf(2).format(v);
+const fixed2 = new Intl.NumberFormat("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** The overall score is always shown with two decimals (22,00); category scores as published. */
+export function formatScore(v: number | null, categoryId?: string): string {
+  if (v === null) return NO_DATA;
+  return categoryId === "overall" ? fixed2.format(v) : nf(2).format(v);
 }
 
 /** Seconds -> "45 с", "12 хв 05 с", "1 год 02 хв". Zero is a real "0 с". */
@@ -79,7 +83,7 @@ export const METRIC_LABEL: Record<MetricKey, string> = {
 export function formatMetric(r: PublishedResult, key: MetricKey, currency: string | null): string {
   switch (key) {
     case "score":
-      return formatScore(r.score);
+      return formatScore(r.score, r.category);
     case "cost":
       return formatCost(r.cost, currency);
     case "time":
