@@ -3,8 +3,9 @@
 import { useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { ChartView, PublishedResult } from "@/lib/kodlobench/types";
-import { entryLabel, formatCost, formatDuration, formatScore, formatTokensFull } from "@/lib/kodlobench/format";
+import { entryLabel, formatCost, formatDuration, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
 import { scatterSplit } from "@/lib/kodlobench/view";
+import FamilyLegend from "./FamilyLegend";
 import ScoreBars from "./ScoreBars";
 import { ChartSkeleton } from "./Notices";
 
@@ -42,7 +43,7 @@ function Readout({ r, currency }: { r: PublishedResult | undefined; currency: st
           <span className="font-semibold text-on-primary">{entryLabel(r)}</span>
           {r.agent && <span className="text-ink-mute text-xs">{r.agent}</span>}
           <span className="text-on-primary-mute tabular-nums">
-            Бал <b className="text-on-primary">{formatScore(r.score, r.category)}</b>
+            Бал <b className="text-on-primary">{scoreText(r)}</b>
           </span>
           <span className="text-on-primary-mute tabular-nums">Час {formatDuration(r.timeSeconds)}</span>
           <span className="text-on-primary-mute tabular-nums">Токени {formatTokensFull(r.tokens)}</span>
@@ -73,7 +74,8 @@ export default function ChartPanel({ view, onView, log, onLog, rows, slots, hove
 
   const xKey = view === "bars" ? null : view;
   const split = useMemo(() => (xKey ? scatterSplit(rows, xKey, log) : null), [rows, xKey, log]);
-  const barsMissing = view === "bars" ? rows.filter((r) => r.score === null).length : 0;
+  const barsMissing = view === "bars" ? rows.filter((r) => r.score === null && r.status !== "failed").length : 0;
+  const barsFailed = view === "bars" ? rows.filter((r) => r.status === "failed").length : 0;
 
   return (
     <section className="card-dark p-4 sm:p-6 space-y-4" aria-label="Графіки">
@@ -116,6 +118,8 @@ export default function ChartPanel({ view, onView, log, onLog, rows, slots, hove
         )}
       </div>
 
+      <FamilyLegend rows={rows} />
+
       <div id="kb-chart-panel" role="tabpanel" aria-labelledby={`kb-chart-tab-${view}`}>
         {view === "bars" ? (
           <ScoreBars rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} />
@@ -141,6 +145,9 @@ export default function ChartPanel({ view, onView, log, onLog, rows, slots, hove
         <p className="text-xs text-ink-mute">
           Не показано записів: {split.missing}. Для них немає даних{log ? " (або значення не додатне для логарифмічної шкали)" : ""}; вони доступні в таблиці.
         </p>
+      )}
+      {barsFailed > 0 && (
+        <p className="text-xs text-ink-mute">Не пройшли тест: {barsFailed}. Балу в них немає, вони позначені «Не пройдено».</p>
       )}
       {barsMissing > 0 && (
         <p className="text-xs text-ink-mute">Записів без опублікованого балу: {barsMissing}. Їх позначено «Немає даних».</p>

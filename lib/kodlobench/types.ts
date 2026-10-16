@@ -36,6 +36,11 @@ export interface PublishedResult {
   config: string | null;
   /** Published score, as given. */
   score: number | null;
+  /**
+   * "failed": the model attempted the test and did not complete it (no score). Distinct from a
+   * missing value ("Немає даних"): a failure is a published outcome, a gap is unknown.
+   */
+  status: "failed" | null;
   timeSeconds: number | null;
   tokens: number | null;
   /** Amount in the file-level currency. */

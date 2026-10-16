@@ -97,6 +97,13 @@ export function parseResult(raw: unknown, opts: { allowSynthetic?: boolean } = {
   const agent = text(raw.agent);
   const config = text(raw.config);
   const score = num(raw.score);
+  let status: PublishedResult["status"] = null;
+  if (raw.status !== undefined && raw.status !== null) {
+    if (raw.status !== "failed") return null;
+    // A failed attempt has no score.
+    if (score !== null) return null;
+    status = "failed";
+  }
   const timeSeconds = num(raw.timeSeconds, { nonNegative: true });
   const tokens = num(raw.tokens, { nonNegative: true, integer: true });
   const cost = num(raw.cost, { nonNegative: true });
@@ -126,6 +133,7 @@ export function parseResult(raw: unknown, opts: { allowSynthetic?: boolean } = {
     agent,
     config,
     score,
+    status,
     timeSeconds,
     tokens,
     cost,

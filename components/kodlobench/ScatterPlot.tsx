@@ -14,7 +14,7 @@ import {
   METRIC_LABEL,
 } from "@/lib/kodlobench/format";
 import { slotOf } from "@/lib/kodlobench/view";
-import { slotColor } from "./palette";
+import { familyColor } from "./palette";
 
 type XKey = "cost" | "time" | "tokens";
 
@@ -79,7 +79,7 @@ function PointShape({ cx, cy, payload }: PointProps) {
   }`;
   const actions = st;
   const selected = slot !== -1;
-  const fill = selected ? slotColor(slot) : hot ? "var(--on-primary)" : "var(--on-primary-mute)";
+  const fill = familyColor(r.model);
   const marks = (
     <>
       {hot && <circle cx={cx} cy={cy} r={11} fill="none" stroke="var(--on-primary)" strokeWidth={1.5} />}

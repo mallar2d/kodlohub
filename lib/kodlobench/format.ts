@@ -83,7 +83,7 @@ export const METRIC_LABEL: Record<MetricKey, string> = {
 export function formatMetric(r: PublishedResult, key: MetricKey, currency: string | null): string {
   switch (key) {
     case "score":
-      return formatScore(r.score, r.category);
+      return scoreText(r);
     case "cost":
       return formatCost(r.cost, currency);
     case "time":
@@ -96,4 +96,12 @@ export function formatMetric(r: PublishedResult, key: MetricKey, currency: strin
 /** "Model · config" — the human label that keeps configurations of one model apart. */
 export function entryLabel(r: Pick<PublishedResult, "model" | "config">): string {
   return r.config ? `${r.model} · ${r.config}` : r.model;
+}
+
+export const FAILED = "Не пройдено";
+
+/** Score cell text: a failed attempt is shown as such, a missing score as "Немає даних". */
+export function scoreText(r: Pick<PublishedResult, "score" | "status" | "category">): string {
+  if (r.status === "failed") return FAILED;
+  return formatScore(r.score, r.category);
 }

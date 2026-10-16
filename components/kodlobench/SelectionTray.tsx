@@ -3,7 +3,7 @@
 import type { PublishedResult } from "@/lib/kodlobench/types";
 import { entryLabel } from "@/lib/kodlobench/format";
 import { MAX_SELECTED } from "@/lib/kodlobench/view";
-import { slotColor } from "./palette";
+import { familyColor } from "./palette";
 
 interface Props {
   slots: (string | null)[];
@@ -45,7 +45,7 @@ export default function SelectionTray({ slots, byId, hoverId, full, onToggle, on
         >
           <span
             className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0"
-            style={{ background: slotColor(slot), color: "var(--canvas-night)" }}
+            style={{ background: familyColor(r.model), color: "var(--canvas-night)" }}
             aria-hidden="true"
           >
             {slot + 1}

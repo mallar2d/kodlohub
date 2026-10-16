@@ -9,6 +9,7 @@ import {
   formatDuration,
   formatScore,
   formatTokensFull,
+  FAILED,
   NO_DATA,
 } from "@/lib/kodlobench/format";
 
@@ -79,7 +80,9 @@ export default function DetailsDialog({ result, currency, selected, full, onTogg
             <Row label="Модель">{result.model}</Row>
             <Row label="CLI-агент">{result.agent ?? dash}</Row>
             <Row label="Конфігурація">{result.config ?? dash}</Row>
-            <Row label="Бал">{result.score === null ? dash : <b>{formatScore(result.score, result.category)}</b>}</Row>
+            <Row label="Бал">
+              {result.status === "failed" ? <b>{FAILED}</b> : result.score === null ? dash : <b>{formatScore(result.score, result.category)}</b>}
+            </Row>
             <Row label="Час">{result.timeSeconds === null ? dash : formatDuration(result.timeSeconds)}</Row>
             <Row label="Токени">{result.tokens === null ? dash : formatTokensFull(result.tokens)}</Row>
             <Row label="Вартість">{result.cost === null ? dash : formatCost(result.cost, currency)}</Row>
