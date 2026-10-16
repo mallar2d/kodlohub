@@ -12,6 +12,7 @@ import {
   FAILED,
   NO_DATA,
 } from "@/lib/kodlobench/format";
+import { AlertIcon } from "./Notices";
 
 interface Props {
   result: PublishedResult | null;
@@ -77,9 +78,9 @@ export default function DetailsDialog({ result, currency, selected, full, onTogg
           </div>
 
           {result.alert && (
-            <div role="note" className="mb-4 rounded-xl border border-on-primary-mute px-4 py-3 text-sm text-on-primary">
-              <b className="mr-1.5">(!)</b>
-              {result.alert}
+            <div role="note" className="mb-4 flex items-start gap-2.5 rounded-xl border border-on-primary-mute px-4 py-3 text-sm text-on-primary">
+              <AlertIcon size={16} className="mt-0.5 shrink-0" />
+              <span>{result.alert}</span>
             </div>
           )}
 

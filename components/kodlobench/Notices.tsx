@@ -42,16 +42,44 @@ export function NoDataText({ className = "" }: { className?: string }) {
   return <span className={`text-ink-mute text-xs italic whitespace-nowrap ${className}`}>Немає даних</span>;
 }
 
-/** "(!)" marker for an owner-supplied warning about how to read a result. */
+const ALERT_PATH = (
+  <>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </>
+);
+
+/** Warning icon for an owner-supplied note about how to read a result. */
+export function AlertIcon({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      {ALERT_PATH}
+    </svg>
+  );
+}
+
+/** Inline marker next to a score; the warning text is in the tooltip and in the details dialog. */
 export function AlertMark({ text }: { text: string }) {
   return (
     <span
-      className="inline-block ml-1.5 align-baseline font-bold text-xs text-on-primary cursor-help"
+      className="inline-flex align-middle ml-1.5 text-on-primary cursor-help"
       title={text}
       role="img"
       aria-label={`Застереження: ${text}`}
     >
-      (!)
+      <AlertIcon />
     </span>
   );
 }
