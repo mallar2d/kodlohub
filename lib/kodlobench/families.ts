@@ -15,6 +15,7 @@ export const FAMILIES: readonly ModelFamily[] = [
   { id: "grok", label: "xAI Grok", test: /grok/i },
   { id: "claude", label: "Anthropic Claude", test: /claude/i },
   { id: "gemini", label: "Google Gemini", test: /gemini/i },
+  { id: "mistral", label: "Mistral AI", test: /mistral|mixtral|codestral|magistral|devstral/i },
   { id: "deepseek", label: "DeepSeek", test: /deepseek/i },
 ];
 
