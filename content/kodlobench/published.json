@@ -487,6 +487,34 @@
       "notes": "Робота зупинена за тайм-аутом (30 хв). Вартість приблизна: оцінка за токенами з урахуванням кешу за орієнтовним тарифом Grok (вхід $2, кешований вхід $0,50, вихід $6 за 1 млн токенів, стандартний рівень без надбавки за довгий контекст)."
     },
     {
+      "id": "grok-4-6-grok-cli-high-utwmr-rec-bench",
+      "category": "utwmr-rec-bench",
+      "model": "Grok 4.6",
+      "agent": "Grok CLI",
+      "config": "high",
+      "score": 0,
+      "timeSeconds": 1800,
+      "tokens": 828320,
+      "cost": null,
+      "publishedAt": "2026-10-16",
+      "metrics": [],
+      "notes": "Робота зупинена за тайм-аутом (30 хв). Зафіксовано лише загальну кількість токенів без розбивки на вхідні, кешовані й вихідні, тому вартість не розраховано."
+    },
+    {
+      "id": "grok-4-6-grok-cli-high-3dsc-gt-plus",
+      "category": "3dsc-gt-plus",
+      "model": "Grok 4.6",
+      "agent": "Grok CLI",
+      "config": "high",
+      "score": 330,
+      "timeSeconds": 1800,
+      "tokens": 2359912,
+      "cost": null,
+      "publishedAt": "2026-10-16",
+      "metrics": [],
+      "notes": "Робота зупинена за тайм-аутом (30 хв). Зафіксовано лише загальну кількість токенів без розбивки на вхідні, кешовані й вихідні, тому вартість не розраховано."
+    },
+    {
       "id": "mistral-medium-3-5-high-pdrbench-pro",
       "category": "pdrbench-pro",
       "model": "Mistral Medium 3.5",
