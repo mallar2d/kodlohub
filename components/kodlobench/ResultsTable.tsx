@@ -3,7 +3,7 @@
 import type { PublishedResult, SortDir, SortKey } from "@/lib/kodlobench/types";
 import { entryLabel, FAILED, formatCost, formatDuration, formatScore, formatTokens, formatTokensFull } from "@/lib/kodlobench/format";
 import { slotOf } from "@/lib/kodlobench/view";
-import { NoDataText } from "./Notices";
+import { AlertMark, NoDataText } from "./Notices";
 import { familyColor } from "./palette";
 
 interface Props {
@@ -145,6 +145,7 @@ export default function ResultsTable({
                     ) : (
                       formatScore(r.score, r.category)
                     )}
+                    {r.alert && <AlertMark text={r.alert} />}
                   </Cell>
                   <Cell numeric className="text-on-primary-mute">
                     {r.timeSeconds === null ? <NoDataText /> : formatDuration(r.timeSeconds)}

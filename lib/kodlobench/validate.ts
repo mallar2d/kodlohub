@@ -108,6 +108,7 @@ export function parseResult(raw: unknown, opts: { allowSynthetic?: boolean } = {
   const tokens = num(raw.tokens, { nonNegative: true, integer: true });
   const cost = num(raw.cost, { nonNegative: true });
   const notes = text(raw.notes, MAX_NOTES);
+  const alert = text(raw.alert, 400);
   const metrics = parseMetrics(raw.metrics);
   const media = parseMedia(raw.media);
 
@@ -120,7 +121,7 @@ export function parseResult(raw: unknown, opts: { allowSynthetic?: boolean } = {
   if (
     agent === undefined || config === undefined || score === undefined ||
     timeSeconds === undefined || tokens === undefined || cost === undefined ||
-    notes === undefined || !metrics || !media
+    notes === undefined || alert === undefined || !metrics || !media
   ) {
     return null;
   }
@@ -140,6 +141,7 @@ export function parseResult(raw: unknown, opts: { allowSynthetic?: boolean } = {
     publishedAt,
     metrics,
     notes,
+    alert,
     media,
   };
 }

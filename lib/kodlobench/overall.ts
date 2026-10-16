@@ -69,6 +69,11 @@ export function buildOverall(results: readonly PublishedResult[]): PublishedResu
       publishedAt: null,
       metrics,
       notes: null,
+      // A warning on any component is surfaced on the overall row too, with its category.
+      alert: (() => {
+        const parts = rows.flatMap((r, i) => (r.alert ? [`${CATEGORIES[i].name}: ${r.alert}`] : []));
+        return parts.length > 0 ? parts.join(" ") : null;
+      })(),
       media: [],
     });
   }
