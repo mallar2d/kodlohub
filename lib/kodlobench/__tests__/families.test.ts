@@ -10,6 +10,7 @@ describe("familyOf", () => {
     expect(familyOf("GPT-6 Luna").id).toBe("openai");
     expect(familyOf("GLM 5.3").id).toBe("glm");
     expect(familyOf("Mistral 3.5 Medium").id).toBe("mistral");
+    expect(familyOf("Muse Spark 1.3").id).toBe("muse");
   });
   it("falls back to a neutral family", () => {
     expect(familyOf("Synthetic Model A").id).toBe("other");
