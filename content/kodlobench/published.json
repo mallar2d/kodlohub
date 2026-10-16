@@ -268,58 +268,144 @@
       "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
     },
     {
-      "id": "grok-4-7-pdrbench-pro",
+      "id": "grok-4-7-grok-cli-high-pdrbench-pro",
       "category": "pdrbench-pro",
-      "model": "Grok 4.7",
-      "agent": null,
-      "config": null,
+      "model": "grok-4.7",
+      "agent": "Grok CLI",
+      "config": "high",
       "score": 359,
-      "timeSeconds": null,
-      "tokens": null,
+      "timeSeconds": 395.6,
+      "tokens": 206300,
       "cost": null,
-      "publishedAt": "2026-10-16"
+      "publishedAt": "2026-10-16",
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "1.0.24"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 178919
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 115072
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 27381
+        },
+        {
+          "label": "Токени міркування",
+          "value": 22247
+        }
+      ]
     },
     {
-      "id": "grok-4-7-redotui-bench",
+      "id": "grok-4-7-grok-cli-high-redotui-bench",
       "category": "redotui-bench",
-      "model": "Grok 4.7",
-      "agent": null,
-      "config": null,
-      "score": null,
-      "status": "failed",
-      "timeSeconds": null,
-      "tokens": null,
+      "model": "grok-4.7",
+      "agent": "Grok CLI",
+      "config": "high",
+      "score": 50,
+      "timeSeconds": 1800.0,
+      "tokens": 697034,
       "cost": null,
       "publishedAt": "2026-10-16",
-      "notes": "Модель не зуміла пройти цей тест."
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "1.0.24"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 567498
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 440832
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 129536
+        },
+        {
+          "label": "Токени міркування",
+          "value": 108769
+        }
+      ],
+      "notes": "Модель вийшла за ліміт часу (30 хв) і видала неробочий проєкт; згенеровані під час роботи асети задовільні. Токени неповні: дані використання часткові.",
+      "alert": "Модель вийшла за ліміт часу й видала неробочий проєкт; згенеровані під час роботи асети задовільні."
     },
     {
-      "id": "grok-4-7-utwmr-rec-bench",
+      "id": "grok-4-7-grok-cli-high-utwmr-rec-bench",
       "category": "utwmr-rec-bench",
-      "model": "Grok 4.7",
-      "agent": null,
-      "config": null,
-      "score": null,
-      "status": "failed",
-      "timeSeconds": null,
-      "tokens": null,
+      "model": "grok-4.7",
+      "agent": "Grok CLI",
+      "config": "high",
+      "score": 0,
+      "timeSeconds": 1800.0,
+      "tokens": 731797,
       "cost": null,
       "publishedAt": "2026-10-16",
-      "notes": "Модель не зуміла пройти цей тест."
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "1.0.24"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 641799
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 553600
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 89998
+        },
+        {
+          "label": "Токени міркування",
+          "value": 83446
+        }
+      ],
+      "notes": "Вихід за ліміт часу (30 хв); придатного результату немає, вивід порожній. Токени неповні: дані використання часткові."
     },
     {
-      "id": "grok-4-7-3dsc-gt-plus",
+      "id": "grok-4-7-grok-cli-high-3dsc-gt-plus",
       "category": "3dsc-gt-plus",
-      "model": "Grok 4.7",
-      "agent": null,
-      "config": null,
-      "score": null,
-      "status": "failed",
-      "timeSeconds": null,
-      "tokens": null,
+      "model": "grok-4.7",
+      "agent": "Grok CLI",
+      "config": "high",
+      "score": 0,
+      "timeSeconds": 1666.5,
+      "tokens": 363935,
       "cost": null,
       "publishedAt": "2026-10-16",
-      "notes": "Модель не зуміла пройти цей тест."
+      "metrics": [
+        {
+          "label": "Версія агента",
+          "value": "1.0.24"
+        },
+        {
+          "label": "Вхідні токени",
+          "value": 278756
+        },
+        {
+          "label": "Токени з кешу",
+          "value": 157568
+        },
+        {
+          "label": "Вихідні токени",
+          "value": 85179
+        },
+        {
+          "label": "Токени міркування",
+          "value": 81922
+        }
+      ],
+      "notes": "0 за вердиктом власника; залишок роботи пропущено на його прохання. Токени неповні: дані використання часткові."
     }
   ]
 }

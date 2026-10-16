@@ -41,3 +41,17 @@ export function ChartSkeleton({ height = 360 }: { height?: number }) {
 export function NoDataText({ className = "" }: { className?: string }) {
   return <span className={`text-ink-mute text-xs italic whitespace-nowrap ${className}`}>Немає даних</span>;
 }
+
+/** "(!)" marker for an owner-supplied warning about how to read a result. */
+export function AlertMark({ text }: { text: string }) {
+  return (
+    <span
+      className="inline-block ml-1.5 align-baseline font-bold text-xs text-on-primary cursor-help"
+      title={text}
+      role="img"
+      aria-label={`Застереження: ${text}`}
+    >
+      (!)
+    </span>
+  );
+}

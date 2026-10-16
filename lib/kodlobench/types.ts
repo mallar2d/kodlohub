@@ -49,6 +49,11 @@ export interface PublishedResult {
   publishedAt: string | null;
   metrics: PublishedMetric[];
   notes: string | null;
+  /**
+   * Short public warning about how to read the result, shown as "(!)" next to the score
+   * (for example: the run hit the time limit). Supplied by the owner, never generated.
+   */
+  alert: string | null;
   media: PublishedMedia[];
 }
 

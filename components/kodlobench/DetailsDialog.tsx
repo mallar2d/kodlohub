@@ -76,6 +76,13 @@ export default function DetailsDialog({ result, currency, selected, full, onTogg
             </button>
           </div>
 
+          {result.alert && (
+            <div role="note" className="mb-4 rounded-xl border border-on-primary-mute px-4 py-3 text-sm text-on-primary">
+              <b className="mr-1.5">(!)</b>
+              {result.alert}
+            </div>
+          )}
+
           <dl>
             <Row label="Модель">{result.model}</Row>
             <Row label="CLI-агент">{result.agent ?? dash}</Row>

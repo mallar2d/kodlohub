@@ -5,7 +5,7 @@ import { DEFAULT_VIEW, MAX_SELECTED, parseView, scatterSplit, serializeView, sor
 function r(id: string, over: Partial<PublishedResult> = {}): PublishedResult {
   return {
     id, category: "pdrbench-pro", model: id.toUpperCase(), agent: "cli", config: "default",
-    status: null, score: 1, timeSeconds: 1, tokens: 1, cost: 1, publishedAt: null, metrics: [], notes: null, media: [], ...over,
+    status: null, score: 1, timeSeconds: 1, tokens: 1, cost: 1, publishedAt: null, metrics: [], notes: null, alert: null, media: [], ...over,
   };
 }
 

@@ -5,6 +5,7 @@ import type { PublishedResult } from "@/lib/kodlobench/types";
 import { entryLabel, FAILED, NO_DATA, scoreText } from "@/lib/kodlobench/format";
 import { scoreMaxFor } from "@/lib/kodlobench/categories";
 import { slotOf, sortResults } from "@/lib/kodlobench/view";
+import { AlertMark } from "./Notices";
 import { familyColor } from "./palette";
 
 interface Props {
@@ -50,7 +51,7 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
             <button
               type="button"
               aria-pressed={selected}
-              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? (failed ? FAILED : NO_DATA) : scoreText(r)}. ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
+              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? (failed ? FAILED : NO_DATA) : scoreText(r)}.${r.alert ? ` Застереження: ${r.alert}.` : ""} ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
               onClick={() => onToggle(r.id)}
               onMouseEnter={() => onHover(r.id)}
               onMouseLeave={() => onHover(null)}
@@ -94,6 +95,7 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
               </span>
               <span className={`text-sm tabular-nums sm:text-right ${r.score === null ? (failed ? "text-on-primary-mute font-semibold text-xs" : "text-ink-mute italic text-xs") : "font-semibold text-on-primary"}`}>
                 {r.score === null ? (failed ? FAILED : NO_DATA) : scoreText(r)}
+                {r.alert && <AlertMark text={r.alert} />}
               </span>
             </button>
           </li>

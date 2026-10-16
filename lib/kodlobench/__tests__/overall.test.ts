@@ -7,7 +7,7 @@ import type { PublishedResult } from "../types";
 function r(category: string, over: Partial<PublishedResult> = {}): PublishedResult {
   return {
     id: `${category}-${over.config ?? "default"}-${over.model ?? "M"}`, category, model: "M", agent: "A", config: "default",
-    status: null, score: 100, timeSeconds: 10, tokens: 1000, cost: 1, publishedAt: null, metrics: [], notes: null, media: [], ...over,
+    status: null, score: 100, timeSeconds: 10, tokens: 1000, cost: 1, publishedAt: null, metrics: [], notes: null, alert: null, media: [], ...over,
   };
 }
 const full = (over: Partial<PublishedResult> = {}) => CATEGORIES.map((c) => r(c.id, over));
@@ -78,5 +78,12 @@ describe("buildOverall", () => {
     const rows = full().slice(0, 3);
     rows[1] = { ...rows[1], score: null, status: "failed" };
     expect(buildOverall(rows)).toEqual([]);
+  });
+
+  it("surfaces a component warning on the overall row, naming its category", () => {
+    const rows = full();
+    rows[1] = { ...rows[1], alert: "Ліміт часу" };
+    expect(buildOverall(rows)[0].alert).toBe(`${CATEGORIES[1].name}: Ліміт часу`);
+    expect(buildOverall(full())[0].alert).toBeNull();
   });
 });

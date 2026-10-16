@@ -16,7 +16,7 @@ describe("parseResult", () => {
     const r = parseResult({ ...base, secretKey: "x", rubric: { a: 1 }, prompt: "p" }) as unknown as Record<string, unknown>;
     expect(r).not.toBeNull();
     expect(Object.keys(r).sort()).toEqual(
-      ["agent", "category", "config", "cost", "id", "media", "metrics", "model", "notes", "publishedAt", "score", "status", "timeSeconds", "tokens"].sort(),
+      ["agent", "category", "config", "cost", "id", "media", "metrics", "model", "alert", "notes", "publishedAt", "score", "status", "timeSeconds", "tokens"].sort(),
     );
   });
 
@@ -37,6 +37,12 @@ describe("parseResult", () => {
     expect(parseResult({ ...base, score: 10, status: "failed" })).toBeNull();
     expect(parseResult({ ...base, status: "passed" })).toBeNull();
     expect(parseResult(base)?.status).toBeNull();
+  });
+
+  it("keeps an owner warning and limits its length", () => {
+    expect(parseResult({ ...base, alert: "Ліміт часу" })?.alert).toBe("Ліміт часу");
+    expect(parseResult(base)?.alert).toBeNull();
+    expect(parseResult({ ...base, alert: "x".repeat(401) })).toBeNull();
   });
 
   it("accepts only https media", () => {
