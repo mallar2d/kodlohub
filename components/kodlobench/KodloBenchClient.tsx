@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getCategory, OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
-import { withOverall } from "@/lib/kodlobench/overall";
+import { getCategory, OPTIONAL_CATEGORY, OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
+import { overallBothModes, withOverall } from "@/lib/kodlobench/overall";
 import { formatDate } from "@/lib/kodlobench/format";
 import type { LoadResult, PublishedResult, ScatterAxis, SortKey } from "@/lib/kodlobench/types";
 import {
@@ -43,6 +43,7 @@ export default function KodloBenchClient({ data, initialView }: Props) {
 
   const ok = data.status === "ok" ? data : null;
   const published = ok ? ok.results : EMPTY;
+  const pairs = useMemo(() => overallBothModes(published, OPTIONAL_CATEGORY.id), [published]);
   // Overall rows are derived from the published ones; the exclusion list decides which categories count.
   const all = useMemo(() => withOverall(published, view.exclude), [published, view.exclude]);
   const currency = ok ? ok.currency : null;
@@ -186,6 +187,7 @@ export default function KodloBenchClient({ data, initialView }: Props) {
                 <ChartPanel
                   categoryId={view.category}
                   exclude={view.exclude}
+                  pairs={pairs}
                   onToggleExclude={(id: string) => {
                     const exclude = view.exclude.includes(id) ? view.exclude.filter((x) => x !== id) : [...view.exclude, id];
                     // Rows that exist only in one of the two modes drop out of the selection.

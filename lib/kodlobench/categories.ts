@@ -63,6 +63,9 @@ export const VIEW_CATEGORIES: readonly KodloBenchCategory[] = [OVERALL, ...CATEG
 
 export const DEFAULT_CATEGORY_ID = OVERALL_ID;
 
+/** The one category the overall index can be shown without (it measures general skills and is often subjective). */
+export const OPTIONAL_CATEGORY = CATEGORIES[0];
+
 /** Upper bound of the score axis for a view (data may still exceed it). */
 export function scoreMaxFor(categoryId: string): number {
   return categoryId === OVERALL_ID ? OVERALL_SCORE_MAX : CATEGORY_SCORE_MAX;
