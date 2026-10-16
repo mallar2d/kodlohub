@@ -16,7 +16,7 @@ describe("parseResult", () => {
     const r = parseResult({ ...base, secretKey: "x", rubric: { a: 1 }, prompt: "p" }) as unknown as Record<string, unknown>;
     expect(r).not.toBeNull();
     expect(Object.keys(r).sort()).toEqual(
-      ["agent", "category", "config", "cost", "id", "media", "metrics", "model", "notes", "publishedAt", "score", "timeSeconds", "tokens"].sort(),
+      ["agent", "category", "config", "cost", "id", "media", "metrics", "model", "notes", "publishedAt", "score", "status", "timeSeconds", "tokens"].sort(),
     );
   });
 
@@ -29,6 +29,14 @@ describe("parseResult", () => {
     expect(parseResult({ ...base, cost: -1 })).toBeNull();
     expect(parseResult({ ...base, model: "  " })).toBeNull();
     expect(parseResult(null)).toBeNull();
+  });
+
+  it("accepts a failed attempt only without a score", () => {
+    const f = parseResult({ ...base, score: null, status: "failed" });
+    expect(f).toMatchObject({ score: null, status: "failed" });
+    expect(parseResult({ ...base, score: 10, status: "failed" })).toBeNull();
+    expect(parseResult({ ...base, status: "passed" })).toBeNull();
+    expect(parseResult(base)?.status).toBeNull();
   });
 
   it("accepts only https media", () => {

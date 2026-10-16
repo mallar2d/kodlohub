@@ -748,28 +748,26 @@ input[type="number"] {
   50% { transform: scaleY(1.8); }
 }
 
-/* KodloBench chart series — fixed-order categorical slots (validated per surface).
-   Colours follow the entry (slot), never its rank. Light values apply to the light theme only. */
+/* KodloBench model families: one colour per maker, used for every entry of that family.
+   Light values apply to the light theme only. */
 :root {
-  --kb-s1: #3987e5;
-  --kb-s2: #d95926;
-  --kb-s3: #199e70;
-  --kb-s4: #c98500;
-  --kb-s5: #d55181;
-  --kb-s6: #008300;
-  --kb-s7: #9085e9;
-  --kb-s8: #e66767;
+  --kb-fam-openai: #10a37f;
+  --kb-fam-glm: #3b82f6;
+  --kb-fam-grok: #e4e4e7;
+  --kb-fam-claude: #d97757;
+  --kb-fam-gemini: #8e75ff;
+  --kb-fam-deepseek: #22b8cf;
+  --kb-fam-other: #7d8187;
 }
 
 html[data-theme="sadochok"] {
-  --kb-s1: #2a78d6;
-  --kb-s2: #eb6834;
-  --kb-s3: #1baf7a;
-  --kb-s4: #eda100;
-  --kb-s5: #e87ba4;
-  --kb-s6: #008300;
-  --kb-s7: #6250d6;
-  --kb-s8: #e34948;
+  --kb-fam-openai: #0d8a6a;
+  --kb-fam-glm: #2563eb;
+  --kb-fam-grok: #27272a;
+  --kb-fam-claude: #c2562f;
+  --kb-fam-gemini: #6d4fe0;
+  --kb-fam-deepseek: #0891b2;
+  --kb-fam-other: #5a735c;
 }
 
 /* Hatch used for "Немає даних" tracks, so a missing value never looks like a zero-length bar. */

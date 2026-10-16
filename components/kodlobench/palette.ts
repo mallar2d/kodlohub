@@ -1,4 +1,6 @@
-/** CSS variable for a colour slot (0..7). Defined in globals.css, themed per surface. */
-export function slotColor(slot: number): string {
-  return `var(--kb-s${slot + 1})`;
+import { familyOf } from "@/lib/kodlobench/families";
+
+/** CSS colour of a model's family. Tokens are defined per theme in globals.css. */
+export function familyColor(model: string): string {
+  return `var(--kb-fam-${familyOf(model).id})`;
 }

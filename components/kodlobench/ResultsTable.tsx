@@ -1,10 +1,10 @@
 "use client";
 
 import type { PublishedResult, SortDir, SortKey } from "@/lib/kodlobench/types";
-import { entryLabel, formatCost, formatDuration, formatScore, formatTokens, formatTokensFull } from "@/lib/kodlobench/format";
+import { entryLabel, FAILED, formatCost, formatDuration, formatScore, formatTokens, formatTokensFull } from "@/lib/kodlobench/format";
 import { slotOf } from "@/lib/kodlobench/view";
 import { NoDataText } from "./Notices";
-import { slotColor } from "./palette";
+import { familyColor } from "./palette";
 
 interface Props {
   rows: PublishedResult[];
@@ -80,6 +80,7 @@ export default function ResultsTable({
               const selected = slot !== -1;
               const hot = hoverId === r.id;
               const label = entryLabel(r);
+              const color = familyColor(r.model);
               return (
                 <tr
                   key={r.id}
@@ -92,7 +93,7 @@ export default function ResultsTable({
                 >
                   <td
                     className={`sticky left-0 z-10 px-3 py-2.5 text-sm ${hot ? "bg-canvas-night-soft" : "bg-canvas-night"}`}
-                    style={selected ? { boxShadow: `inset 3px 0 0 ${slotColor(slot)}` } : undefined}
+                    style={{ boxShadow: `inset 3px 0 0 ${color}` }}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <button
@@ -104,7 +105,7 @@ export default function ResultsTable({
                         className="w-5 h-5 shrink-0 rounded border flex items-center justify-center text-[10px] font-bold cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary"
                         style={
                           selected
-                            ? { background: slotColor(slot), borderColor: slotColor(slot), color: "var(--canvas-night)" }
+                            ? { background: color, borderColor: color, color: "var(--canvas-night)" }
                             : { borderColor: "var(--ink-mute)" }
                         }
                       >
@@ -135,7 +136,15 @@ export default function ResultsTable({
                     )}
                   </Cell>
                   <Cell numeric className="font-semibold text-on-primary">
-                    {r.score === null ? <NoDataText /> : formatScore(r.score, r.category)}
+                    {r.status === "failed" ? (
+                      <span className="inline-block rounded-full border border-hairline-dark px-2.5 py-0.5 text-xs font-semibold text-on-primary-mute whitespace-nowrap">
+                        {FAILED}
+                      </span>
+                    ) : r.score === null ? (
+                      <NoDataText />
+                    ) : (
+                      formatScore(r.score, r.category)
+                    )}
                   </Cell>
                   <Cell numeric className="text-on-primary-mute">
                     {r.timeSeconds === null ? <NoDataText /> : formatDuration(r.timeSeconds)}

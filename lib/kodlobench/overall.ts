@@ -42,17 +42,24 @@ export function buildOverall(results: readonly PublishedResult[]): PublishedResu
   const out: PublishedResult[] = [];
   for (const [k, group] of groups) {
     const parts = CATEGORIES.map((c) => group.filter((r) => r.category === c.id));
-    if (parts.some((p) => p.length !== 1 || p[0].score === null)) continue;
+    // Every category needs exactly one record, scored or failed. A plain gap means "not known yet".
+    if (parts.some((p) => p.length !== 1 || (p[0].score === null && p[0].status !== "failed"))) continue;
     const rows = parts.map((p) => p[0]);
+    const failed = rows.some((r) => r.status === "failed");
 
-    const metrics: PublishedMetric[] = rows.map((r, i) => ({ label: CATEGORIES[i].name, value: r.score }));
+    const metrics: PublishedMetric[] = rows.map((r, i) => ({
+      label: CATEGORIES[i].name,
+      value: r.status === "failed" ? "Не пройдено" : r.score,
+    }));
     out.push({
       id: `${OVERALL_ID}-${hash(k)}`,
       category: OVERALL_ID,
       model: rows[0].model,
       agent: rows[0].agent,
       config: rows[0].config,
-      score: round((sumOrNull(rows.map((r) => r.score)) as number) / OVERALL_DIVISOR),
+      // With a failed test there is no total: the overall row says so instead of inventing a number.
+      score: failed ? null : round((sumOrNull(rows.map((r) => r.score)) as number) / OVERALL_DIVISOR),
+      status: failed ? "failed" : null,
       timeSeconds: sumOrNull(rows.map((r) => r.timeSeconds)),
       tokens: sumOrNull(rows.map((r) => r.tokens)),
       cost: (() => {

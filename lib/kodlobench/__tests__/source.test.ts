@@ -41,7 +41,12 @@ describe("loadKodloBench", () => {
     for (const o of overall) {
       const parts = published.filter((r) => r.model === o.model && r.agent === o.agent && r.config === o.config);
       expect(parts).toHaveLength(4);
-      expect(o.score).toBeCloseTo(parts.reduce((s, r) => s + (r.score ?? 0), 0) / 100, 6);
+      if (parts.some((r) => r.status === "failed")) {
+        // A failed test gives no total: never a number built from zeros.
+        expect(o).toMatchObject({ score: null, status: "failed" });
+      } else {
+        expect(o.score).toBeCloseTo(parts.reduce((s, r) => s + (r.score ?? 0), 0) / 100, 6);
+      }
     }
   });
 });

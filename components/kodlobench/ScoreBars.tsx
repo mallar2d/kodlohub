@@ -2,10 +2,10 @@
 
 import { useMemo } from "react";
 import type { PublishedResult } from "@/lib/kodlobench/types";
-import { entryLabel, formatScore, NO_DATA } from "@/lib/kodlobench/format";
+import { entryLabel, FAILED, NO_DATA, scoreText } from "@/lib/kodlobench/format";
 import { scoreMaxFor } from "@/lib/kodlobench/categories";
 import { slotOf, sortResults } from "@/lib/kodlobench/view";
-import { slotColor } from "./palette";
+import { familyColor } from "./palette";
 
 interface Props {
   rows: PublishedResult[];
@@ -43,13 +43,14 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
         const valuePct = r.score === null ? 0 : ((r.score - min) / span) * 100;
         const left = Math.min(zeroPct, valuePct);
         const width = Math.abs(valuePct - zeroPct);
-        const color = selected ? slotColor(slot) : hot ? "var(--on-primary)" : "var(--ink-mute)";
+        const color = familyColor(r.model);
+        const failed = r.status === "failed";
         return (
           <li key={r.id}>
             <button
               type="button"
               aria-pressed={selected}
-              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? NO_DATA : formatScore(r.score, r.category)}. ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
+              aria-label={`${entryLabel(r)}${r.agent ? `, ${r.agent}` : ""}: бал ${r.score === null ? (failed ? FAILED : NO_DATA) : scoreText(r)}. ${selected ? "Прибрати з порівняння" : "Додати до порівняння"}`}
               onClick={() => onToggle(r.id)}
               onMouseEnter={() => onHover(r.id)}
               onMouseLeave={() => onHover(null)}
@@ -62,7 +63,7 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
               <span className="min-w-0 flex items-center gap-2">
                 <span
                   className="w-4 h-4 shrink-0 rounded-full text-[10px] font-bold inline-flex items-center justify-center"
-                  style={selected ? { background: slotColor(slot), color: "var(--canvas-night)" } : { border: "1px solid var(--hairline-dark)" }}
+                  style={selected ? { background: color, color: "var(--canvas-night)" } : { background: color, opacity: dim ? 0.35 : 0.9, transform: "scale(0.55)" }}
                   aria-hidden="true"
                 >
                   {selected ? slot + 1 : ""}
@@ -83,14 +84,16 @@ export default function ScoreBars({ rows, slots, hoverId, onHover, onToggle }: P
                       left: `${left}%`,
                       width: `max(${width}%, 2px)`,
                       background: color,
-                      opacity: dim ? 0.35 : 1,
+                      opacity: dim ? 0.3 : 1,
+                      outline: hot ? "1.5px solid var(--on-primary)" : undefined,
+                      outlineOffset: 1,
                     }}
                   />
                 )}
                 {min < 0 && <span className="absolute top-[-2px] bottom-[-2px] w-px bg-hairline-dark" style={{ left: `${zeroPct}%` }} />}
               </span>
-              <span className={`text-sm tabular-nums sm:text-right ${r.score === null ? "text-ink-mute italic text-xs" : "font-semibold text-on-primary"}`}>
-                {r.score === null ? NO_DATA : formatScore(r.score, r.category)}
+              <span className={`text-sm tabular-nums sm:text-right ${r.score === null ? (failed ? "text-on-primary-mute font-semibold text-xs" : "text-ink-mute italic text-xs") : "font-semibold text-on-primary"}`}>
+                {r.score === null ? (failed ? FAILED : NO_DATA) : scoreText(r)}
               </span>
             </button>
           </li>

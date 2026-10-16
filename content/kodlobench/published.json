@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-15",
+  "updatedAt": "2026-10-16",
   "currency": "USD",
   "results": [
     {
@@ -266,6 +266,60 @@
         }
       ],
       "notes": "Модель без Vision. Вартість приблизна: оцінка за токенами прогону (estimated_api_cost_usd), з урахуванням кешу."
+    },
+    {
+      "id": "grok-4-7-pdrbench-pro",
+      "category": "pdrbench-pro",
+      "model": "Grok 4.7",
+      "agent": null,
+      "config": null,
+      "score": 359,
+      "timeSeconds": null,
+      "tokens": null,
+      "cost": null,
+      "publishedAt": "2026-10-16"
+    },
+    {
+      "id": "grok-4-7-redotui-bench",
+      "category": "redotui-bench",
+      "model": "Grok 4.7",
+      "agent": null,
+      "config": null,
+      "score": null,
+      "status": "failed",
+      "timeSeconds": null,
+      "tokens": null,
+      "cost": null,
+      "publishedAt": "2026-10-16",
+      "notes": "Модель не зуміла пройти цей тест."
+    },
+    {
+      "id": "grok-4-7-utwmr-rec-bench",
+      "category": "utwmr-rec-bench",
+      "model": "Grok 4.7",
+      "agent": null,
+      "config": null,
+      "score": null,
+      "status": "failed",
+      "timeSeconds": null,
+      "tokens": null,
+      "cost": null,
+      "publishedAt": "2026-10-16",
+      "notes": "Модель не зуміла пройти цей тест."
+    },
+    {
+      "id": "grok-4-7-3dsc-gt-plus",
+      "category": "3dsc-gt-plus",
+      "model": "Grok 4.7",
+      "agent": null,
+      "config": null,
+      "score": null,
+      "status": "failed",
+      "timeSeconds": null,
+      "tokens": null,
+      "cost": null,
+      "publishedAt": "2026-10-16",
+      "notes": "Модель не зуміла пройти цей тест."
     }
   ]
 }

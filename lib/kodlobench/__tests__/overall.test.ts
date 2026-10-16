@@ -7,7 +7,7 @@ import type { PublishedResult } from "../types";
 function r(category: string, over: Partial<PublishedResult> = {}): PublishedResult {
   return {
     id: `${category}-${over.config ?? "default"}-${over.model ?? "M"}`, category, model: "M", agent: "A", config: "default",
-    score: 100, timeSeconds: 10, tokens: 1000, cost: 1, publishedAt: null, metrics: [], notes: null, media: [], ...over,
+    status: null, score: 100, timeSeconds: 10, tokens: 1000, cost: 1, publishedAt: null, metrics: [], notes: null, media: [], ...over,
   };
 }
 const full = (over: Partial<PublishedResult> = {}) => CATEGORIES.map((c) => r(c.id, over));
@@ -63,5 +63,20 @@ describe("buildOverall", () => {
     expect(new Set(out.map((o) => o.id)).size).toBe(2);
     const dup = [...full(), r("pdrbench-pro", { id: "dup" })];
     expect(buildOverall(dup)).toEqual([]);
+  });
+
+  it("shows a failed test as an overall row without a total, never as a zero", () => {
+    const rows = full();
+    rows[1] = { ...rows[1], score: null, status: "failed" };
+    rows[2] = { ...rows[2], score: null, status: "failed" };
+    const [o] = buildOverall(rows);
+    expect(o).toMatchObject({ score: null, status: "failed" });
+    expect(o.metrics.map((m) => m.value)).toEqual([100, "Не пройдено", "Не пройдено", 100]);
+  });
+
+  it("still skips a configuration with a plain gap even if other tests failed", () => {
+    const rows = full().slice(0, 3);
+    rows[1] = { ...rows[1], score: null, status: "failed" };
+    expect(buildOverall(rows)).toEqual([]);
   });
 });
