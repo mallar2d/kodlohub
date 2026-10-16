@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getCategory, OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
+import { withOverall } from "@/lib/kodlobench/overall";
 import { formatDate } from "@/lib/kodlobench/format";
 import type { LoadResult, PublishedResult, ScatterAxis, SortKey } from "@/lib/kodlobench/types";
 import {
@@ -41,15 +42,17 @@ export default function KodloBenchClient({ data, initialView }: Props) {
   const [full, setFull] = useState(false);
 
   const ok = data.status === "ok" ? data : null;
-  const all = ok ? ok.results : EMPTY;
+  const published = ok ? ok.results : EMPTY;
+  // Overall rows are derived from the published ones; the exclusion list decides which categories count.
+  const all = useMemo(() => withOverall(published, view.exclude), [published, view.exclude]);
   const currency = ok ? ok.currency : null;
 
   // Back/forward restores the view stored in the address.
   useEffect(() => {
-    const onPop = () => setView(parseView(paramsFromSearch(window.location.search), all));
+    const onPop = () => setView(parseView(paramsFromSearch(window.location.search), published));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [all]);
+  }, [published]);
 
   const commit = useCallback(
     (patch: Partial<ViewState>, mode: "push" | "replace" = "replace") => {
@@ -97,8 +100,8 @@ export default function KodloBenchClient({ data, initialView }: Props) {
     if (id === view.category) return;
     setHoverId(null);
     setFull(false);
-    // Selections and filters belong to a category; the log-scale choices carry over.
-    commit({ ...DEFAULT_VIEW, category: id, logs: view.logs }, "push");
+    // Selections and filters belong to a category; log-scale and total-exclusion choices carry over.
+    commit({ ...DEFAULT_VIEW, category: id, logs: view.logs, exclude: view.exclude }, "push");
   }
 
   const openResult = view.openId ? (byId.get(view.openId) ?? null) : null;
@@ -182,6 +185,13 @@ export default function KodloBenchClient({ data, initialView }: Props) {
               <>
                 <ChartPanel
                   categoryId={view.category}
+                  exclude={view.exclude}
+                  onToggleExclude={(id: string) => {
+                    const exclude = view.exclude.includes(id) ? view.exclude.filter((x) => x !== id) : [...view.exclude, id];
+                    // Rows that exist only in one of the two modes drop out of the selection.
+                    const ids = new Set(withOverall(published, exclude).map((r) => r.id));
+                    commit({ exclude, slots: view.slots.map((s) => (s && ids.has(s) ? s : null)) });
+                  }}
                   logs={view.logs}
                   onToggleLog={(axis: ScatterAxis) =>
                     commit({ logs: view.logs.includes(axis) ? view.logs.filter((a) => a !== axis) : [...view.logs, axis] })

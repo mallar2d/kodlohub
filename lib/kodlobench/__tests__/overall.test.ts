@@ -86,4 +86,51 @@ describe("buildOverall", () => {
     expect(buildOverall(rows)[0].alert).toBe(`${CATEGORIES[1].name}: Ліміт часу`);
     expect(buildOverall(full())[0].alert).toBeNull();
   });
+
+  describe("without a category", () => {
+    const scores = [100, 200, 300, 400]; // PDRBench-Pro first
+    const rows = CATEGORIES.map((c, i) => r(c.id, { score: scores[i], timeSeconds: 10 * (i + 1), tokens: 1000 * (i + 1), cost: i + 1 }));
+
+    it("scales the remaining three to the same maximum of 22,00", () => {
+      const full = CATEGORIES.map((c) => r(c.id, { score: 550 }));
+      const [o] = buildOverall(full, { exclude: ["pdrbench-pro"] });
+      expect(o.score).toBe(22);
+      expect(formatScore(o.score, o.category)).toBe("22,00");
+    });
+
+    it("sums only the counted categories, times 4/3", () => {
+      const [o] = buildOverall(rows, { exclude: ["pdrbench-pro"] });
+      // (200 + 300 + 400) * 4/3 / 100 = 12
+      expect(o.score).toBe(12);
+    });
+
+    it("leaves time, tokens and cost of the left-out category out of the totals", () => {
+      const [o] = buildOverall(rows, { exclude: ["pdrbench-pro"] });
+      expect(o).toMatchObject({ timeSeconds: 90, tokens: 9000, cost: 9 });
+    });
+
+    it("keeps the left-out category visible among the components, marked as not counted", () => {
+      const [o] = buildOverall(rows, { exclude: ["pdrbench-pro"] });
+      expect(o.metrics[0]).toEqual({ label: CATEGORIES[0].name, value: "100 (не враховано)" });
+      expect(o.metrics[1].value).toBe(200);
+    });
+
+    it("includes configurations that lack the left-out category and skips them otherwise", () => {
+      const noPdr = rows.slice(1);
+      expect(buildOverall(noPdr)).toEqual([]);
+      expect(buildOverall(noPdr, { exclude: ["pdrbench-pro"] })).toHaveLength(1);
+    });
+
+    it("ignores a warning on the left-out category", () => {
+      const withAlert = rows.map((x, i) => (i === 0 ? { ...x, alert: "Ліміт часу" } : x));
+      expect(buildOverall(withAlert, { exclude: ["pdrbench-pro"] })[0].alert).toBeNull();
+      expect(buildOverall(withAlert)[0].alert).toBe(`${CATEGORIES[0].name}: Ліміт часу`);
+    });
+
+    it("never leaves zero categories", () => {
+      const all = CATEGORIES.map((c) => c.id);
+      expect(buildOverall(rows, { exclude: all })).toHaveLength(1);
+      expect(buildOverall(rows, { exclude: all })[0].score).toBe(10);
+    });
+  });
 });

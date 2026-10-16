@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { OVERALL_ID, getCategory } from "@/lib/kodlobench/categories";
+import { CATEGORIES, OVERALL_ID, getCategory, overallCaption } from "@/lib/kodlobench/categories";
 import { entryLabel, formatCost, formatDuration, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
 import type { PublishedResult, ScatterAxis } from "@/lib/kodlobench/types";
 import { scatterSplit } from "@/lib/kodlobench/view";
@@ -22,8 +22,13 @@ const SCATTERS: { axis: ScatterAxis; title: string; need: string }[] = [
   { axis: "tokens", title: "Бал і токени", need: "токени" },
 ];
 
+/** The one category the overall index can be calculated without. */
+const OPTIONAL_CATEGORY = CATEGORIES[0];
+
 interface Props {
   categoryId: string;
+  exclude: string[];
+  onToggleExclude: (id: string) => void;
   logs: ScatterAxis[];
   onToggleLog: (axis: ScatterAxis) => void;
   rows: PublishedResult[];
@@ -73,7 +78,7 @@ function Card({ title, sub, aside, children }: { title: string; sub?: string; as
  * and tokens. They share one selection and one highlight, so a model picked or hovered in any of
  * them is picked and highlighted in all the others and in the table.
  */
-export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
+export default function ChartPanel({ categoryId, exclude, onToggleExclude, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
   const hovered = hoverId ? rows.find((r) => r.id === hoverId) : undefined;
   const isOverall = categoryId === OVERALL_ID;
   const category = getCategory(categoryId);
@@ -90,7 +95,24 @@ export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots,
     <div className="space-y-6">
       <Card
         title={isOverall ? "KodloBench Intelligence Index" : `${category?.name ?? ""}: бали`}
-        sub={category?.caption}
+        sub={isOverall ? overallCaption(CATEGORIES.filter((c) => exclude.includes(c.id)).map((c) => c.name)) : category?.caption}
+        aside={
+          isOverall ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={exclude.includes(OPTIONAL_CATEGORY.id)}
+              onClick={() => onToggleExclude(OPTIONAL_CATEGORY.id)}
+              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
+                exclude.includes(OPTIONAL_CATEGORY.id)
+                  ? "bg-on-primary text-ink border-on-primary"
+                  : "border-hairline-dark text-on-primary-mute hover:text-on-primary hover:border-on-primary-mute"
+              }`}
+            >
+              Без {OPTIONAL_CATEGORY.name}
+            </button>
+          ) : undefined
+        }
       >
         <FamilyLegend rows={rows} />
         <ScoreColumns rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} categoryId={categoryId} />
