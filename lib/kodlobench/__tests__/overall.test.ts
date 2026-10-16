@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATEGORIES } from "../categories";
 import { formatScore } from "../format";
-import { buildOverall } from "../overall";
+import { buildOverall, overallBothModes } from "../overall";
 import type { PublishedResult } from "../types";
 
 function r(category: string, over: Partial<PublishedResult> = {}): PublishedResult {
@@ -131,6 +131,23 @@ describe("buildOverall", () => {
       const all = CATEGORIES.map((c) => c.id);
       expect(buildOverall(rows, { exclude: all })).toHaveLength(1);
       expect(buildOverall(rows, { exclude: all })[0].score).toBe(10);
+    });
+  });
+
+  describe("overallBothModes", () => {
+    const scores = [100, 200, 300, 400];
+    const rows = CATEGORIES.map((c, i) => r(c.id, { score: scores[i] }));
+
+    it("pairs the score with and without the category for the same row", () => {
+      const [pair] = [...overallBothModes(rows, "pdrbench-pro").values()];
+      expect(pair.with).toBe(10);
+      expect(pair.without).toBe(12);
+    });
+
+    it("keeps a missing side as null", () => {
+      const noPdr = rows.slice(1);
+      const [pair] = [...overallBothModes(noPdr, "pdrbench-pro").values()];
+      expect(pair).toEqual({ with: null, without: 12 });
     });
   });
 });

@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { CATEGORIES, OVERALL_ID, getCategory, overallCaption } from "@/lib/kodlobench/categories";
+import { CATEGORIES, OPTIONAL_CATEGORY, OVERALL_ID, getCategory, overallCaption } from "@/lib/kodlobench/categories";
 import { entryLabel, formatCost, formatDuration, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
 import type { PublishedResult, ScatterAxis } from "@/lib/kodlobench/types";
 import { scatterSplit } from "@/lib/kodlobench/view";
 import FamilyLegend from "./FamilyLegend";
-import { ChartSkeleton } from "./Notices";
+import type { OverallPair } from "@/lib/kodlobench/overall";
+import { AlertIcon, ChartSkeleton } from "./Notices";
 import ScoreColumns from "./ScoreColumns";
 
 // Recharts is heavy and browser-only: load it on demand, with a skeleton while it arrives.
@@ -22,13 +23,45 @@ const SCATTERS: { axis: ScatterAxis; title: string; need: string }[] = [
   { axis: "tokens", title: "Бал і токени", need: "токени" },
 ];
 
-/** The one category the overall index can be calculated without. */
-const OPTIONAL_CATEGORY = CATEGORIES[0];
+const PDR_NOTE = `${OPTIONAL_CATEGORY.name} можна не враховувати: він перевіряє загальні навички моделі, а не омнімодальність і програмування, і його оцінка часто суб’єктивна.`;
+
+/** Key to the shades in the overall columns: what the optional category adds or takes away. */
+function EffectLegend({ name }: { name: string }) {
+  return (
+    <ul className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-on-primary-mute" aria-label={`Як ${name} впливає на загальний бал`}>
+      <li className="inline-flex items-center gap-1.5">
+        <svg width="16" height="12" aria-hidden="true">
+          <rect x="0.6" y="0.6" width="14.8" height="10.8" rx="2" fill="var(--on-primary-mute)" fillOpacity="0.4" stroke="var(--on-primary-mute)" />
+        </svg>
+        {name} додає
+      </li>
+      <li className="inline-flex items-center gap-1.5">
+        <svg width="16" height="12" aria-hidden="true">
+          <defs>
+            <pattern id="kb-legend-neg" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="5" stroke="var(--on-primary-mute)" strokeWidth="2" />
+            </pattern>
+          </defs>
+          <rect x="0.6" y="0.6" width="14.8" height="10.8" rx="2" fill="url(#kb-legend-neg)" stroke="var(--on-primary-mute)" strokeDasharray="3 2" />
+        </svg>
+        {name} забирає
+      </li>
+      <li className="inline-flex items-center gap-1.5">
+        <svg width="16" height="12" aria-hidden="true">
+          <line x1="0" y1="6" x2="16" y2="6" stroke="var(--on-primary)" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        поточний режим
+      </li>
+    </ul>
+  );
+}
 
 interface Props {
   categoryId: string;
   exclude: string[];
   onToggleExclude: (id: string) => void;
+  /** Both modes of the overall score for the same rows (overall view only). */
+  pairs: Map<string, OverallPair>;
   logs: ScatterAxis[];
   onToggleLog: (axis: ScatterAxis) => void;
   rows: PublishedResult[];
@@ -78,7 +111,8 @@ function Card({ title, sub, aside, children }: { title: string; sub?: string; as
  * and tokens. They share one selection and one highlight, so a model picked or hovered in any of
  * them is picked and highlighted in all the others and in the table.
  */
-export default function ChartPanel({ categoryId, exclude, onToggleExclude, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
+export default function ChartPanel({ categoryId, exclude, onToggleExclude, pairs, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
+  const [noteOpen, setNoteOpen] = useState(false);
   const hovered = hoverId ? rows.find((r) => r.id === hoverId) : undefined;
   const isOverall = categoryId === OVERALL_ID;
   const category = getCategory(categoryId);
@@ -88,6 +122,7 @@ export default function ChartPanel({ categoryId, exclude, onToggleExclude, logs,
     [rows, logs],
   );
 
+  const hasEffect = isOverall && rows.some((r) => { const p = pairs.get(r.id); return !!p && p.with !== null && p.without !== null && p.with !== p.without; });
   const noData = rows.filter((r) => r.score === null && r.status !== "failed").length;
   const failed = rows.filter((r) => r.status === "failed").length;
 
@@ -98,24 +133,53 @@ export default function ChartPanel({ categoryId, exclude, onToggleExclude, logs,
         sub={isOverall ? overallCaption(CATEGORIES.filter((c) => exclude.includes(c.id)).map((c) => c.name)) : category?.caption}
         aside={
           isOverall ? (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={exclude.includes(OPTIONAL_CATEGORY.id)}
-              onClick={() => onToggleExclude(OPTIONAL_CATEGORY.id)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
-                exclude.includes(OPTIONAL_CATEGORY.id)
-                  ? "bg-on-primary text-ink border-on-primary"
-                  : "border-hairline-dark text-on-primary-mute hover:text-on-primary hover:border-on-primary-mute"
-              }`}
-            >
-              Без {OPTIONAL_CATEGORY.name}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setNoteOpen((v) => !v)}
+                aria-expanded={noteOpen}
+                aria-controls="kb-pdr-note"
+                aria-label={`Чому ${OPTIONAL_CATEGORY.name} можна не враховувати`}
+                title={PDR_NOTE}
+                className="w-9 h-9 rounded-full border border-hairline-dark text-on-primary-mute hover:text-on-primary hover:border-on-primary-mute inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary"
+              >
+                <AlertIcon size={16} />
+              </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={exclude.includes(OPTIONAL_CATEGORY.id)}
+                onClick={() => onToggleExclude(OPTIONAL_CATEGORY.id)}
+                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
+                  exclude.includes(OPTIONAL_CATEGORY.id)
+                    ? "bg-on-primary text-ink border-on-primary"
+                    : "border-hairline-dark text-on-primary-mute hover:text-on-primary hover:border-on-primary-mute"
+                }`}
+              >
+                Без {OPTIONAL_CATEGORY.name}
+              </button>
+            </div>
           ) : undefined
         }
       >
+        {isOverall && noteOpen && (
+          <p id="kb-pdr-note" role="note" className="flex items-start gap-2.5 rounded-xl border border-hairline-dark px-4 py-3 text-sm text-on-primary-mute">
+            <AlertIcon size={16} className="mt-0.5 shrink-0 text-on-primary" />
+            <span>{PDR_NOTE}</span>
+          </p>
+        )}
         <FamilyLegend rows={rows} />
-        <ScoreColumns rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} categoryId={categoryId} />
+        {isOverall && hasEffect && <EffectLegend name={OPTIONAL_CATEGORY.name} />}
+        <ScoreColumns
+          rows={rows}
+          slots={slots}
+          hoverId={hoverId}
+          onHover={onHover}
+          onToggle={onToggle}
+          categoryId={categoryId}
+          pairs={isOverall ? pairs : undefined}
+          pairName={OPTIONAL_CATEGORY.name}
+        />
         {failed > 0 && <p className="text-xs text-ink-mute">Не пройшли тест: {failed}. Балу в них немає, вони позначені «Не пройдено».</p>}
         {noData > 0 && <p className="text-xs text-ink-mute">Записів без опублікованого балу: {noData}. Їх позначено «Немає даних».</p>}
         <Readout r={hovered} currency={currency} />

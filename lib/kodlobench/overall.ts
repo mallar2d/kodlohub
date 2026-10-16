@@ -106,3 +106,29 @@ export function buildOverall(results: readonly PublishedResult[], options: Overa
 export function withOverall(results: readonly PublishedResult[], exclude: readonly string[] = []): PublishedResult[] {
   return [...results.filter((r) => r.category !== OVERALL_ID), ...buildOverall(results, { exclude })];
 }
+
+/** Overall score of one configuration in both modes: counting every category and leaving one out. */
+export interface OverallPair {
+  /** Score with all categories counted, or null when the configuration has no such row. */
+  with: number | null;
+  /** Score with the category left out, or null when the configuration has no such row. */
+  without: number | null;
+}
+
+/**
+ * The same configuration (matched by row id) in both modes, so a chart can show how much one category
+ * moves the total. A missing side stays null: a gap is never a zero.
+ */
+export function overallBothModes(results: readonly PublishedResult[], leftOut: string): Map<string, OverallPair> {
+  const pairs = new Map<string, OverallPair>();
+  const put = (rows: PublishedResult[], side: keyof OverallPair) => {
+    for (const r of rows) {
+      const p = pairs.get(r.id) ?? { with: null, without: null };
+      p[side] = r.score;
+      pairs.set(r.id, p);
+    }
+  };
+  put(buildOverall(results), "with");
+  put(buildOverall(results, { exclude: [leftOut] }), "without");
+  return pairs;
+}

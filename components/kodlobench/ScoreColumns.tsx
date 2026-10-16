@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { scoreMaxFor } from "@/lib/kodlobench/categories";
 import { FAILED, NO_DATA, formatScore, scoreText } from "@/lib/kodlobench/format";
+import type { OverallPair } from "@/lib/kodlobench/overall";
 import type { PublishedResult } from "@/lib/kodlobench/types";
 import { slotOf, sortResults } from "@/lib/kodlobench/view";
 import { familyLogoPath } from "@/lib/kodlobench/family-logos";
@@ -16,6 +17,13 @@ interface Props {
   onHover: (id: string | null) => void;
   onToggle: (id: string) => void;
   categoryId: string;
+  /**
+   * Overall view only: the same row in both modes (with and without the optional category).
+   * The part of the column the category adds or takes away is drawn in its own shade.
+   */
+  pairs?: Map<string, OverallPair>;
+  /** Name of the optional category, for the accessible description. */
+  pairName?: string;
 }
 
 const HEIGHT = 400;
@@ -42,7 +50,7 @@ const label = (r: PublishedResult) => (r.config ? `${r.model} (${r.config})` : r
  * family, value inside the column, model names under it. Every column is a button, so selection
  * and highlight are shared with the scatter charts and the table, and the keyboard works.
  */
-export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, categoryId }: Props) {
+export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, categoryId, pairs, pairName }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -56,6 +64,7 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
   }, []);
 
   const sorted = useMemo(() => sortResults(rows, "score", "desc"), [rows]);
+  const familyIds = useMemo(() => [...new Set(rows.map((r) => familyOf(r.model).id))], [rows]);
   const hasSelection = slots.some(Boolean);
   const n = sorted.length;
 
@@ -96,6 +105,12 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
     <div ref={wrapRef} className="overflow-x-auto" role="group" aria-label="Стовпці балів. Стрілки переміщують між моделями, Enter додає до порівняння">
       <svg width={svgW} height={HEIGHT} role="presentation" style={{ display: "block" }}>
         <defs>
+          {familyIds.map((f) => (
+            <pattern key={f} id={`kb-neg-${f}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width="6" height="6" fill={`var(--kb-fam-${f})`} opacity="0.14" />
+              <line x1="0" y1="0" x2="0" y2="6" stroke={`var(--kb-fam-${f})`} strokeWidth="2.5" />
+            </pattern>
+          ))}
           <pattern id="kb-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(135)">
             <line x1="0" y1="0" x2="0" y2="7" stroke="var(--hairline-dark)" strokeWidth="2" />
           </pattern>
@@ -120,10 +135,21 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
           const cx = left + slotW * i + slotW / 2;
           const x0 = cx - barW / 2;
           const hasScore = r.score !== null;
-          const top = hasScore ? Math.min(y(r.score as number), baseY - 2) : baseY - 26;
+          // Overall view: both modes in one column. Solid up to the lower of the two totals; the part up
+          // to the higher one is the category's effect: light = it adds points, hatched = it takes them away.
+          const pair = pairs?.get(r.id);
+          const hasPair = !!pair && pair.with !== null && pair.without !== null && pair.with !== pair.without;
+          const effect = hasPair ? (pair!.with as number) - (pair!.without as number) : 0;
+          const lo = hasPair ? Math.min(pair!.with as number, pair!.without as number) : (r.score as number);
+          const hi = hasPair ? Math.max(pair!.with as number, pair!.without as number) : (r.score as number);
+          const top = hasScore ? Math.min(y(hi), baseY - 2) : baseY - 26;
+          const loTop = hasScore ? Math.min(y(lo), baseY - 2) : top;
           const barH = baseY - top;
-          const inside = barH >= 26;
+          // With the effect segment the value always sits above the column, so it never lands on the shaded part.
+          const inside = barH >= 26 && !pairs;
           const valueText = hasScore ? scoreText(r) : null;
+          const effectText = hasPair ? `${effect > 0 ? "+" : "−"}${formatScore(Math.abs(effect), categoryId)}` : null;
+          const stackTop = top - 7 - (effectText ? 16 : 0);
           const name = label(r);
           const logo = familyLogoPath(familyOf(r.model).id);
           return (
@@ -133,7 +159,9 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
               role="button"
               tabIndex={anchorId === r.id ? 0 : -1}
               aria-pressed={selected}
-              aria-label={`${name}${r.agent ? `, ${r.agent}` : ""}: бал ${hasScore ? scoreText(r) : failed ? FAILED : NO_DATA}.${r.alert ? ` Застереження: ${r.alert}.` : ""} ${
+              aria-label={`${name}${r.agent ? `, ${r.agent}` : ""}: бал ${hasScore ? scoreText(r) : failed ? FAILED : NO_DATA}.${
+                hasPair ? ` ${pairName ?? "Категорія"} ${effect > 0 ? "додає" : "забирає"} ${formatScore(Math.abs(effect), categoryId)}: з нею ${formatScore(pair!.with, categoryId)}, без неї ${formatScore(pair!.without, categoryId)}.` : ""
+              }${r.alert ? ` Застереження: ${r.alert}.` : ""} ${
                 selected ? "Прибрати з порівняння" : "Додати до порівняння"
               }`}
               style={{ cursor: "pointer", outline: "none" }}
@@ -161,15 +189,51 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
 
               <rect
                 x={x0}
-                y={top}
+                y={hasPair ? loTop : top}
                 width={barW}
-                height={Math.max(barH, 2)}
+                height={Math.max(baseY - (hasPair ? loTop : top), 2)}
                 rx={4}
                 fill={hasScore ? color : "url(#kb-hatch)"}
                 opacity={dim ? 0.3 : 1}
                 stroke={selected || hot ? "var(--on-primary)" : hasScore ? "none" : "var(--hairline-dark)"}
                 strokeWidth={selected ? 2 : 1.5}
               />
+
+              {hasPair && (
+                <rect
+                  x={x0}
+                  y={top}
+                  width={barW}
+                  height={Math.max(loTop - top, 2)}
+                  rx={3}
+                  fill={effect > 0 ? color : `url(#kb-neg-${familyOf(r.model).id})`}
+                  fillOpacity={effect > 0 ? 0.4 : 1}
+                  stroke={color}
+                  strokeWidth={1.2}
+                  strokeDasharray={effect > 0 ? undefined : "3 2"}
+                  opacity={dim ? 0.3 : 1}
+                />
+              )}
+
+              {hasPair && hasScore && (
+                // Tick at the level of the mode being shown; the number above the column is this level.
+                <line
+                  x1={x0 - 4}
+                  x2={x0 + barW + 4}
+                  y1={Math.min(y(r.score as number), baseY - 2)}
+                  y2={Math.min(y(r.score as number), baseY - 2)}
+                  stroke="var(--on-primary)"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  opacity={dim ? 0.4 : 1}
+                />
+              )}
+
+              {effectText && (
+                <text x={cx} y={top - 7 - 16 + 2} textAnchor="middle" fontSize={11} fontWeight={600} fill="var(--on-primary-mute)" opacity={dim ? 0.5 : 1}>
+                  {effectText}
+                </text>
+              )}
 
               {valueText && (
                 <text
@@ -187,7 +251,7 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
 
               {r.alert && (
                 <g
-                  transform={`translate(${cx - 7},${(inside ? top : top - 14) - 22}) scale(${14 / 24})`}
+                  transform={`translate(${cx - 7},${(inside ? top : stackTop + 7 - 14) - 22}) scale(${14 / 24})`}
                   fill="none"
                   stroke="var(--on-primary)"
                   strokeWidth={2.2}
