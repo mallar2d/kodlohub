@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { OVERALL_ID, getCategory, scoreMaxFor } from "@/lib/kodlobench/categories";
-import { entryLabel, formatCost, formatDuration, formatScore, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
+import { OVERALL_ID, getCategory } from "@/lib/kodlobench/categories";
+import { entryLabel, formatCost, formatDuration, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
 import type { PublishedResult, ScatterAxis } from "@/lib/kodlobench/types";
 import { scatterSplit } from "@/lib/kodlobench/view";
 import FamilyLegend from "./FamilyLegend";
@@ -36,9 +36,9 @@ interface Props {
 
 function Readout({ r, currency }: { r: PublishedResult | undefined; currency: string | null }) {
   return (
-    <div className="min-h-[3.25rem] rounded-xl border border-hairline-dark px-4 py-2.5 text-sm" role="status" aria-live="off">
-      {r ? (
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <div className="min-h-[2.75rem] text-sm" role="status" aria-live="off">
+      {r && (
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-xl border border-hairline-dark px-4 py-2.5">
           <span className="font-semibold text-on-primary">{entryLabel(r)}</span>
           {r.agent && <span className="text-ink-mute text-xs">{r.agent}</span>}
           <span className="text-on-primary-mute tabular-nums">
@@ -48,8 +48,6 @@ function Readout({ r, currency }: { r: PublishedResult | undefined; currency: st
           <span className="text-on-primary-mute tabular-nums">Токени {formatTokensFull(r.tokens)}</span>
           <span className="text-on-primary-mute tabular-nums">Вартість {formatCost(r.cost, currency)}</span>
         </div>
-      ) : (
-        <span className="text-ink-mute text-xs">Наведи курсор або зфокусуй запис, щоб побачити всі значення.</span>
       )}
     </div>
   );
@@ -78,8 +76,7 @@ function Card({ title, sub, aside, children }: { title: string; sub?: string; as
 export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
   const hovered = hoverId ? rows.find((r) => r.id === hoverId) : undefined;
   const isOverall = categoryId === OVERALL_ID;
-  const categoryName = getCategory(categoryId)?.name ?? "";
-  const max = formatScore(scoreMaxFor(categoryId), categoryId);
+  const category = getCategory(categoryId);
 
   const splits = useMemo(
     () => Object.fromEntries(SCATTERS.map((s) => [s.axis, scatterSplit(rows, s.axis, logs.includes(s.axis))])) as Record<ScatterAxis, ReturnType<typeof scatterSplit>>,
@@ -92,8 +89,8 @@ export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots,
   return (
     <div className="space-y-6">
       <Card
-        title={isOverall ? "KodloBench Intelligence Index" : `${categoryName}: бали`}
-        sub={isOverall ? `Сума балів чотирьох категорій, максимум ${max}.` : `Опублікований бал, максимум ${max}.`}
+        title={isOverall ? "KodloBench Intelligence Index" : `${category?.name ?? ""}: бали`}
+        sub={category?.caption}
       >
         <FamilyLegend rows={rows} />
         <ScoreColumns rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} categoryId={categoryId} />
@@ -109,7 +106,6 @@ export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots,
           <Card
             key={axis}
             title={title}
-            sub={`Кожна точка — один запис; підписи показують модель. Потрібні і бал, і ${need}.`}
             aside={
               <label className="inline-flex items-center gap-2 text-xs text-on-primary-mute cursor-pointer select-none shrink-0">
                 <input type="checkbox" checked={log} onChange={() => onToggleLog(axis)} className="accent-[var(--theme-accent)]" />

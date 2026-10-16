@@ -22,13 +22,7 @@ export default async function KodloBenchPage({
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-[1200px] mx-auto">
-        <header className="mb-8">
-          <p className="micro-cap text-ink-mute mb-2">РЕЗУЛЬТАТИ ТЕСТУВАННЯ МОДЕЛЕЙ ШІ</p>
-          <h1 className="heading-section mb-3">KodloBench</h1>
-          <p className="text-sm text-on-primary-mute max-w-2xl">
-            Загальний бал: сума чотирьох напрямів до 22,00. Кожен напрям також доступний окремо.
-          </p>
-        </header>
+        <h1 className="heading-section mb-6">KodloBench</h1>
         <KodloBenchClient data={data} initialView={initialView} />
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
 
 interface Props {
@@ -9,10 +9,18 @@ interface Props {
   onChange: (id: string) => void;
 }
 
-/** Four categories. No combined tab on purpose: categories are never merged into one score. */
+/**
+ * One row of pills like the site menu: the overall view first, a divider, then the four benchmarks.
+ * Benchmarks without published results stay selectable but are dimmed. On a phone the row scrolls.
+ */
 export default function CategoryTabs({ active, counts, onChange }: Props) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const activeCategory = VIEW_CATEGORIES.find((c) => c.id === active) ?? VIEW_CATEGORIES[0];
+
+  // On a phone the row scrolls: keep the active pill in view.
+  useEffect(() => {
+    const i = VIEW_CATEGORIES.findIndex((c) => c.id === active);
+    refs.current[i]?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [active]);
 
   function onKeyDown(e: React.KeyboardEvent, index: number) {
     let next = index;
@@ -27,49 +35,43 @@ export default function CategoryTabs({ active, counts, onChange }: Props) {
   }
 
   return (
-    <div>
+    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
       <div
         role="tablist"
-        aria-label="Категорії KodloBench"
-        className="grid grid-cols-2 md:grid-cols-5 gap-2"
+        aria-label="Загальний бал і бенчмарки"
+        className="inline-flex items-center gap-1 rounded-full border border-hairline-dark bg-canvas-night-soft/80 p-1 min-w-max"
       >
         {VIEW_CATEGORIES.map((c, i) => {
           const selected = c.id === active;
-          const n = counts[c.id] ?? 0;
+          const empty = (counts[c.id] ?? 0) === 0;
           return (
-            <button
-              key={c.id}
-              ref={(el) => {
-                refs.current[i] = el;
-              }}
-              role="tab"
-              id={`kb-tab-${c.id}`}
-              aria-selected={selected}
-              aria-controls="kb-panel"
-              tabIndex={selected ? 0 : -1}
-              onClick={() => onChange(c.id)}
-              onKeyDown={(e) => onKeyDown(e, i)}
-              className={`text-left rounded-xl border p-3 sm:p-4 transition-colors cursor-pointer ${c.id === OVERALL_ID ? "col-span-2 md:col-span-1" : ""} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
-                selected
-                  ? "bg-canvas-night-soft border-on-primary/50"
-                  : "bg-canvas-night-soft/40 border-hairline-dark hover:border-on-primary-mute"
-              }`}
-            >
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-bold tracking-wide text-on-primary break-words">{c.name}</span>
-                {n > 0 && (
-                  <span className="micro-cap text-ink-mute shrink-0" aria-label={`записів: ${n}`}>
-                    {n}
-                  </span>
-                )}
-              </span>
-            </button>
+            <div key={c.id} className="flex items-center">
+              {i === 1 && <span className="w-px h-5 bg-hairline-dark mx-1.5" aria-hidden="true" />}
+              <button
+                ref={(el) => {
+                  refs.current[i] = el;
+                }}
+                role="tab"
+                id={`kb-tab-${c.id}`}
+                aria-selected={selected}
+                aria-controls="kb-panel"
+                tabIndex={selected ? 0 : -1}
+                onClick={() => onChange(c.id)}
+                onKeyDown={(e) => onKeyDown(e, i)}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-on-primary ${
+                  c.id === OVERALL_ID ? "font-bold" : "font-semibold"
+                } ${
+                  selected
+                    ? "bg-on-primary text-ink"
+                    : `${empty ? "text-ink-mute" : "text-on-primary-mute"} hover:text-on-primary hover:bg-white/[0.06]`
+                }`}
+              >
+                {c.name}
+              </button>
+            </div>
           );
         })}
       </div>
-      <p id="kb-caption" className="mt-3 text-sm leading-relaxed text-on-primary-mute max-w-3xl" aria-live="polite">
-        {activeCategory.caption}
-      </p>
     </div>
   );
 }

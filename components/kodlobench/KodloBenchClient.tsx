@@ -128,15 +128,13 @@ export default function KodloBenchClient({ data, initialView }: Props) {
 
       <div id="kb-panel" role="tabpanel" aria-labelledby={`kb-tab-${view.category}`} className="space-y-4">
         {!hasAny ? (
-          <EmptyNotice title="Результати KodloBench ще не опубліковані." />
+          <EmptyNotice title="Результати KodloBench ще не опубліковані." caption={category.caption} />
         ) : !hasInCategory && view.category === OVERALL_ID ? (
-          <EmptyNotice title="Загальний бал поки не можна показати.">
-            Потрібні результати в усіх чотирьох категоріях для однієї конфігурації моделі й агента. Окремі категорії доступні на вкладках вище.
+          <EmptyNotice title="Загальний бал поки не можна показати." caption={category.caption}>
+            Потрібні результати в усіх чотирьох категоріях для однієї конфігурації моделі й агента.
           </EmptyNotice>
         ) : !hasInCategory ? (
-          <EmptyNotice title={`Для ${category.name} результати ще не опубліковані.`}>
-            Інші категорії можна переглянути вище.
-          </EmptyNotice>
+          <EmptyNotice title={`Для ${category.name} результати ще не опубліковані.`} caption={category.caption} />
         ) : (
           <>
             <Toolbar

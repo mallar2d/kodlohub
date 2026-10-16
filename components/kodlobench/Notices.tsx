@@ -2,11 +2,11 @@
 
 import type { ReactNode } from "react";
 
-export function EmptyNotice({ title, children }: { title: string; children?: ReactNode }) {
+export function EmptyNotice({ title, caption, children }: { title: string; caption?: string; children?: ReactNode }) {
   return (
     <div className="card-dark p-8 sm:p-12 text-center" role="status">
-      <p className="micro-cap text-ink-mute mb-3">НЕМАЄ ДАНИХ</p>
       <p className="text-lg sm:text-xl font-semibold text-on-primary">{title}</p>
+      {caption && <p className="mt-3 text-sm text-on-primary-mute max-w-2xl mx-auto">{caption}</p>}
       {children && <div className="mt-3 text-sm text-on-primary-mute max-w-xl mx-auto">{children}</div>}
     </div>
   );
