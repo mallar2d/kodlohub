@@ -21,13 +21,7 @@ export default function SelectionTray({ slots, byId, hoverId, full, onToggle, on
     .map((id, slot) => (id ? { id, slot, r: byId.get(id) } : null))
     .filter((e): e is { id: string; slot: number; r: PublishedResult } => !!e && !!e.r);
 
-  if (entries.length === 0) {
-    return (
-      <p className="text-xs text-ink-mute px-1">
-        Відмічай записи в таблиці або на графіках, щоб порівняти до {MAX_SELECTED} одночасно.
-      </p>
-    );
-  }
+  if (entries.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Обрані для порівняння">

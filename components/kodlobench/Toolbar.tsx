@@ -69,9 +69,8 @@ export default function Toolbar(p: Props) {
           )}
         </div>
       </div>
-      <p className="micro-cap text-ink-mute px-1" role="status" aria-live="polite">
+      <p className="sr-only" role="status" aria-live="polite">
         Показано {p.shown} з {p.total}
-        {p.selectedCount > 0 && !p.onlySelected && " · обрані записи показано завжди"}
       </p>
     </div>
   );

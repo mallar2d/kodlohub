@@ -23,7 +23,7 @@ const TOP = 30;
 const LEFT = 44;
 const RIGHT = 12;
 const SLOT_MIN = 54;
-const SLOT_MAX = 170;
+const SLOT_MAX = 260;
 const LOGO = 20;
 const LABEL_CHAR = 6;
 
@@ -68,10 +68,12 @@ export default function ScoreColumns({ rows, slots, hoverId, onHover, onToggle, 
   const bottom = Math.min(230, Math.max(90, Math.ceil(longest * LABEL_CHAR * 0.72) + 18 + LOGO + 8));
   // The first column's tilted name reaches left of its column: widen the left padding so it is not cut off.
   const firstReach = sorted[0] ? label(sorted[0]).length * LABEL_CHAR * 0.72 : 0;
-  const left = LEFT + Math.min(190, Math.max(0, Math.ceil(firstReach - LEFT - SLOT_MIN / 2)));
+  const leftBase = LEFT + Math.min(190, Math.max(0, Math.ceil(firstReach - LEFT - SLOT_MIN / 2)));
   const plotH = HEIGHT - TOP - bottom;
   // Columns spread across the card but never wider than SLOT_MAX each, so a few models do not become hairlines.
-  const innerW = Math.max(Math.min(width - left - RIGHT, n * SLOT_MAX), n * SLOT_MIN, 0);
+  const innerW = Math.max(Math.min(width - leftBase - RIGHT, n * SLOT_MAX), n * SLOT_MIN, 0);
+  // With few models the block is centred in the card instead of hugging the left edge.
+  const left = leftBase + Math.max(0, Math.floor((width - leftBase - RIGHT - innerW) / 2));
   const svgW = left + innerW + RIGHT;
   const slotW = n > 0 ? innerW / n : 0;
   const barW = Math.min(60, slotW * 0.62);
