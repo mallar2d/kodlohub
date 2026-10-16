@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { withOverall } from "../overall";
 import { loadKodloBench } from "../source";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -20,7 +21,7 @@ describe("loadKodloBench", () => {
         dev.results.filter((r) => r.category !== "overall").every((r) => r.id.startsWith("synthetic-")),
     ).toBe(true);
     // Overall rows are derived on the server from the four categories.
-    expect(dev.status === "ok" && dev.results.some((r) => r.category === "overall")).toBe(true);
+    expect(dev.status === "ok" && withOverall(dev.results).some((r) => r.category === "overall")).toBe(true);
   });
 
   it("never serves synthetic data in production", async () => {
@@ -34,8 +35,10 @@ describe("loadKodloBench", () => {
   it("derives the overall row for a configuration published in all four categories", async () => {
     const res = await loadKodloBench();
     if (res.status !== "ok") throw new Error("load failed");
-    const overall = res.results.filter((r) => r.category === "overall");
-    const published = res.results.filter((r) => r.category !== "overall");
+    const published = res.results;
+    // The source serves published rows only; overall is derived from them where it is shown.
+    expect(published.some((r) => r.category === "overall")).toBe(false);
+    const overall = withOverall(published).filter((r) => r.category === "overall");
     expect(overall.length).toBeGreaterThan(0);
     // Every overall row is backed by exactly four published records.
     for (const o of overall) {

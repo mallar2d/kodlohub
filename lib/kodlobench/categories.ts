@@ -51,6 +51,13 @@ export const OVERALL: KodloBenchCategory = {
     "Сума балів чотирьох категорій, коефіцієнт кожної дорівнює 1. Максимум 22,00. Показується лише для конфігурацій, які мають результат у всіх чотирьох категоріях.",
 };
 
+/** Description of the overall view when some categories are left out of the total. */
+export function overallCaption(excludedNames: readonly string[]): string {
+  if (excludedNames.length === 0) return OVERALL.caption;
+  const kept = CATEGORIES.length - excludedNames.length;
+  return `Сума балів ${kept === 1 ? "однієї категорії" : kept === 2 ? "двох категорій" : "трьох категорій"} без ${excludedNames.join(", ")}, коефіцієнт кожної дорівнює 1, приведена до того самого максимуму 22,00. Показується лише для конфігурацій, які мають результат у всіх категоріях, що враховуються.`;
+}
+
 /** Tabs shown on the page: the overall view first, then the four categories. */
 export const VIEW_CATEGORIES: readonly KodloBenchCategory[] = [OVERALL, ...CATEGORIES];
 

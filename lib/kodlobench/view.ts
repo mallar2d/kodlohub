@@ -1,4 +1,5 @@
-import { DEFAULT_CATEGORY_ID, isViewCategoryId } from "./categories";
+import { CATEGORIES, DEFAULT_CATEGORY_ID, isViewCategoryId } from "./categories";
+import { withOverall } from "./overall";
 import { metricValue } from "./format";
 import type { PublishedResult, ScatterAxis, SortDir, SortKey } from "./types";
 
@@ -12,6 +13,8 @@ export interface ViewState {
   agents: string[];
   sort: SortKey;
   dir: SortDir;
+  /** Categories left out of the overall total (the index is rescaled to the same maximum). */
+  exclude: string[];
   /** Scatter charts whose X axis is logarithmic. */
   logs: ScatterAxis[];
   onlySelected: boolean;
@@ -31,6 +34,7 @@ export const DEFAULT_VIEW: ViewState = {
   agents: [],
   sort: "score",
   dir: "desc",
+  exclude: [],
   logs: [],
   onlySelected: false,
   slots: [],
@@ -51,8 +55,14 @@ function one(v: string | string[] | undefined): string | undefined {
 }
 
 /** Tolerant parse: unknown or stale values fall back to defaults and never throw. */
-export function parseView(params: RawParams, all: readonly PublishedResult[]): ViewState {
+export function parseView(params: RawParams, published: readonly PublishedResult[]): ViewState {
   const category = isViewCategoryId(one(params.category)) ? (one(params.category) as string) : DEFAULT_CATEGORY_ID;
+  // At least one category must stay counted.
+  const exclude = CATEGORIES.map((c) => c.id)
+    .filter((id) => (one(params.without) ?? "").split(",").includes(id))
+    .slice(0, CATEGORIES.length - 1);
+  // Overall rows depend on the exclusion list, so they are derived here from the published rows.
+  const all = withOverall(published, exclude);
   const inCategory = new Map(all.filter((r) => r.category === category).map((r) => [r.id, r]));
 
   const sort = SORT_KEYS.find((k) => k === one(params.sort)) ?? DEFAULT_VIEW.sort;
@@ -82,6 +92,7 @@ export function parseView(params: RawParams, all: readonly PublishedResult[]): V
     agents: many(params.agent),
     sort,
     dir,
+    exclude,
     logs: SCATTER_AXES.filter((a) => logs.includes(a)),
     onlySelected: one(params.only) === "1" && slots.length > 0,
     slots,
@@ -99,6 +110,7 @@ export function serializeView(v: ViewState): string {
   const defaultDir: SortDir = v.sort === "score" ? "desc" : "asc";
   if (v.sort !== DEFAULT_VIEW.sort) p.set("sort", v.sort);
   if (v.dir !== defaultDir) p.set("dir", v.dir);
+  if (v.exclude.length > 0) p.set("without", v.exclude.join(","));
   if (v.logs.length > 0) p.set("log", v.logs.join(","));
   if (v.onlySelected) p.set("only", "1");
   if (v.slots.some(Boolean)) p.set("sel", v.slots.map((s) => s ?? "").join(","));

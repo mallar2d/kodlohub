@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublishedResult } from "../types";
+import { withOverall } from "../overall";
 import { DEFAULT_VIEW, MAX_SELECTED, parseView, scatterSplit, serializeView, sortResults, toggleSlot, visibleResults } from "../view";
 
 function r(id: string, over: Partial<PublishedResult> = {}): PublishedResult {
@@ -77,5 +78,22 @@ describe("url state", () => {
   });
   it("keeps the default address clean", () => {
     expect(serializeView(DEFAULT_VIEW)).toBe("");
+  });
+
+  it("round-trips the excluded categories and keeps at least one counted", () => {
+    const v = parseView({ without: "pdrbench-pro,bogus" }, []);
+    expect(v.exclude).toEqual(["pdrbench-pro"]);
+    expect(parseView(Object.fromEntries(new URLSearchParams(serializeView(v))), []).exclude).toEqual(["pdrbench-pro"]);
+    const everything = "pdrbench-pro,redotui-bench,utwmr-rec-bench,3dsc-gt-plus";
+    expect(parseView({ without: everything }, []).exclude).toHaveLength(3);
+    expect(serializeView(DEFAULT_VIEW)).toBe("");
+  });
+
+  it("validates selected overall rows against the chosen mode", () => {
+    const cats = ["pdrbench-pro", "redotui-bench", "utwmr-rec-bench", "3dsc-gt-plus"];
+    const noPdr = cats.slice(1).map((c) => r(`x-${c}`, { category: c, model: "OnlyThree" }));
+    const id = withOverall(noPdr, ["pdrbench-pro"]).find((x) => x.category === "overall")!.id;
+    expect(parseView({ category: "overall", sel: id }, noPdr).slots).toEqual([]);
+    expect(parseView({ category: "overall", without: "pdrbench-pro", sel: id }, noPdr).slots).toEqual([id]);
   });
 });
