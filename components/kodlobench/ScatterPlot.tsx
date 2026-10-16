@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useRef } from "react";
-import { CartesianGrid, Label, ResponsiveContainer, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "recharts";
+import { CartesianGrid, Label, ResponsiveContainer, Scatter, ScatterChart, XAxis, YAxis, ZAxis, useChartWidth, usePlotArea, useXAxisScale, useYAxisScale } from "recharts";
 import type { PublishedResult } from "@/lib/kodlobench/types";
 import {
   entryLabel,
@@ -13,6 +13,7 @@ import {
   metricValue,
   METRIC_LABEL,
 } from "@/lib/kodlobench/format";
+import { placeLabels, type LabelInput } from "@/lib/kodlobench/labels";
 import { slotOf } from "@/lib/kodlobench/view";
 import { familyColor } from "./palette";
 
@@ -58,6 +59,76 @@ interface PlotState {
 
 const PlotCtx = createContext<PlotState | null>(null);
 
+const MARKER_R = 9;
+
+/**
+ * Model names next to the points, placed so they do not overlap (see `placeLabels`). Hovered and
+ * selected points are labelled first, then higher scores; a label that fits nowhere is left out
+ * (its point still shows the name on hover and in the readout under the chart).
+ */
+function PointLabels({ pts }: { pts: Point[] }) {
+  const st = useContext(PlotCtx);
+  const xs = useXAxisScale();
+  const ys = useYAxisScale();
+  const area = usePlotArea();
+  const chartWidth = useChartWidth();
+
+  const placed = useMemo(() => {
+    if (!st || !xs || !ys || !area) return null;
+    const inputs: (LabelInput & { rank: number; score: number })[] = [];
+    for (const p of pts) {
+      const r = st.byId.get(p.id);
+      const px = xs(p.x);
+      const py = ys(p.y);
+      if (!r || typeof px !== "number" || typeof py !== "number") continue;
+      const slot = slotOf(st.slots, p.id);
+      inputs.push({
+        id: p.id,
+        x: px,
+        y: py,
+        r: MARKER_R,
+        text: r.config ? `${r.model} (${r.config})` : r.model,
+        rank: st.hoverId === p.id ? 0 : slot !== -1 ? 1 : 2,
+        score: p.y,
+      });
+    }
+    inputs.sort((a, b) => a.rank - b.rank || b.score - a.score || a.id.localeCompare(b.id));
+    return {
+      inputs,
+      map: placeLabels(inputs, { left: area.x - 2, top: area.y - 8, right: (chartWidth ?? area.x + area.width) - 4, bottom: area.y + area.height + 2 }),
+    };
+  }, [st, xs, ys, area, chartWidth, pts]);
+
+  if (!st || !placed) return null;
+  const hasSelection = st.slots.some(Boolean);
+  return (
+    <g aria-hidden="true" pointerEvents="none">
+      {placed.inputs.map((p) => {
+        const l = placed.map.get(p.id);
+        if (!l) return null;
+        const emphasis = p.rank < 2;
+        return (
+          <text
+            key={p.id}
+            x={l.x}
+            y={l.y}
+            textAnchor={l.anchor}
+            fontSize={11}
+            fontWeight={emphasis ? 700 : 400}
+            fill={emphasis ? "var(--on-primary)" : "var(--on-primary-mute)"}
+            opacity={hasSelection && !emphasis ? 0.55 : 1}
+            stroke="var(--canvas-night)"
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
+            {p.text}
+          </text>
+        );
+      })}
+    </g>
+  );
+}
+
 /**
  * Module-level component with a stable identity, so hovering or focusing a point
  * never remounts it (a remount would drop keyboard focus and the hover state).
@@ -83,18 +154,9 @@ function PointShape({ cx, cy, payload }: PointProps) {
   const marks = (
     <>
       {hot && <circle cx={cx} cy={cy} r={11} fill="none" stroke="var(--on-primary)" strokeWidth={1.5} />}
-      <circle cx={cx} cy={cy} r={selected ? 7 : 5} fill={fill} stroke="var(--canvas-night)" strokeWidth={2} opacity={dim ? 0.4 : 1} />
+      <circle cx={cx} cy={cy} r={selected ? 9 : 5} fill={fill} stroke="var(--canvas-night)" strokeWidth={2} opacity={dim ? 0.4 : 1} />
       {selected && (
-        <text
-          x={cx + 12}
-          y={cy + 4}
-          fontSize={11}
-          fontWeight={700}
-          fill="var(--on-primary)"
-          stroke="var(--canvas-night)"
-          strokeWidth={3}
-          paintOrder="stroke"
-        >
+        <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize={10} fontWeight={800} fill="var(--canvas-night)">
           {slot + 1}
         </text>
       )}
@@ -144,7 +206,7 @@ function PointShape({ cx, cy, payload }: PointProps) {
 
 const TICK = { fill: "var(--ink-mute)", fontSize: 11 };
 // Module-level constants: Recharts re-registers its series (and remounts every mark) when a prop's identity changes.
-const MARGIN = { top: 12, right: 24, bottom: 28, left: 4 };
+const MARGIN = { top: 12, right: 16, bottom: 28, left: 4 };
 const DOMAIN_LOG: ["auto", "auto"] = ["auto", "auto"];
 const DOMAIN_LINEAR: [number, "auto"] = [0, "auto"];
 const DOMAIN_Y: ["auto", "auto"] = ["auto", "auto"];
@@ -214,6 +276,7 @@ export default function ScatterPlot({ rows, xKey, log, slots, hoverId, onHover, 
             domain={log ? DOMAIN_LOG : DOMAIN_LINEAR}
             tick={TICK}
             tickFormatter={fmtX}
+            tickMargin={8}
             stroke="var(--hairline-dark)"
             allowDataOverflow={false}
           >
@@ -232,6 +295,7 @@ export default function ScatterPlot({ rows, xKey, log, slots, hoverId, onHover, 
           <ZAxis range={Z_RANGE} />
           <Scatter data={base} shape={PointShape as never} isAnimationActive={false} />
           <Scatter data={top} shape={PointShape as never} isAnimationActive={false} legendType="none" />
+          <PointLabels pts={base} />
         </ScatterChart>
       </ResponsiveContainer>
     ),

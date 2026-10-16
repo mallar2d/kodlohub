@@ -1,6 +1,6 @@
 import { DEFAULT_CATEGORY_ID, isViewCategoryId } from "./categories";
 import { metricValue } from "./format";
-import type { ChartView, PublishedResult, SortDir, SortKey } from "./types";
+import type { PublishedResult, ScatterAxis, SortDir, SortKey } from "./types";
 
 export const MAX_SELECTED = 8;
 
@@ -12,8 +12,8 @@ export interface ViewState {
   agents: string[];
   sort: SortKey;
   dir: SortDir;
-  chart: ChartView;
-  log: boolean;
+  /** Scatter charts whose X axis is logarithmic. */
+  logs: ScatterAxis[];
   onlySelected: boolean;
   /**
    * Fixed colour slots. Index = slot (0..7), value = result id or null for a free slot.
@@ -31,15 +31,14 @@ export const DEFAULT_VIEW: ViewState = {
   agents: [],
   sort: "score",
   dir: "desc",
-  chart: "bars",
-  log: false,
+  logs: [],
   onlySelected: false,
   slots: [],
   openId: null,
 };
 
 const SORT_KEYS: SortKey[] = ["model", "agent", "config", "score", "time", "tokens", "cost"];
-const CHART_VIEWS: ChartView[] = ["bars", "cost", "time", "tokens"];
+const SCATTER_AXES: ScatterAxis[] = ["cost", "time", "tokens"];
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -59,7 +58,9 @@ export function parseView(params: RawParams, all: readonly PublishedResult[]): V
   const sort = SORT_KEYS.find((k) => k === one(params.sort)) ?? DEFAULT_VIEW.sort;
   const dirRaw = one(params.dir);
   const dir: SortDir = dirRaw === "asc" || dirRaw === "desc" ? dirRaw : sort === "score" ? "desc" : "asc";
-  const chart = CHART_VIEWS.find((c) => c === one(params.chart)) ?? "bars";
+  const logs = (one(params.log) ?? "")
+    .split(",")
+    .filter((a): a is ScatterAxis => SCATTER_AXES.includes(a as ScatterAxis));
 
   const slots: (string | null)[] = [];
   const used = new Set<string>();
@@ -81,8 +82,7 @@ export function parseView(params: RawParams, all: readonly PublishedResult[]): V
     agents: many(params.agent),
     sort,
     dir,
-    chart,
-    log: one(params.log) === "1",
+    logs: SCATTER_AXES.filter((a) => logs.includes(a)),
     onlySelected: one(params.only) === "1" && slots.length > 0,
     slots,
     openId: open && inCategory.has(open) ? open : null,
@@ -99,8 +99,7 @@ export function serializeView(v: ViewState): string {
   const defaultDir: SortDir = v.sort === "score" ? "desc" : "asc";
   if (v.sort !== DEFAULT_VIEW.sort) p.set("sort", v.sort);
   if (v.dir !== defaultDir) p.set("dir", v.dir);
-  if (v.chart !== "bars") p.set("chart", v.chart);
-  if (v.log) p.set("log", "1");
+  if (v.logs.length > 0) p.set("log", v.logs.join(","));
   if (v.onlySelected) p.set("only", "1");
   if (v.slots.some(Boolean)) p.set("sel", v.slots.map((s) => s ?? "").join(","));
   if (v.openId) p.set("open", v.openId);

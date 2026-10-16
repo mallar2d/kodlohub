@@ -3,6 +3,7 @@
 import type { PublishedResult, SortDir, SortKey } from "@/lib/kodlobench/types";
 import { entryLabel, FAILED, formatCost, formatDuration, formatScore, formatTokens, formatTokensFull } from "@/lib/kodlobench/format";
 import { slotOf } from "@/lib/kodlobench/view";
+import FamilyLogo from "./FamilyLogo";
 import { AlertMark, NoDataText } from "./Notices";
 import { familyColor } from "./palette";
 
@@ -111,6 +112,7 @@ export default function ResultsTable({
                       >
                         {selected ? slot + 1 : ""}
                       </button>
+                      <FamilyLogo model={r.model} size={15} className="text-on-primary-mute" />
                       <button
                         type="button"
                         onClick={() => onOpen(r.id)}

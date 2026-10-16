@@ -63,17 +63,17 @@ describe("scatterSplit", () => {
 describe("url state", () => {
   const all = [r("a"), r("b")];
   it("round-trips and drops unknown ids", () => {
-    const v = parseView({ category: "pdrbench-pro", sel: "a,,ghost,b", sort: "cost", chart: "time", model: ["X", "Y"], only: "1" }, all);
+    const v = parseView({ category: "pdrbench-pro", sel: "a,,ghost,b", sort: "cost", log: "tokens,bogus,cost", model: ["X", "Y"], only: "1" }, all);
     expect(v.slots).toEqual(["a", null, null, "b"]);
     expect(v.sort).toBe("cost");
     expect(v.models).toEqual(["X", "Y"]);
     const again = parseView(Object.fromEntries(new URLSearchParams(serializeView(v))), all);
     expect(again.slots).toEqual(v.slots);
-    expect(again.chart).toBe("time");
+    expect(again.logs).toEqual(["cost", "tokens"]);
   });
   it("falls back to defaults on garbage", () => {
-    const v = parseView({ category: "zzz", sort: "zzz", dir: "x", chart: "zzz", only: "1" }, all);
-    expect(v).toMatchObject({ category: "overall", sort: "score", dir: "desc", chart: "bars", onlySelected: false });
+    const v = parseView({ category: "zzz", sort: "zzz", dir: "x", log: "zzz", only: "1" }, all);
+    expect(v).toMatchObject({ category: "overall", sort: "score", dir: "desc", logs: [], onlySelected: false });
   });
   it("keeps the default address clean", () => {
     expect(serializeView(DEFAULT_VIEW)).toBe("");
