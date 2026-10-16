@@ -82,4 +82,5 @@ export type LoadResult =
 export type MetricKey = "score" | "cost" | "time" | "tokens";
 export type SortKey = "model" | "agent" | "config" | "score" | "time" | "tokens" | "cost";
 export type SortDir = "asc" | "desc";
-export type ChartView = "bars" | "cost" | "time" | "tokens";
+/** X axes of the score scatter charts. */
+export type ScatterAxis = "cost" | "time" | "tokens";

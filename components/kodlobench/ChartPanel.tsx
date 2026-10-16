@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import type { ChartView, PublishedResult } from "@/lib/kodlobench/types";
-import { entryLabel, formatCost, formatDuration, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
+import { OVERALL_ID, getCategory, scoreMaxFor } from "@/lib/kodlobench/categories";
+import { entryLabel, formatCost, formatDuration, formatScore, formatTokensFull, scoreText } from "@/lib/kodlobench/format";
+import type { PublishedResult, ScatterAxis } from "@/lib/kodlobench/types";
 import { scatterSplit } from "@/lib/kodlobench/view";
 import FamilyLegend from "./FamilyLegend";
-import ScoreBars from "./ScoreBars";
 import { ChartSkeleton } from "./Notices";
+import ScoreColumns from "./ScoreColumns";
 
 // Recharts is heavy and browser-only: load it on demand, with a skeleton while it arrives.
 const ScatterPlot = dynamic(() => import("./ScatterPlot"), {
@@ -15,18 +16,16 @@ const ScatterPlot = dynamic(() => import("./ScatterPlot"), {
   loading: () => <ChartSkeleton />,
 });
 
-const VIEWS: { key: ChartView; label: string }[] = [
-  { key: "bars", label: "Бали" },
-  { key: "cost", label: "Бал і вартість" },
-  { key: "time", label: "Бал і час" },
-  { key: "tokens", label: "Бал і токени" },
+const SCATTERS: { axis: ScatterAxis; title: string; need: string }[] = [
+  { axis: "cost", title: "Бал і вартість", need: "вартість" },
+  { axis: "time", title: "Бал і час", need: "час" },
+  { axis: "tokens", title: "Бал і токени", need: "токени" },
 ];
 
 interface Props {
-  view: ChartView;
-  onView: (v: ChartView) => void;
-  log: boolean;
-  onLog: (v: boolean) => void;
+  categoryId: string;
+  logs: ScatterAxis[];
+  onToggleLog: (axis: ScatterAxis) => void;
   rows: PublishedResult[];
   slots: (string | null)[];
   hoverId: string | null;
@@ -56,104 +55,93 @@ function Readout({ r, currency }: { r: PublishedResult | undefined; currency: st
   );
 }
 
-export default function ChartPanel({ view, onView, log, onLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+function Card({ title, sub, aside, children }: { title: string; sub?: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="card-dark p-4 sm:p-6 space-y-4" aria-label={title}>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight text-on-primary">{title}</h2>
+          {sub && <p className="text-xs text-ink-mute mt-1 max-w-2xl">{sub}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * All charts at once, one under another: the score columns first, then score against cost, time
+ * and tokens. They share one selection and one highlight, so a model picked or hovered in any of
+ * them is picked and highlighted in all the others and in the table.
+ */
+export default function ChartPanel({ categoryId, logs, onToggleLog, rows, slots, hoverId, onHover, onToggle, currency }: Props) {
   const hovered = hoverId ? rows.find((r) => r.id === hoverId) : undefined;
+  const isOverall = categoryId === OVERALL_ID;
+  const categoryName = getCategory(categoryId)?.name ?? "";
+  const max = formatScore(scoreMaxFor(categoryId), categoryId);
 
-  function onKeyDown(e: React.KeyboardEvent, i: number) {
-    let n = i;
-    if (e.key === "ArrowRight") n = (i + 1) % VIEWS.length;
-    else if (e.key === "ArrowLeft") n = (i - 1 + VIEWS.length) % VIEWS.length;
-    else if (e.key === "Home") n = 0;
-    else if (e.key === "End") n = VIEWS.length - 1;
-    else return;
-    e.preventDefault();
-    tabRefs.current[n]?.focus();
-    onView(VIEWS[n].key);
-  }
+  const splits = useMemo(
+    () => Object.fromEntries(SCATTERS.map((s) => [s.axis, scatterSplit(rows, s.axis, logs.includes(s.axis))])) as Record<ScatterAxis, ReturnType<typeof scatterSplit>>,
+    [rows, logs],
+  );
 
-  const xKey = view === "bars" ? null : view;
-  const split = useMemo(() => (xKey ? scatterSplit(rows, xKey, log) : null), [rows, xKey, log]);
-  const barsMissing = view === "bars" ? rows.filter((r) => r.score === null && r.status !== "failed").length : 0;
-  const barsFailed = view === "bars" ? rows.filter((r) => r.status === "failed").length : 0;
+  const noData = rows.filter((r) => r.score === null && r.status !== "failed").length;
+  const failed = rows.filter((r) => r.status === "failed").length;
 
   return (
-    <section className="card-dark p-4 sm:p-6 space-y-4" aria-label="Графіки">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div role="tablist" aria-label="Вид графіка" className="flex flex-wrap gap-1">
-          {VIEWS.map((v, i) => {
-            const active = v.key === view;
-            return (
-              <button
-                key={v.key}
-                ref={(el) => {
-                  tabRefs.current[i] = el;
-                }}
-                role="tab"
-                id={`kb-chart-tab-${v.key}`}
-                aria-selected={active}
-                aria-controls="kb-chart-panel"
-                tabIndex={active ? 0 : -1}
-                onClick={() => onView(v.key)}
-                onKeyDown={(e) => onKeyDown(e, i)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-primary ${
-                  active ? "bg-on-primary text-ink" : "text-on-primary-mute hover:text-on-primary hover:bg-white/[0.06]"
-                }`}
-              >
-                {v.label}
-              </button>
-            );
-          })}
-        </div>
-        {xKey && (
-          <label className="inline-flex items-center gap-2 text-xs text-on-primary-mute cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={log}
-              onChange={(e) => onLog(e.target.checked)}
-              className="accent-[var(--theme-accent)]"
-            />
-            Логарифмічна шкала осі X
-          </label>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Card
+        title={isOverall ? "KodloBench Intelligence Index" : `${categoryName}: бали`}
+        sub={isOverall ? `Сума балів чотирьох категорій, максимум ${max}.` : `Опублікований бал, максимум ${max}.`}
+      >
+        <FamilyLegend rows={rows} />
+        <ScoreColumns rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} categoryId={categoryId} />
+        {failed > 0 && <p className="text-xs text-ink-mute">Не пройшли тест: {failed}. Балу в них немає, вони позначені «Не пройдено».</p>}
+        {noData > 0 && <p className="text-xs text-ink-mute">Записів без опублікованого балу: {noData}. Їх позначено «Немає даних».</p>}
+        <Readout r={hovered} currency={currency} />
+      </Card>
 
-      <FamilyLegend rows={rows} />
-
-      <div id="kb-chart-panel" role="tabpanel" aria-labelledby={`kb-chart-tab-${view}`}>
-        {view === "bars" ? (
-          <ScoreBars rows={rows} slots={slots} hoverId={hoverId} onHover={onHover} onToggle={onToggle} />
-        ) : split && split.plotted.length > 0 ? (
-          <ScatterPlot
-            rows={split.plotted}
-            xKey={view as "cost" | "time" | "tokens"}
-            log={log}
-            slots={slots}
-            hoverId={hoverId}
-            onHover={onHover}
-            onToggle={onToggle}
-            currency={currency}
-          />
-        ) : (
-          <div className="py-16 text-center text-sm text-on-primary-mute" role="status">
-            Немає даних для цього графіка: потрібні і бал, і {view === "cost" ? "вартість" : view === "time" ? "час" : "токени"}.
-          </div>
-        )}
-      </div>
-
-      {split && split.missing > 0 && split.plotted.length > 0 && (
-        <p className="text-xs text-ink-mute">
-          Не показано записів: {split.missing}. Для них немає даних{log ? " (або значення не додатне для логарифмічної шкали)" : ""}; вони доступні в таблиці.
-        </p>
-      )}
-      {barsFailed > 0 && (
-        <p className="text-xs text-ink-mute">Не пройшли тест: {barsFailed}. Балу в них немає, вони позначені «Не пройдено».</p>
-      )}
-      {barsMissing > 0 && (
-        <p className="text-xs text-ink-mute">Записів без опублікованого балу: {barsMissing}. Їх позначено «Немає даних».</p>
-      )}
-
-      <Readout r={hovered} currency={currency} />
-    </section>
+      {SCATTERS.map(({ axis, title, need }) => {
+        const split = splits[axis];
+        const log = logs.includes(axis);
+        return (
+          <Card
+            key={axis}
+            title={title}
+            sub={`Кожна точка — один запис; підписи показують модель. Потрібні і бал, і ${need}.`}
+            aside={
+              <label className="inline-flex items-center gap-2 text-xs text-on-primary-mute cursor-pointer select-none shrink-0">
+                <input type="checkbox" checked={log} onChange={() => onToggleLog(axis)} className="accent-[var(--theme-accent)]" />
+                Логарифмічна шкала осі X
+              </label>
+            }
+          >
+            {split.plotted.length > 0 ? (
+              <ScatterPlot
+                rows={split.plotted}
+                xKey={axis}
+                log={log}
+                slots={slots}
+                hoverId={hoverId}
+                onHover={onHover}
+                onToggle={onToggle}
+                currency={currency}
+              />
+            ) : (
+              <div className="py-16 text-center text-sm text-on-primary-mute" role="status">
+                Немає даних для цього графіка: потрібні і бал, і {need}.
+              </div>
+            )}
+            {split.missing > 0 && split.plotted.length > 0 && (
+              <p className="text-xs text-ink-mute">
+                Не показано записів: {split.missing}. Для них немає даних{log ? " (або значення не додатне для логарифмічної шкали)" : ""}; вони доступні в таблиці.
+              </p>
+            )}
+            <Readout r={hovered} currency={currency} />
+          </Card>
+        );
+      })}
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getCategory, OVERALL_ID, VIEW_CATEGORIES } from "@/lib/kodlobench/categories";
 import { formatDate } from "@/lib/kodlobench/format";
-import type { ChartView, LoadResult, PublishedResult, SortKey } from "@/lib/kodlobench/types";
+import type { LoadResult, PublishedResult, ScatterAxis, SortKey } from "@/lib/kodlobench/types";
 import {
   DEFAULT_VIEW,
   MAX_SELECTED,
@@ -97,8 +97,8 @@ export default function KodloBenchClient({ data, initialView }: Props) {
     if (id === view.category) return;
     setHoverId(null);
     setFull(false);
-    // Selections and filters belong to a category; chart choice carries over.
-    commit({ ...DEFAULT_VIEW, category: id, chart: view.chart, log: view.log }, "push");
+    // Selections and filters belong to a category; the log-scale choices carry over.
+    commit({ ...DEFAULT_VIEW, category: id, logs: view.logs }, "push");
   }
 
   const openResult = view.openId ? (byId.get(view.openId) ?? null) : null;
@@ -183,10 +183,11 @@ export default function KodloBenchClient({ data, initialView }: Props) {
             ) : (
               <>
                 <ChartPanel
-                  view={view.chart}
-                  onView={(chart: ChartView) => commit({ chart })}
-                  log={view.log}
-                  onLog={(log) => commit({ log })}
+                  categoryId={view.category}
+                  logs={view.logs}
+                  onToggleLog={(axis: ScatterAxis) =>
+                    commit({ logs: view.logs.includes(axis) ? view.logs.filter((a) => a !== axis) : [...view.logs, axis] })
+                  }
                   rows={visible}
                   slots={view.slots}
                   hoverId={hoverId}
