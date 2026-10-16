@@ -758,6 +758,7 @@ input[type="number"] {
   --kb-fam-gemini: #8e75ff;
   --kb-fam-mistral: #f2b01e;
   --kb-fam-deepseek: #22b8cf;
+  --kb-fam-muse: #f0529c;
   --kb-fam-other: #7d8187;
 }
 
@@ -769,6 +770,7 @@ html[data-theme="sadochok"] {
   --kb-fam-gemini: #6d4fe0;
   --kb-fam-mistral: #b7791f;
   --kb-fam-deepseek: #0891b2;
+  --kb-fam-muse: #c2185b;
   --kb-fam-other: #5a735c;
 }
 
