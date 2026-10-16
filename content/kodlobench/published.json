@@ -6,7 +6,7 @@
     {
       "id": "gpt-6-luna-codex-cli-high-pdrbench-pro",
       "category": "pdrbench-pro",
-      "model": "gpt-6-luna",
+      "model": "GPT-6 Luna",
       "agent": "Codex CLI",
       "config": "high",
       "score": 267,
@@ -41,7 +41,7 @@
     {
       "id": "gpt-6-luna-codex-cli-high-redotui-bench",
       "category": "redotui-bench",
-      "model": "gpt-6-luna",
+      "model": "GPT-6 Luna",
       "agent": "Codex CLI",
       "config": "high",
       "score": 295,
@@ -76,7 +76,7 @@
     {
       "id": "gpt-6-luna-codex-cli-high-utwmr-rec-bench",
       "category": "utwmr-rec-bench",
-      "model": "gpt-6-luna",
+      "model": "GPT-6 Luna",
       "agent": "Codex CLI",
       "config": "high",
       "score": 220,
@@ -111,7 +111,7 @@
     {
       "id": "gpt-6-luna-codex-cli-high-3dsc-gt-plus",
       "category": "3dsc-gt-plus",
-      "model": "gpt-6-luna",
+      "model": "GPT-6 Luna",
       "agent": "Codex CLI",
       "config": "high",
       "score": 180,
@@ -146,7 +146,7 @@
     {
       "id": "zai-glm-5-3-mistral-vibe-high-novision-pdrbench-pro",
       "category": "pdrbench-pro",
-      "model": "zai-glm-5-3",
+      "model": "GLM 5.3",
       "agent": "Mistral Vibe",
       "config": "high · без Vision",
       "score": 450,
@@ -177,7 +177,7 @@
     {
       "id": "zai-glm-5-3-mistral-vibe-high-novision-redotui-bench",
       "category": "redotui-bench",
-      "model": "zai-glm-5-3",
+      "model": "GLM 5.3",
       "agent": "Mistral Vibe",
       "config": "high · без Vision",
       "score": 250,
@@ -208,7 +208,7 @@
     {
       "id": "zai-glm-5-3-mistral-vibe-high-novision-utwmr-rec-bench",
       "category": "utwmr-rec-bench",
-      "model": "zai-glm-5-3",
+      "model": "GLM 5.3",
       "agent": "Mistral Vibe",
       "config": "high · без Vision",
       "score": 380,
@@ -239,7 +239,7 @@
     {
       "id": "zai-glm-5-3-mistral-vibe-high-novision-3dsc-gt-plus",
       "category": "3dsc-gt-plus",
-      "model": "zai-glm-5-3",
+      "model": "GLM 5.3",
       "agent": "Mistral Vibe",
       "config": "high · без Vision",
       "score": 320,
@@ -270,7 +270,7 @@
     {
       "id": "grok-4-7-grok-cli-high-pdrbench-pro",
       "category": "pdrbench-pro",
-      "model": "grok-4.7",
+      "model": "Grok 4.7",
       "agent": "Grok CLI",
       "config": "high",
       "score": 359,
@@ -304,7 +304,7 @@
     {
       "id": "grok-4-7-grok-cli-high-redotui-bench",
       "category": "redotui-bench",
-      "model": "grok-4.7",
+      "model": "Grok 4.7",
       "agent": "Grok CLI",
       "config": "high",
       "score": 50,
@@ -340,7 +340,7 @@
     {
       "id": "grok-4-7-grok-cli-high-utwmr-rec-bench",
       "category": "utwmr-rec-bench",
-      "model": "grok-4.7",
+      "model": "Grok 4.7",
       "agent": "Grok CLI",
       "config": "high",
       "score": 0,
@@ -375,7 +375,7 @@
     {
       "id": "grok-4-7-grok-cli-high-3dsc-gt-plus",
       "category": "3dsc-gt-plus",
-      "model": "grok-4.7",
+      "model": "Grok 4.7",
       "agent": "Grok CLI",
       "config": "high",
       "score": 0,
